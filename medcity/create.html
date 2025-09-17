@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Roboto:wght@400;700&display=swap">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.1/css/all.css">
+  <link rel="stylesheet" href="assets/css/libraries.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<header class="header header-layout1">
+      <div class="header-topbar">
+        <div class="container-fluid">
+          <div class="row align-items-center">
+            <div class="col-12">
+              <div class="d-flex align-items-center justify-content-between">
+                <ul class="contact__list d-flex flex-wrap align-items-center list-unstyled mb-0">
+                  <li>
+                    <button class="miniPopup-emergency-trigger" type="button">24/7 Emergency</button>
+                    <div id="miniPopup-emergency" class="miniPopup miniPopup-emergency text-center">
+                      <div class="emergency__icon">
+                        <i class="icon-call3"></i>
+                      </div>
+                      <a href="tel:+201061245741" class="phone__number">
+                        <i class="icon-phone"></i> <span>+2 01061245741</span>
+                      </a>
+                      <p>Please feel free to contact our friendly reception staff with any general or medical enquiry.
+                      </p>
+                      <a href="appointment.html" class="btn btn__secondary btn__link btn__block">
+                        <span>Make Appointment</span> <i class="icon-arrow-right"></i>
+                      </a>
+                    </div><!-- /.miniPopup-emergency -->
+                  </li>
+                  <li>
+                    <i class="icon-phone"></i><a href="tel:+5565454117">Emergency Line:9219******</a>
+                  </li>
+                  <li>
+                    <i class="icon-location"></i><a href="#">Location: Gr. Noida, India</a>
+                  </li>
+                  <li>
+                    <i class="icon-clock"></i><a href="contact-us.html">Mon - Fri: 8:00 am - 7:00 pm</a>
+                  </li>
+                </ul><!-- /.contact__list -->
+                <div class="d-flex">
+                  <ul class="social-icons list-unstyled mb-0 mr-30">
+                    <li><a href="#"><i class="fab fa-facebook-f"></i></a></li>
+                    <li><a href="#"><i class="fab fa-instagram"></i></a></li>
+                    <li><a href="#"><i class="fab fa-twitter"></i></a></li>
+                  </ul><!-- /.social-icons -->
+                  <form class="header-topbar__search">
+                    <input type="text" class="form-control" placeholder="Search...">
+                    <button class="header-topbar__search-btn"><i class="fa fa-search"></i></button>
+                  </form>
+                </div>
+              </div>
+            </div><!-- /.col-12 -->
+          </div><!-- /.row -->
+        </div><!-- /.container -->
+      </div><!-- /.header-top -->
+<body>
+    <section class="sub-banner-main-con w-100 float-left" 
+         style="height: 100vh; display: flex; justify-content: center; align-items: center; background: url('https://t3.ftcdn.net/jpg/01/79/29/18/360_F_179291869_9JMeUh8vbcQW7GTiXt0bkZwSowwAHW4H.jpg') no-repeat center center/cover; padding: 0; margin: 0;">
+    
+    <div class="container" style="width: 100%; max-width: 400px;">
+        <div class="sub-banner-inner-con wow fadeInUp" data-wow-duration="1s" data-wow-delay="0.3s" 
+             style="background: rgba(255, 255, 255, 0.9); padding: 1px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); width: 100%; text-align: center; transition: all 0.3s ease;">
+            
+            <h2 style="margin-bottom: 15px; font-weight: 600; color: #333; font-size: 24px; transition: color 0.3s;">Create Account</h2>
+            <p style="font-size: 14px; color: #666; margin-bottom: 25px;">Sign up using your email or phone number</p>
+
+            <form>
+                <div class="input-group" style="text-align: left; margin-bottom: 20px;">
+                    <label for="name" style="font-size: 14px; font-weight: 500; color: #333;">Full Name</label>
+                    <input type="text" id="name" name="name" placeholder="John Doe" required 
+                           style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; transition: border 0.3s ease;">
+                </div>
+
+                <div class="input-group" style="text-align: left; margin-bottom: 20px;">
+                    <label for="email" style="font-size: 14px; font-weight: 500; color: #333;">Email or Phone</label>
+                    <input type="text" id="email" name="email" placeholder="you@example.com or 1234567890" required 
+                           style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; transition: border 0.3s ease;">
+                </div>
+
+                <div class="input-group" style="text-align: left; margin-bottom: 20px;">
+                    <label for="password" style="font-size: 14px; font-weight: 500; color: #333;">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Create a password" required 
+                           style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; transition: border 0.3s ease;">
+                </div>
+
+                <div class="input-group" style="text-align: left; margin-bottom: 20px;">
+                    <label for="confirm_password" style="font-size: 14px; font-weight: 500; color: #333;">Confirm Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required 
+                           style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; transition: border 0.3s ease;">
+                </div>
+
+                <div class="forgot-password" style="text-align: right; margin-bottom: 20px;">
+                    <a href="login.html" style="font-size: 13px; color: #007bff; text-decoration: none; transition: color 0.3s ease;">Already have an account?</a>
+                </div>
+
+                <button type="submit" class="register-btn" 
+                        style="width: 100%; background: #007BFF; color: white; padding: 12px; font-size: 14px; border: none; border-radius: 6px; cursor: pointer; transition: background 0.3s ease;">
+                    Create Account
+                </button>
+
+                <div class="social-login" style="margin-top: 20px;">
+                    <button type="button" class="google-btn" 
+                            style="width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; background: #dd4b39; color: white; margin-bottom: 10px; transition: background 0.3s ease;">
+                        Sign up with Google
+                    </button>
+                    <button type="button" class="linkedin-btn" 
+                            style="width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; background: #0077b5; color: white; transition: background 0.3s ease;">
+                        Sign up with LinkedIn
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+</body>
+</html>
+
+

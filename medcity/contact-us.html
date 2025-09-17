@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Doctor Consultation</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: url('https://images.unsplash.com/photo-1579154204601-01588f351e85') no-repeat center center fixed;
+      background-size: cover;
+      color: #fff;
+    }
+
+    header {
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      text-align: center;
+    }
+
+    header img {
+      width: 50px;
+      vertical-align: middle;
+    }
+
+    header h1 {
+      display: inline-block;
+      margin-left: 10px;
+      font-size: 28px;
+      color: #00e6e6;
+      vertical-align: middle;
+    }
+
+    form, .payment-section, .video-section, .audio-section {
+      background-color: rgba(0, 0, 0, 0.6);
+      max-width: 520px;
+      margin: 20px auto;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px #00e6e6;
+    }
+
+    input, select, textarea, button {
+      display: block;
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      font-size: 15px;
+    }
+
+    button {
+      background-color: #00e6e6;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #responseMessage {
+      text-align: center;
+      font-size: 18px;
+      color: #00ffcc;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .qr-img {
+      width: 150px;
+      margin: 10px auto;
+      display: block;
+    }
+
+    .countdown {
+      text-align: center;
+      font-size: 20px;
+      margin-top: 10px;
+      color: #fff;
+    }
+
+    .card-details input {
+      background: #fff;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="https://cdn-icons-png.flaticon.com/512/891/891419.png" alt="logo">
+  <h1>AI Doctor Connect</h1>
+</header>
+
+<form id="healthConcernForm">
+  <h2>Contact a Doctor</h2>
+  <input type="text" name="fullName" placeholder="Full Name" required>
+  <input type="number" name="age" placeholder="Age" required>
+  <select name="gender" required>
+    <option disabled selected>Select Gender</option>
+    <option>Male</option>
+    <option>Female</option>
+    <option>Other</option>
+  </select>
+  <input type="tel" name="contact" placeholder="Contact Number" required>
+  <select name="issueType" required>
+    <option disabled selected>Type of Issue</option>
+    <option>General</option>
+    <option>Skin</option>
+    <option>Mental Health</option>
+    <option>Emergency</option>
+  </select>
+  <textarea name="problemDescription" placeholder="Describe your problem..." rows="4" required></textarea>
+
+  <label>Preferred Mode:</label>
+  <label><input type="radio" name="mode" value="Video" required> Video</label>
+  <label><input type="radio" name="mode" value="Audio" required> Audio</label>
+
+  <label>Preferred Doctor:</label>
+  <select name="doctorPreference">
+    <option disabled selected>Select a Doctor</option>
+    <option>Dr. Sharma</option>
+    <option>Dr. Mehta</option>
+    <option>Dr. Khan</option>
+  </select>
+
+  <input type="file" name="report" accept=".jpg,.pdf,.png">
+
+  <!-- Payment Section -->
+  <div class="payment-section">
+    <h3>Payment</h3>
+    <select id="paymentMethod" required>
+      <option disabled selected>Select Payment Method</option>
+      <option value="upi">UPI</option>
+      <option value="card">Credit/Debit Card</option>
+    </select>
+
+    <!-- UPI Section -->
+    <div id="upiSection" class="hidden">
+      <input type="text" id="upiId" placeholder="Enter UPI ID">
+      <img class="qr-img" id="qrImage" src="c:\Users\Anshuman singh\OneDrive\Desktop\WhatsApp Image 2025-04-05 at 00.58.01_e21238cf.jpg" alt="QR Code">
+    </div>
+
+    <!-- Card Details -->
+    <div id="cardSection" class="card-details hidden">
+      <input type="text" id="cardNumber" placeholder="Card Number (16 digits)">
+      <input type="text" id="cardName" placeholder="Name on Card">
+      <input type="text" id="expiryDate" placeholder="Expiry (MM/YY)">
+      <input type="password" id="cvv" placeholder="CVV (3 digits)">
+    </div>
+  </div>
+
+  <button type="submit">Submit</button>
+</form>
+
+<div id="responseMessage" class="hidden">Your form has been submitted successfully!</div>
+
+<!-- Video Call Section -->
+<div class="video-section hidden">
+  <h3><img src="https://cdn-icons-png.flaticon.com/512/2950/2950653.png" width="30"> Join Video Call</h3>
+  <p>Click the link below to join your video consultation:</p>
+  <a href="https://meet.google.com/new" target="_blank">Join Video Call</a>
+  <div class="countdown" id="videoCountdown"></div>
+</div>
+
+<!-- Audio Call Section -->
+<div class="audio-section hidden">
+  <h3><img src="https://cdn-icons-png.flaticon.com/512/724/724664.png" width="30"> Join Audio Call</h3>
+  <p>We will contact you via phone. Please keep your phone nearby.</p>
+  <div class="countdown" id="audioCountdown"></div>
+</div>
+
+<script>
+  const form = document.getElementById('healthConcernForm');
+  const responseMessage = document.getElementById('responseMessage');
+  const paymentMethod = document.getElementById('paymentMethod');
+  const upiSection = document.getElementById('upiSection');
+  const cardSection = document.getElementById('cardSection');
+  const upiIdInput = document.getElementById('upiId');
+  const qrImage = document.getElementById('qrImage');
+  const videoSection = document.querySelector('.video-section');
+  const audioSection = document.querySelector('.audio-section');
+
+  paymentMethod.addEventListener('change', () => {
+    if (paymentMethod.value === 'upi') {
+      upiSection.classList.remove('hidden');
+      cardSection.classList.add('hidden');
+      qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?data=upi://pay?pa=demo@upi&am=100&tn=DoctorConsult&size=150x150`;
+    } else if (paymentMethod.value === 'card') {
+      cardSection.classList.remove('hidden');
+      upiSection.classList.add('hidden');
+    }
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const selectedMode = form.querySelector('input[name="mode"]:checked').value;
+
+    // Validate payment
+    if (paymentMethod.value === 'upi') {
+      const upi = upiIdInput.value.trim();
+      if (!/^[\w.-]+@[\w]+$/.test(upi)) {
+        alert("Please enter a valid UPI ID (e.g., name@upi)");
+        return;
+      }
+    } else if (paymentMethod.value === 'card') {
+      const cardNum = document.getElementById('cardNumber').value.trim();
+      const cardName = document.getElementById('cardName').value.trim();
+      const expiry = document.getElementById('expiryDate').value.trim();
+      const cvv = document.getElementById('cvv').value.trim();
+
+      if (!/^\d{16}$/.test(cardNum) || !cardName || !/^\d{2}\/\d{2}$/.test(expiry) || !/^\d{3}$/.test(cvv)) {
+        alert("Please fill valid card details.");
+        return;
+      }
+    } else {
+      alert("Please select a valid payment method.");
+      return;
+    }
+
+    // Show success and mode section
+    form.classList.add('hidden');
+    responseMessage.classList.remove('hidden');
+
+    setTimeout(() => {
+      responseMessage.classList.add('hidden');
+      if (selectedMode === 'Video') {
+        videoSection.classList.remove('hidden');
+        startCountdown('videoCountdown');
+      } else {
+        audioSection.classList.remove('hidden');
+        startCountdown('audioCountdown');
+      }
+    }, 2000);
+  });
+
+  function startCountdown(id) {
+    let countdownTime = Math.floor(Math.random() * 4) + 2; // 2 to 5 mins
+    const el = document.getElementById(id);
+    el.textContent = `Doctor will contact you in approx ${countdownTime} min`;
+
+    let timer = setInterval(() => {
+      countdownTime--;
+      if (countdownTime > 0) {
+        el.textContent = `Doctor will contact you in approx ${countdownTime} min`;
+      } else {
+        el.textContent = "Doctor is contacting you now...";
+        clearInterval(timer);
+      }
+    }, 60000);
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🚑 Emergency SOS System</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #ff5252, #ffe6e6);
+      margin: 0;
+      padding: 0;
+      color: #222;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 30px;
+      color: white;
+      text-shadow: 1px 1px 2px black;
+    }
+
+    .main-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 20px 40px;
+      gap: 20px;
+    }
+
+    .left-content {
+      flex: 1;
+      text-align: center;
+    }
+
+    .right-image {
+      flex: 0.6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .ambulance-img {
+      width: 220px;
+      border-radius: 15px;
+      animation: float 2s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+
+    .sos-button {
+      background: #d50000;
+      color: white;
+      font-size: 26px;
+      font-weight: bold;
+      padding: 25px 60px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      margin-top: 30px;
+      animation: pulse 1.2s infinite;
+      box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .form-container {
+      display: none;
+      background: white;
+      padding: 25px;
+      margin: 40px auto;
+      border-radius: 15px;
+      max-width: 500px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+
+    .green-btn {
+      background: #2e7d32;
+      color: white;
+      font-weight: bold;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .status-box, .penalty-box {
+      display: none;
+      margin: 30px auto;
+      padding: 20px;
+      background: #e8f5e9;
+      border-left: 6px solid #388e3c;
+      border-radius: 12px;
+      max-width: 500px;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+      text-align: left;
+      animation: slideIn 1s ease forwards;
+    }
+
+    .penalty-box {
+      background: #fff3cd;
+      border-left-color: #ff6f00;
+      color: #7b5000;
+    }
+
+    .countdown {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .info-sec {
+      margin-top: 15px;
+      font-size: 16px;
+      color: #333;
+      background: #f1f1f1;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .btn-call {
+      margin-top: 12px;
+      display: inline-block;
+      background: #0277bd;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+
+    audio { display: none; }
+  </style>
+</head>
+<body>
+
+  <h1>🚨 Emergency SOS Response System</h1>
+
+  <div class="main-container" id="mainPage">
+    <!-- Left -->
+    <div class="left-content">
+      <p style="color:white;">Click below only in case of serious medical emergency.</p>
+      <button class="sos-button" onclick="triggerEmergency()">🚨 I Need Immediate Help</button>
+
+      <div class="form-container" id="emergencyForm">
+        <h2>📝 Fill Emergency Details</h2>
+        <input type="text" id="name" placeholder="Patient Name" required>
+        <input type="tel" id="contact" placeholder="Contact Number" required>
+        <select id="emergencyType">
+          <option value="">-- Select Emergency Type --</option>
+          <option>Heart Attack</option>
+          <option>Road Accident</option>
+          <option>Severe Injury</option>
+          <option>Unconscious</option>
+          <option>Other</option>
+        </select>
+        <button class="green-btn" onclick="sendSOS()">Send Emergency Alert</button>
+      </div>
+    </div>
+
+    <!-- Right -->
+    <!-- <div class="right-image">
+      <img class="ambulance-img" src="https://cdn-icons-png.flaticon.com/512/2965/2965567.png" alt="Ambulance" />
+    </div>
+  </div> -->
+
+  <!-- Status Page -->
+  <div class="status-box" id="statusBox">
+    <h3>📍 Emergency Response Details</h3>
+    <p><strong>Nearest Hospital:</strong> AIIMS Rural Health Center</p>
+    <p><strong>Location:</strong> NH-44, Near Bus Stand, Kharar, Punjab</p>
+    <p><strong>Ambulance ETA:</strong> <span id="eta">--</span> minutes</p>
+    <div class="countdown">⏳ Time Remaining: <span id="countdownTimer">--</span></div>
+    <p><strong>Track Ambulance:</strong> <a href="#" id="mapLink" target="_blank">Google Maps</a></p>
+
+    <div class="info-sec" id="patientSummary">
+      <strong>Patient:</strong> <span id="patientName"></span><br>
+      <strong>Contact:</strong> <span id="patientContact"></span><br>
+      <strong>Emergency:</strong> <span id="emergencyDesc"></span>
+    </div>
+
+    <a href="tel:102" class="btn-call">📞 Call Ambulance</a>
+    <a href="mail:102" class="btn-call">Mail to hospital</a>
+  </div>
+
+  <!-- Penalty Info -->
+  <div class="penalty-box" id="penaltyBox">
+    <h3>⚠️ Penalty Imposed</h3>
+    <p>The ambulance took longer than expected. A penalty is issued to the hospital.</p>
+    <p><strong>Actual Response Time:</strong> <span id="penaltyTime"></span> mins</p>
+  </div>
+
+  <!-- Siren -->
+  <audio id="sirenSound" src="https://actions.google.com/sounds/v1/emergency/emergency_siren_short.ogg"></audio>
+
+  <script>
+    let userLat = null;
+    let userLng = null;
+    let responseTime = 0;
+    let countdownInterval;
+
+    function triggerEmergency() {
+      const siren = document.getElementById("sirenSound");
+      siren.play();
+
+      if ("vibrate" in navigator) {
+        navigator.vibrate([500, 300, 500]);
+      }
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            userLat = position.coords.latitude;
+            userLng = position.coords.longitude;
+            document.getElementById("emergencyForm").style.display = "block";
+          },
+          (error) => {
+            alert("Location access is required to send an emergency alert.");
+          }
+        );
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+    }
+
+    function sendSOS() {
+      const name = document.getElementById("name").value;
+      const contact = document.getElementById("contact").value;
+      const type = document.getElementById("emergencyType").value;
+
+      if (!name || !contact || !type) {
+        alert("Please fill all fields.");
+        return;
+      }
+
+      document.getElementById("emergencyForm").style.display = "none";
+      document.getElementById("statusBox").style.display = "block";
+      document.getElementById("patientName").innerText = name;
+      document.getElementById("patientContact").innerText = contact;
+      document.getElementById("emergencyDesc").innerText = type;
+
+      document.getElementById("mapLink").href = `https://www.google.com/maps?q=${userLat},${userLng}`;
+
+      responseTime = Math.floor(Math.random() * 20) + 10; // realistic delay 10–30 mins
+      document.getElementById("eta").textContent = responseTime;
+      startCountdown(responseTime);
+
+      if (responseTime > 20) {
+        document.getElementById("penaltyBox").style.display = "block";
+        document.getElementById("penaltyTime").innerText = responseTime;
+      }
+
+      // Smooth scroll to response section
+      setTimeout(() => {
+        document.getElementById("statusBox").scrollIntoView({ behavior: 'smooth' });
+      }, 200);
+    }
+
+    function startCountdown(minutes) {
+      let seconds = minutes * 60;
+      const timerElement = document.getElementById("countdownTimer");
+
+      if (countdownInterval) clearInterval(countdownInterval);
+
+      countdownInterval = setInterval(() => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        timerElement.textContent = `${mins}m ${secs < 10 ? '0' : ''}${secs}s`;
+
+        if (seconds <= 0) {
+          clearInterval(countdownInterval);
+          timerElement.textContent = "Time's up!";
+        }
+        seconds--;
+      }, 1000);
+    }
+  </script>
+
+</body>
+</html>

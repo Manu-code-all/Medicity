@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Online Medicine Shop</title>
+  <style>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f8ff;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #0077b6;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+    }
+
+    .logo img {
+      height: 40px;
+      margin-right: 10px;
+    }
+
+    .marquee {
+      color: yellow;
+      font-weight: bold;
+      font-size: 18px;
+      width: 100%;
+    }
+
+    .search-bar {
+      margin-left: auto;
+    }
+
+    input[type="text"] {
+      padding: 8px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: none;
+    }
+
+    .container {
+      display: flex;
+    }
+
+    .product-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      padding: 20px;
+      flex: 3;
+    }
+
+    .product {
+      background-color: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      transition: transform 0.3s;
+    }
+
+    .product:hover {
+      transform: scale(1.03);
+    }
+
+    .product h3 {
+      margin: 5px 0;
+      font-size: 18px;
+    }
+
+    .product p {
+      font-size: 15px;
+    }
+
+    .product button {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #0077b6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .cart-sidebar {
+      flex: 1;
+      background-color: #e0f2f1;
+      padding: 20px;
+      border-left: 2px solid #ccc;
+      font-size: 16px;
+    }
+
+    .cart-item {
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    .cart-item p {
+      margin: 4px 0;
+    }
+
+    #billingSummary {
+      margin-top: 20px;
+      font-size: 16px;
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    #billingSummary p {
+      margin: 6px 0;
+    }
+
+    .print-section {
+      margin: 30px;
+      background: #fff;
+      padding: 20px;
+      border: 2px dashed #0077b6;
+      border-radius: 10px;
+    }
+
+    .print-section h2 {
+      text-align: center;
+      color: #0077b6;
+    }
+
+    .print-btn {
+      margin: 10px 0;
+      padding: 10px 20px;
+      background-color: #0077b6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      .print-section, .print-section * {
+        visibility: visible;
+      }
+      .print-section {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+
+
+
+
+
+
+
+
+
+
+  
+
+<header>
+  <div class="logo">
+    <img src="https://cdn-icons-png.flaticon.com/512/10261/10261341.png" alt="Logo">
+    <marquee class="marquee" behavior="scroll" direction="left">Welcome to Online Medicine Shop - Best Prices with 18% GST Deduction</marquee>
+  </div>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search medicine..." onkeyup="filterMedicines()">
+  </div>
+</header>
+
+<div class="container">
+  <div class="product-list" id="productList"></div>
+
+  <div class="cart-sidebar">
+    <h2>🛒 Your Cart</h2>
+    <div id="cartItems"></div>
+    <div id="billingSummary"></div>
+    <button class="print-btn" onclick="window.print()">🖨️ Print Bill</button>
+  </div>
+</div>
+
+<!-- Print section (hidden on screen) -->
+<div class="print-section" id="printSection">
+  <h2>🧾 Medicine Shop Bill</h2>
+  <div id="printItems"></div>
+  <div id="printSummary"></div>
+</div>
+
+<script>
+  const medicines = [
+    { id: 1, name: "Paracetamol", description: "Pain reliever and fever reducer", price: 40 },
+    { id: 2, name: "Azithromycin", description: "Antibiotic for infections", price: 75 },
+    { id: 3, name: "Cetrizine", description: "Allergy relief", price: 30 },
+    { id: 4, name: "Amoxicillin", description: "Broad-spectrum antibiotic", price: 90 },
+    { id: 5, name: "Ibuprofen", description: "Reduces inflammation and pain", price: 60 },
+    { id: 6, name: "Metformin", description: "Diabetes management", price: 50 },
+    { id: 7, name: "Aspirin", description: "Blood thinner and pain relief", price: 35 },
+    { id: 8, name: "Omeprazole", description: "Acidity and reflux treatment", price: 55 },
+    { id: 9, name: "Vitamin C", description: "Boosts immunity", price: 25 },
+    { id: 1, name: "Paracetamol", description: "Pain reliever and fever reducer", price: 40 },
+      { id: 2, name: "Azithromycin", description: "Antibiotic for infections", price: 75 },
+      { id: 3, name: "Cetrizine", description: "Allergy relief", price: 30 },
+      { id: 4, name: "Amoxicillin", description: "Broad-spectrum antibiotic", price: 90 },
+      { id: 5, name: "Ibuprofen", description: "Reduces inflammation and pain", price: 60 },
+      { id: 6, name: "Metformin", description: "Diabetes management", price: 50 },
+      { id: 7, name: "Aspirin", description: "Blood thinner and pain relief", price: 35 },
+      { id: 8, name: "Omeprazole", description: "Acidity and reflux treatment", price: 55 }
+  ];
+
+  const cart = [];
+
+  function displayMedicines() {
+    const productList = document.getElementById("productList");
+    productList.innerHTML = '';
+    medicines.forEach(medicine => {
+      const div = document.createElement("div");
+      div.className = "product";
+      div.innerHTML = `
+        <h3>${medicine.name}</h3>
+        <p>${medicine.description}</p>
+        <p><strong>Price:</strong> ₹${medicine.price}</p>
+        <p><strong>GST 18%:</strong> ₹${(medicine.price * 0.18).toFixed(2)}</p>
+        <button onclick="addToCart(${medicine.id})">Add to Cart</button>
+      `;
+      productList.appendChild(div);
+    });
+  }
+
+  function addToCart(id) {
+    const medicine = medicines.find(m => m.id === id);
+    const existing = cart.find(item => item.id === id);
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      cart.push({ ...medicine, quantity: 1 });
+    }
+    updateCartDisplay();
+    updateBillingSummary();
+    updatePrintSection();
+  }
+
+  function updateCartDisplay() {
+    const cartItemsDiv = document.getElementById("cartItems");
+    cartItemsDiv.innerHTML = "";
+    if (cart.length === 0) {
+      cartItemsDiv.innerHTML = "<p>No items in cart.</p>";
+    } else {
+      cart.forEach(item => {
+        cartItemsDiv.innerHTML += `
+          <div class="cart-item">
+            <p><strong>${item.name}</strong></p>
+            <p>Quantity: ${item.quantity}</p>
+            <p>Subtotal: ₹${(item.price * item.quantity).toFixed(2)}</p>
+          </div>
+        `;
+      });
+    }
+  }
+
+  function updateBillingSummary() {
+    const summaryDiv = document.getElementById("billingSummary");
+    let totalBeforeGST = 0;
+    cart.forEach(item => {
+      totalBeforeGST += item.price * item.quantity;
+    });
+    const gstDeduction = totalBeforeGST * 0.18;
+    const finalAmount = totalBeforeGST - gstDeduction;
+    summaryDiv.innerHTML = `
+      <h3>💳 Billing Summary</h3>
+      <p><strong>Total Before GST:</strong> ₹${totalBeforeGST.toFixed(2)}</p>
+      <p><strong>GST Deduction (18%):</strong> ₹${gstDeduction.toFixed(2)}</p>
+      <p><strong>Final Amount:</strong> ₹${finalAmount.toFixed(2)}</p>
+    `;
+  }
+
+  function updatePrintSection() {
+    const printItemsDiv = document.getElementById("printItems");
+    const printSummary = document.getElementById("printSummary");
+    printItemsDiv.innerHTML = "";
+    let total = 0;
+    cart.forEach(item => {
+      const subtotal = item.price * item.quantity;
+      total += subtotal;
+      const gst = subtotal * 0.18;
+      const final = subtotal - gst;
+      printItemsDiv.innerHTML += `
+        <hr>
+        <p><strong>Medicine:</strong> ${item.name}</p>
+        <p><strong>Description:</strong> ${item.description}</p>
+        <p><strong>Quantity:</strong> ${item.quantity}</p>
+        <p><strong>Total Price:</strong> ₹${subtotal.toFixed(2)}</p>
+        <p><strong>GST 18%:</strong> ₹${gst.toFixed(2)}</p>
+        <p><strong>Amount to Pay:</strong> ₹${final.toFixed(2)}</p>
+      `;
+    });
+    const gstDeduction = total * 0.18;
+    const finalAmount = total - gstDeduction;
+    printSummary.innerHTML = `
+      <hr>
+      <h3>🧾 Final Billing Summary</h3>
+      <p><strong>Total Before GST:</strong> ₹${total.toFixed(2)}</p>
+      <p><strong>GST Deduction (18%):</strong> ₹${gstDeduction.toFixed(2)}</p>
+      <p><strong>Total Payable:</strong> ₹${finalAmount.toFixed(2)}</p>
+    `;
+  }
+
+  function filterMedicines() {
+    const search = document.getElementById("searchInput").value.toLowerCase();
+    const filtered = medicines.filter(med => med.name.toLowerCase().includes(search));
+    const productList = document.getElementById("productList");
+    productList.innerHTML = '';
+    filtered.forEach(medicine => {
+      const div = document.createElement("div");
+      div.className = "product";
+      div.innerHTML = `
+        <h3>${medicine.name}</h3>
+        <p>${medicine.description}</p>
+        <p><strong>Price:</strong> ₹${medicine.price}</p>
+        <p><strong>GST 18%:</strong> ₹${(medicine.price * 0.18).toFixed(2)}</p>
+        <button onclick="addToCart(${medicine.id})">Add to Cart</button>
+      `;
+      productList.appendChild(div);
+    });
+  }
+
+  displayMedicines();
+</script>
+
+</body>
+</html>

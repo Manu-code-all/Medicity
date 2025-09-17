@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Biometric Health Scan</title>
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(to right, #d7e1ec, #f3f7fa);
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+      justify-content: center;
+    }
+
+    .scanner {
+      background: white;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      animation: fadeIn 1s ease;
+      position: relative;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(30px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    .logo {
+      width: 60px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    h2 {
+      font-size: 22px;
+      color: #222;
+      margin-top: 10px;
+    }
+
+    video {
+      width: 100%;
+      border-radius: 12px;
+      margin-top: 20px;
+    }
+
+    .thumb-popup {
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 160px;
+      height: 160px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 3px dashed #6c63ff;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 0 12px rgba(108, 99, 255, 0.4);
+      animation: popFade 0.4s ease forwards;
+      z-index: 10;
+    }
+
+    @keyframes popFade {
+      from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+      to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+
+    .thumb-popup video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    .hold-btn {
+      margin-top: 25px;
+      padding: 14px 28px;
+      font-size: 16px;
+      background: #6c63ff;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .hold-btn:active {
+      background: #4b42cc;
+    }
+
+    .status, .result {
+      margin-top: 20px;
+      font-size: 16px;
+      display: none;
+    }
+
+    .result {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    canvas {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="scanner">
+  <img src="https://cdn-icons-png.flaticon.com/512/2947/2947353.png" class="logo" />
+  <h2>Face & Thumb Scan</h2>
+
+  <video id="video" autoplay playsinline muted></video>
+
+  <!-- Thumb Frame -->
+  <div class="thumb-popup" id="thumbFrame">
+    <video id="thumbVideo" autoplay muted playsinline></video>
+  </div>
+
+  <button class="hold-btn" id="scanBtn">Press & Hold Thumb</button>
+
+  <div class="status" id="status">🧠 Analyzing facial & thumb data...</div>
+  <div class="result" id="result"></div>
+
+  <canvas id="canvas" width="400" height="300"></canvas>
+</div>
+
+<script>
+  const video = document.getElementById('video');
+  const thumbVideo = document.getElementById('thumbVideo');
+  const scanBtn = document.getElementById('scanBtn');
+  const thumbFrame = document.getElementById('thumbFrame');
+  const status = document.getElementById('status');
+  const result = document.getElementById('result');
+  const canvas = document.getElementById('canvas');
+
+  let stream = null;
+  let scanTimeout;
+
+  // Start camera
+  navigator.mediaDevices.getUserMedia({ video: true }).then(s => {
+    stream = s;
+    video.srcObject = stream;
+    thumbVideo.srcObject = stream;
+  }).catch(e => alert("Camera access is required."));
+
+  // Hold to scan
+  scanBtn.addEventListener("mousedown", () => {
+    thumbFrame.style.display = "flex";
+    status.style.display = "block";
+    result.style.display = "none";
+
+    scanTimeout = setTimeout(() => {
+      startScan();
+    }, 3000);
+  });
+
+  // Cancel if released early
+  scanBtn.addEventListener("mouseup", () => {
+    clearTimeout(scanTimeout);
+    thumbFrame.style.display = "none";
+    status.style.display = "none";
+  });
+
+  function startScan() {
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const expressionList = ["Neutral", "Smiling", "Stressed", "Confused"];
+    const expression = expressionList[Math.floor(Math.random() * expressionList.length)];
+
+    const pressure = ["Soft", "Firm", "Light", "Strong"];
+    const thumb = pressure[Math.floor(Math.random() * pressure.length)];
+
+    const systolic = Math.floor(Math.random() * 40 + 100);
+    const diastolic = Math.floor(Math.random() * 30 + 60);
+
+    status.style.display = "none";
+    result.style.display = "block";
+    thumbFrame.style.display = "none";
+
+    result.innerHTML = `
+      👍 Thumb Pressure: <b>${thumb}</b><br>
+      😊 Face Expression: <b>${expression}</b><br>
+      🩸 Blood Pressure: <b>${systolic}/${diastolic} mmHg</b>
+    `;
+    result.style.color = systolic > 140 || expression === "Stressed" ? "crimson" : "green";
+  }
+</script>
+
+</body>
+</html>
