@@ -1,5 +1,5 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/home-classic.html" }
+    { "source": "/", "destination": "/medcity/home-classic.html" }
   ]
 }
