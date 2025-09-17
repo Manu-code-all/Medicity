@@ -1,5 +1,6 @@
 {
+  "root": "medcity",
   "rewrites": [
-    { "source": "/", "destination": "/medcity/home-classic.html" }
+    { "source": "/", "destination": "/home-classic.html" }
   ]
 }
