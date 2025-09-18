@@ -7,7 +7,7 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
   <meta name="description" content="Medcity - Medical Healthcare HTML5 Template">
   <link href="assets/images/favicon/favicon.png" rel="icon">
-  <title>Medicity - Medical Healthcare HTML5 Template</title>
+  <title>Medcity - Medical Healthcare HTML5 Template</title>
 
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Roboto:wght@400;700&display=swap">
@@ -89,7 +89,7 @@ async function sendMessage() {
   if (!input) return;
 
   const chatbox = document.getElementById("chatbox");
-  chatbox.innerHTML += `<p><b>You:</b> ${input}</p>`;
+  chatbox.innerHTML += <p><b>You:</b> ${input}</p>;
   document.getElementById("userInput").value = "";
 
   try {
@@ -99,15 +99,14 @@ async function sendMessage() {
       body: JSON.stringify({ message: input })
     });
     const data = await response.json();
-    chatbox.innerHTML += `<p><b>Bot:</b> ${data.reply}</p>`;
+    chatbox.innerHTML += <p><b>Bot:</b> ${data.reply}</p>;
   } catch (err) {
-    chatbox.innerHTML += `<p><b>Bot:</b> Error connecting to AI.</p>`;
+    chatbox.innerHTML += <p><b>Bot:</b> Error connecting to AI.</p>;
   }
 
   chatbox.scrollTop = chatbox.scrollHeight;
 }
 </script>
-
 <body>
   <div class="wrapper">
     <div class="preloader">
