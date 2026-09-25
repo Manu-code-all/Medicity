@@ -17,6 +17,14 @@ jobs:
     name: Backend — build & test
     runs-on: ubuntu-latest
 
+    # The default GITHUB_TOKEN is read-only, so publishing the test report as a
+    # check run fails with "Resource not accessible by integration". Granted
+    # narrowly here rather than widening permissions for the whole workflow.
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+
     steps:
       - uses: actions/checkout@v4
 

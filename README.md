@@ -90,6 +90,22 @@ A `CountDownLatch` parks every thread until all of them are alive, then releases
 them together. Without it, thread pool scheduling staggers the starts enough that
 the race often never occurs and the test passes vacuously — proving nothing.
 
+The suite runs on every push against real PostgreSQL 16 via Testcontainers:
+
+```
+SlotBookingConcurrencyTest   Tests run: 6, Failures: 0, Errors: 0
+StockLedgerConcurrencyTest   Tests run: 3, Failures: 0, Errors: 0
+AppointmentAccessControlTest Tests run: 7, Failures: 0, Errors: 0
+```
+
+Two bugs were caught the first time these ran against a real database, both
+recorded in the commit history: an unauthenticated request answering `403`
+instead of `401` (Spring Security silently defaults to
+`Http403ForbiddenEntryPoint` when no interactive login mechanism is configured),
+and a `LazyInitializationException` where the authorization check walked
+`slot → doctor` outside a transaction with `open-in-view` disabled. Neither is
+reachable from a unit test with a mocked repository.
+
 The same reasoning is applied a second time, with a different answer, to pharmacy
 stock. Uniqueness cannot help when the contended resource is a *count* rather than
 an identity, so that path uses a `CHECK (quantity_on_hand >= 0)` constraint plus
