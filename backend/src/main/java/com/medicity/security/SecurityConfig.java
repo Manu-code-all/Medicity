@@ -1,6 +1,7 @@
 package com.medicity.security;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -69,10 +70,23 @@ public class SecurityConfig {
         return cfg.getAuthenticationManager();
     }
 
+    /**
+     * Origins permitted to call the API, from {@code MEDICITY_CORS_ORIGINS}.
+     *
+     * <p>Configurable because the deployed frontend lives on a different origin
+     * from the API, and that origin is not known at build time. Defaults to the
+     * local dev servers so a fresh clone needs no configuration.
+     */
+    @Value("${medicity.cors.allowed-origins}")
+    private List<String> allowedOrigins;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
+        // setAllowedOrigins, not setAllowedOriginPatterns: patterns permit
+        // wildcards, and a wildcard here would let any site on the internet read
+        // authenticated responses.
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setMaxAge(3600L);

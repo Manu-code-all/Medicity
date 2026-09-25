@@ -45,10 +45,13 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-redis</artifactId>
-    </dependency>
+<!--
+      Redis was declared before anything used it. An unused starter still
+      registers a health indicator, so /actuator/health reported DOWN wherever
+      no Redis was running — a deployment failing its health check for a
+      dependency the code never calls. It returns when the rate limiting on the
+      roadmap actually needs it.
+    -->
 
     <dependency>
       <groupId>org.flywaydb</groupId>
