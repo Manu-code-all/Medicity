@@ -69,7 +69,7 @@ public class AppointmentController {
                                       @PathVariable UUID id,
                                       @Valid @RequestBody CancelRequest request) {
 
-        Appointment appointment = appointmentRepository.findById(id)
+        Appointment appointment = appointmentRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new NotFoundException("Appointment", id));
 
         requireAccess(principal, appointment);
@@ -108,7 +108,7 @@ public class AppointmentController {
     public AppointmentResponse get(@AuthenticationPrincipal AppUserPrincipal principal,
                                    @PathVariable UUID id) {
 
-        Appointment appointment = appointmentRepository.findById(id)
+        Appointment appointment = appointmentRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new NotFoundException("Appointment", id));
 
         requireAccess(principal, appointment);

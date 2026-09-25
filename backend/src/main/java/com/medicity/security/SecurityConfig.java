@@ -27,10 +27,18 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
+    private final RestAuthenticationEntryPoint authenticationEntryPoint;
+    private final RestAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            // Without these, a chain that configures no interactive login
+            // mechanism silently defaults to Http403ForbiddenEntryPoint, and
+            // every unauthenticated request answers 403 instead of 401.
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler))
             // No cookie is used for authentication, so there is no CSRF vector to
             // defend: a hostile page cannot make the browser attach a bearer token.
             .csrf(csrf -> csrf.disable())

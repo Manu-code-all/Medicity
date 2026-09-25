@@ -31,6 +31,27 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             """)
     Page<Appointment> findForDoctor(@Param("doctorId") UUID doctorId, Pageable pageable);
 
+    /**
+     * Loads one appointment with everything the authorization check and the
+     * response mapper need.
+     *
+     * <p>Required because {@code open-in-view} is disabled: outside a
+     * transaction the Hibernate session is already closed by the time a
+     * controller touches {@code appointment.getSlot().getDoctor()}, and the
+     * lazy proxy throws. Reading an id off a proxy happens to work, which is
+     * why the patient path survived without this and the doctor path did not —
+     * exactly the kind of inconsistency that surfaces only under a real
+     * database.
+     */
+    @Query("""
+            SELECT a FROM Appointment a
+            JOIN FETCH a.slot s
+            JOIN FETCH s.doctor d
+            JOIN FETCH a.patient p
+            WHERE a.id = :id
+            """)
+    Optional<Appointment> findByIdWithDetails(@Param("id") UUID id);
+
     /** The live holder of a slot, if any. Mirrors the partial unique index. */
     @Query("""
             SELECT a FROM Appointment a
