@@ -17,29 +17,16 @@ services:
       timeout: 3s
       retries: 10
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
   api:
     build:
       context: ./backend
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     environment:
       DB_URL: jdbc:postgresql://db:5432/medicity
       DB_USER: medicity
       DB_PASSWORD: ${DB_PASSWORD:-medicity}
-      REDIS_HOST: redis
       JWT_SECRET: ${JWT_SECRET:-dev-only-insecure-secret-change-me-32bytes-min}
     ports:
       - "8080:8080"

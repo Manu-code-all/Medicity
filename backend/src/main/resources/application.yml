@@ -31,11 +31,6 @@ spring:
     baseline-on-migrate: false
     validate-on-migrate: true
 
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-
 server:
   port: ${PORT:8080}
   error:
@@ -43,6 +38,11 @@ server:
   shutdown: graceful           # drain in-flight requests before exiting
 
 medicity:
+  cors:
+    # Comma-separated. The API and the web app are served from different
+    # origins in production, so the deployed frontend origin must be added here.
+    allowed-origins: ${MEDICITY_CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
+
   jwt:
     # Overridden in every deployed environment. The default exists only so a
     # fresh clone starts without configuration; it is not a usable secret.

@@ -335,23 +335,59 @@ every unmatched path falls through to `index.html`, so a refresh on
 `immutable`, since their filenames are content-addressed.
 
 Vercel hosts the frontend only; the API needs a container runtime and a
-database. Deploy `backend/` to Railway, Render or Fly.io with a Postgres
-instance attached, then set on the Vercel project:
+database.
+
+### API on Railway
+
+`backend/railway.json` selects the Dockerfile builder and points the health
+check at `/actuator/health/readiness`, so a container that starts but cannot
+reach its database is never routed traffic.
+
+1. **New Project → Deploy from GitHub repo**, select this repository.
+2. In the service's **Settings → Root Directory**, set `backend`. Railway then
+   picks up `railway.json` and the Dockerfile, and uses `backend/` as the build
+   context — which the Dockerfile's `COPY pom.xml .` requires.
+3. **+ New → Database → PostgreSQL** in the same project.
+4. Set the service variables:
 
 | Variable | Value |
 |---|---|
-| `VITE_API_BASE_URL` | the deployed API origin, e.g. `https://medicity-api.up.railway.app` |
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` — a Railway reference, not a literal |
+| `JWT_SECRET` | 32+ bytes of random; the app refuses to start below that |
+| `MEDICITY_CORS_ORIGINS` | your Vercel origin, e.g. `https://medicity.vercel.app` |
+| `SPRING_PROFILES_ACTIVE` | `demo`, to seed clickable data |
 
-And on the API:
+Generate the secret with:
 
-| Variable | Notes |
+```bash
+openssl rand -base64 48
+```
+
+5. **Settings → Networking → Generate Domain** to get a public URL.
+
+`PORT` is injected by Railway and already read by `server.port`. `DATABASE_URL`
+arrives as `postgresql://user:pass@host:5432/db`, which is *not* a JDBC URL —
+`DatabaseUrlEnvironmentPostProcessor` converts it at startup, so the same image
+also runs unmodified on Render, Fly and Heroku. Handing the raw value to Spring
+otherwise fails with `Driver claims to not accept jdbcUrl`.
+
+Railway's Postgres permits `CREATE EXTENSION pgcrypto` and `btree_gist`, which
+migrations V1 and V2 require. A provider that blocks extension creation will
+fail Flyway at startup and the app will not boot.
+
+Give the service **512 MB minimum** — a JVM will not start reliably below that.
+
+### Frontend on Vercel
+
+| Variable | Value |
 |---|---|
-| `DB_URL`, `DB_USER`, `DB_PASSWORD` | from the managed Postgres instance |
-| `JWT_SECRET` | 32+ bytes; the app refuses to start below that |
-| `SPRING_PROFILES_ACTIVE` | `demo` to seed clickable data |
+| `VITE_API_BASE_URL` | the Railway domain, e.g. `https://medicity-api.up.railway.app` |
 
-The API's CORS allow-list in `SecurityConfig` is set to localhost origins, so
-add the deployed frontend origin there before going live.
+Redeploy after setting it: Vite inlines `VITE_*` variables at build time, so
+changing one has no effect until the app is rebuilt.
+
+Leave **Root Directory empty** in the Vercel project. Pointing it at a
+subdirectory means `vercel.json` is never read.
 
 ## Roadmap
 
