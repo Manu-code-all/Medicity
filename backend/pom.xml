@@ -145,6 +145,27 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <!--
+            Declare Lombok as an explicit annotation processor rather than
+            letting javac discover it on the classpath. Classpath discovery is
+            deprecated and a future javac will stop doing it, at which point an
+            undeclared processor silently produces a class with no getters and a
+            wall of "cannot find symbol" errors.
+          -->
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
     </plugins>
