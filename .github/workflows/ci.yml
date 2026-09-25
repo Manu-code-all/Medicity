@@ -1,0 +1,104 @@
+name: CI
+
+# Push is scoped to main only. Listing feature branches here as well would run
+# the whole suite twice for every commit once a PR is open — once for the push
+# and once for the pull_request event — for identical results.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A new push to the same branch cancels the previous run: there is no value in
+# finishing CI for a commit that has already been superseded.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — build & test
+    runs-on: ubuntu-latest
+
+    # The default GITHUB_TOKEN is read-only, so publishing the test report as a
+    # check run fails with "Resource not accessible by integration". Granted
+    # narrowly here rather than widening permissions for the whole workflow.
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      # Testcontainers starts Postgres itself; the runner only needs a Docker
+      # daemon, which ubuntu-latest provides. No service container is declared
+      # here on purpose — the tests own their database lifecycle, so they behave
+      # identically on a laptop and in CI.
+      - name: Run tests
+        working-directory: backend
+        run: mvn -B verify
+
+      - name: Publish test report
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: backend/target/surefire-reports/TEST-*.xml
+
+      - name: Upload failure logs
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: surefire-reports
+          path: backend/target/surefire-reports/
+
+  frontend:
+    name: Frontend — lint, typecheck & build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    # Only worth the minutes once the code itself is known good.
+    needs: [backend, frontend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -t medicity-api:ci ./backend
+
+      - name: Build web image
+        run: docker build -t medicity-web:ci ./frontend

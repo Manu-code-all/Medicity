@@ -1,0 +1,9 @@
+# Adds the seed location on top of the real migrations. Activated with
+# SPRING_PROFILES_ACTIVE=demo; without it, db/seed is never on the Flyway path.
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/seed
+
+logging:
+  level:
+    com.medicity: DEBUG

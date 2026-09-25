@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: medicity-api
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/medicity}
+    username: ${DB_USER:medicity}
+    password: ${DB_PASSWORD:medicity}
+    hikari:
+      # Sized for a container with a modest Postgres behind it. More connections
+      # than the database has cores does not increase throughput; it increases
+      # lock contention and context switching.
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      minimum-idle: 2
+      connection-timeout: 3000
+
+  jpa:
+    open-in-view: false        # no lazy loading during view rendering; DTOs are
+                               # assembled inside the transaction, deliberately
+    hibernate:
+      ddl-auto: validate       # Flyway owns the schema; Hibernate only checks it
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    validate-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-stacktrace: never
+  shutdown: graceful           # drain in-flight requests before exiting
+
+medicity:
+  jwt:
+    # Overridden in every deployed environment. The default exists only so a
+    # fresh clone starts without configuration; it is not a usable secret.
+    secret: ${JWT_SECRET:dev-only-insecure-secret-change-me-32bytes-min}
+    access-ttl: ${JWT_ACCESS_TTL:PT15M}
+    refresh-ttl: ${JWT_REFRESH_TTL:P7D}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true          # /readiness and /liveness for orchestrators
+      show-details: when_authorized
+
+logging:
+  level:
+    com.medicity: ${LOG_LEVEL:INFO}
