@@ -178,6 +178,25 @@ The `EXCLUDE` constraint uses a half-open range `'[)'`, so 10:00–10:30 and
 docker compose up --build
 ```
 
+To start with a populated database — three doctors, two weeks of open slots,
+a patient account and a medicine catalogue — run with the `demo` profile:
+
+```bash
+SPRING_PROFILES_ACTIVE=demo docker compose up --build
+```
+
+| Demo account | Role |
+|---|---|
+| `patient@medicity.demo` | PATIENT |
+| `dr.rao@medicity.demo` | DOCTOR |
+| `admin@medicity.demo` | ADMIN |
+
+Password for all three: `demo-password-2026`
+
+The seed lives in `db/seed/`, which is added to the Flyway path *only* by the
+`demo` profile — a deployed environment has no path by which these accounts
+could be created.
+
 | Service | URL |
 |---|---|
 | Web app | http://localhost:5173 |
