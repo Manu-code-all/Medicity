@@ -1,0 +1,19 @@
+# Datasource properties are supplied by AbstractIntegrationTest from the
+# Testcontainers instance, so nothing is hard-coded here.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+medicity:
+  jwt:
+    secret: test-only-secret-value-that-is-long-enough-for-hs256
+    access-ttl: PT15M
+    refresh-ttl: P7D
+
+logging:
+  level:
+    com.medicity: DEBUG
+    org.testcontainers: WARN
