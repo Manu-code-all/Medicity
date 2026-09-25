@@ -327,6 +327,32 @@ the running application.
 
 ---
 
+## Deployment
+
+`vercel.json` builds the React app from `frontend/` and serves it as an SPA —
+every unmatched path falls through to `index.html`, so a refresh on
+`/appointments` does not 404. Hashed assets under `/assets/` are served
+`immutable`, since their filenames are content-addressed.
+
+Vercel hosts the frontend only; the API needs a container runtime and a
+database. Deploy `backend/` to Railway, Render or Fly.io with a Postgres
+instance attached, then set on the Vercel project:
+
+| Variable | Value |
+|---|---|
+| `VITE_API_BASE_URL` | the deployed API origin, e.g. `https://medicity-api.up.railway.app` |
+
+And on the API:
+
+| Variable | Notes |
+|---|---|
+| `DB_URL`, `DB_USER`, `DB_PASSWORD` | from the managed Postgres instance |
+| `JWT_SECRET` | 32+ bytes; the app refuses to start below that |
+| `SPRING_PROFILES_ACTIVE` | `demo` to seed clickable data |
+
+The API's CORS allow-list in `SecurityConfig` is set to localhost origins, so
+add the deployed frontend origin there before going live.
+
 ## Roadmap
 
 - [ ] Redis-backed rate limiting on auth endpoints
