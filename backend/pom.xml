@@ -45,12 +45,19 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
+    <!-- Serves /actuator/prometheus. Listing the endpoint in application.yml
+         does nothing without this: the endpoint only exists when a Prometheus
+         registry is on the classpath. -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
 <!--
       Redis was declared before anything used it. An unused starter still
       registers a health indicator, so /actuator/health reported DOWN wherever
       no Redis was running — a deployment failing its health check for a
-      dependency the code never calls. It returns when the rate limiting on the
-      roadmap actually needs it.
+      dependency the code never calls. Login rate limiting was later built on
+      the audit log instead, so nothing needs it yet.
     -->
 
     <dependency>

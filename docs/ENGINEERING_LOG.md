@@ -563,6 +563,68 @@ because the previous test's fake `navigator.locks` was still installed:
 the config, not by reordering tests.
 
 **CI** runs `npm test` in the frontend job, between lint and build.
+## 14. Metrics (PR #18)
+
+**Two things found before adding anything.**
+- `application.yml` listed `prometheus` among the exposed endpoints, but the
+  endpoint never existed: it is only created when a Prometheus registry is on
+  the classpath, and none was. `micrometer-registry-prometheus` is now added.
+- `/actuator/metrics` fell under the default "any authenticated user" rule, so
+  any signed-in patient could read the system's route list, error rates and
+  JVM internals. Everything under `/actuator` except health is now ADMIN-only.
+  Railway's health check (`/actuator/health/readiness`) is unaffected.
+
+**Business counters** (`common/DomainMetrics`). HTTP metrics show a route's
+volume and latency, but a lost booking race and a booking too close to now are
+both just a 4xx on `POST /appointments`. So:
+- `medicity_bookings_total{outcome}`: `booked`, `slot_already_booked`,
+  `patient_double_booked`, `slot_too_soon`, and the rest.
+- `medicity_logins_total{outcome}`: `success`, `failed`, `throttled`, `disabled`.
+- `medicity_refresh_token_reuse_total`: each one ended a session.
+- `medicity_idempotency_replays_total`.
+
+Outcomes are a fixed set of values. Tagging by email or slot id would create a
+time series per value, which is how a metrics backend runs out of memory.
+
+**Counted after commit.** A booking is counted in an `afterCommit` callback,
+not at the insert. Counting at the insert would include bookings whose
+transaction later rolled back, and the metric would disagree with the
+database. `MetricsTest.rolledBackBookingIsNotCounted` books inside a
+transaction that is then rolled back and checks the counter did not move.
+
+**Latency.** `http.server.requests` publishes histogram buckets, so
+Prometheus can compute p95 and p99 across instances. Percentiles computed in
+each instance cannot be combined into one.
+
+**Verified by.** `MetricsTest` (3): anonymous 401, patient 403, admin 200 with
+histogram buckets and the application tag, health still public; a booking and
+a lost race move different counters; a rolled-back booking is not counted.
+## 15. Endpoint denials on long paths were never audited (PR #20)
+
+Found in CI logs while working on metrics:
+`AUDIT WRITE FAILED ... value too long for type character varying(64)`.
+
+A role-level denial is recorded as entity type `ENDPOINT` with entity id
+`METHOD /path`. `audit_log.entity_id` was `VARCHAR(64)`, and a path carrying a
+UUID is longer: `POST /api/v1/pharmacy/prescriptions/<uuid>/dispense` is 81
+characters. Denials are written best-effort, so the 403 still went out and only
+an ERROR line was logged. The audit row, the thing the write existed for, was
+lost. Every existing test passed, because none looked for that row.
+
+**Fix.**
+- V12 widens the column to `VARCHAR(255)`. Widening a VARCHAR in PostgreSQL is
+  a catalog change with no table rewrite, so no audit row is touched and the
+  append-only triggers are not involved.
+- `AuditLog` also cuts ids longer than the column (ending them with "…"). The
+  path is chosen by the client, so without this a long enough URL would still
+  be a way to be refused without leaving a trace.
+
+**Verified by.** `AuditTrailTest.longPathDenialIsRecorded` (a patient calling
+dispense leaves an `ACCESS_DENIED` row with the full path) and
+`overlongEntityIdIsTruncated` (a 500-character id is stored cut to 255).
+
+**Lesson.** A best-effort write that fails quietly needs a test that checks
+the write happened, not only that the response was right.
 
 ---
 

@@ -1,6 +1,8 @@
 package com.medicity.security;
 
 import com.medicity.audit.AuditLog;
+import com.medicity.common.DomainMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import com.medicity.patient.PatientRepository;
 import com.medicity.user.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -54,7 +56,7 @@ class LoginTimingTest {
 
         AuthService auth = new AuthService(users, mock(PatientRepository.class), encoder, mock(JwtService.class),
                 mock(AuditLog.class), mock(RefreshTokenStore.class), mock(LoginThrottle.class),
-                Duration.ofDays(7), Clock.systemUTC());
+                Duration.ofDays(7), Clock.systemUTC(), new DomainMetrics(new SimpleMeterRegistry()));
 
         assertThatThrownBy(() -> auth.login("nobody@medicity.test", "some-password-123"))
                 .isInstanceOf(BadCredentialsException.class);
