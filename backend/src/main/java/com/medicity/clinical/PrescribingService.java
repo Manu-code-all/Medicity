@@ -1,6 +1,8 @@
 package com.medicity.clinical;
 
 import com.medicity.audit.AuditLog;
+import com.medicity.outbox.Outbox;
+import com.medicity.pharmacy.DispensationRepository;
 import com.medicity.common.ConflictException;
 import com.medicity.common.Constraints;
 import com.medicity.common.ForbiddenException;
@@ -55,6 +57,8 @@ public class PrescribingService {
     private final DoctorRepository doctorRepository;
     private final MedicineRepository medicineRepository;
     private final AuditLog auditLog;
+    private final Outbox outbox;
+    private final DispensationRepository dispensationRepository;
     private final Clock clock;
 
     /** The first prescription for a completed visit. */
@@ -70,6 +74,10 @@ public class PrescribingService {
         auditLog.recordChange("PRESCRIPTION_ISSUED", "PRESCRIPTION", saved.getId(),
                 Map.of("appointmentId", appointmentId, "patientId", visit.getPatient().getId(),
                         "items", draft.items().size()));
+        outbox.publish(Outbox.PRESCRIPTION_ISSUED, saved.getId(), Map.of(
+                "patientUserId", visit.getPatient().getUser().getId(),
+                "doctorName", visit.getSlot().getDoctor().getUser().getFullName(),
+                "diagnosis", draft.diagnosis()));
         return saved;
     }
 
@@ -95,6 +103,15 @@ public class PrescribingService {
         Prescription saved = save(build(visit, doctorId, prescriptionId, draft));
         auditLog.recordChange("PRESCRIPTION_CORRECTED", "PRESCRIPTION", saved.getId(),
                 Map.of("supersedes", prescriptionId, "patientId", visit.getPatient().getId()));
+        // If the pharmacy already handed out the original, the patient may be
+        // holding medicines the correction replaces; both need to know.
+        outbox.publish(Outbox.PRESCRIPTION_CORRECTED, saved.getId(), Map.of(
+                "patientUserId", visit.getPatient().getUser().getId(),
+                "patientName", visit.getPatient().getUser().getFullName(),
+                "doctorName", visit.getSlot().getDoctor().getUser().getFullName(),
+                "diagnosis", draft.diagnosis(),
+                "supersedes", prescriptionId,
+                "originalDispensed", dispensationRepository.existsByPrescriptionId(prescriptionId)));
         return saved;
     }
 

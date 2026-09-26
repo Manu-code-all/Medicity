@@ -180,3 +180,20 @@ export interface Medicine {
   quantityOnHand: number;
   lowStock: boolean;
 }
+
+export interface AppNotification {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  link: string | null;
+  /** The moment the notification is about, such as a visit's start; formatted in the viewer's time zone. */
+  occursAt: string | null;
+  createdAt: string;
+  read: boolean;
+}
+
+export interface NotificationList {
+  unread: number;
+  items: AppNotification[];
+}

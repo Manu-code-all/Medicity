@@ -2,6 +2,7 @@ package com.medicity.scheduling;
 
 import com.medicity.common.DomainException;
 import com.medicity.common.DomainMetrics;
+import com.medicity.outbox.Outbox;
 import com.medicity.common.ConflictException;
 import com.medicity.common.NotFoundException;
 import com.medicity.common.ValidationException;
@@ -87,6 +88,7 @@ public class BookingService {
     private final PatientRepository patientRepository;
     private final AuditLog auditLog;
     private final DomainMetrics metrics;
+    private final Outbox outbox;
 
     /** Injected rather than using {@code Instant.now()} so tests control time. */
     private final Clock clock;
@@ -154,6 +156,10 @@ public class BookingService {
             // succeeded, and rolled back with it if the commit fails.
             auditLog.recordChange("APPOINTMENT_BOOKED", "APPOINTMENT", saved.getId(),
                     Map.of("slotId", slotId, "patientId", patientId, "scheduledAt", saved.getScheduledAt()));
+            outbox.publish(Outbox.APPOINTMENT_BOOKED, saved.getId(), Map.of(
+                    "patientUserId", patient.getUser().getId(),
+                    "doctorName", slot.getDoctor().getUser().getFullName(),
+                    "scheduledAt", saved.getScheduledAt()));
             return saved;
 
         } catch (DataIntegrityViolationException e) {
@@ -215,6 +221,12 @@ public class BookingService {
         Appointment saved = appointmentRepository.saveAndFlush(appointment);
         auditLog.recordChange("APPOINTMENT_CANCELLED", "APPOINTMENT", appointmentId,
                 Map.of("lateCancellation", late, "reason", reason == null ? "" : reason));
+        // The doctor's calendar just gained a gap; the patient knows already.
+        outbox.publish(Outbox.APPOINTMENT_CANCELLED, appointmentId, Map.of(
+                "doctorUserId", saved.getSlot().getDoctor().getUser().getId(),
+                "patientName", saved.getPatient().getUser().getFullName(),
+                "scheduledAt", saved.getScheduledAt(),
+                "late", late));
         return saved;
     }
 }
