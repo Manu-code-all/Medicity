@@ -201,12 +201,110 @@ run against the old code and fails there, naming the malformed hash.
 
 ---
 
+## 7. Audit trail (PR #8)
+
+**The gap.** V5 created an `audit_log` table and a trigger rejecting UPDATE
+and DELETE, and the README described an immutable audit trail. No code wrote
+to the table.
+
+**What is recorded.**
+
+| Event | When | Transaction |
+|---|---|---|
+| `APPOINTMENT_BOOKED`, `APPOINTMENT_CANCELLED` | a change succeeds | the change's own |
+| `APPOINTMENT_VIEWED` | a doctor or admin reads a patient's appointment | independent |
+| `ACCESS_DENIED` | a row-level or role check refuses a request | independent |
+| `LOGIN_SUCCEEDED`, `LOGIN_FAILED`, `LOGIN_REFUSED_DISABLED` | every login attempt | independent |
+
+**The transaction choice is the design.** `AuditLog.recordChange` uses
+`Propagation.MANDATORY`: it joins the caller's transaction, so a booking and
+its audit row commit or roll back together. The log can never claim a booking
+that did not happen. `recordIndependently` uses `REQUIRES_NEW`: a denial is
+followed by an exception that rolls back the request's transaction, and an
+audit row written inside it would vanish with it, losing exactly the event an
+investigator needs. Independent writes are best-effort: if the audit insert
+fails, the 403 still goes out rather than becoming a 500, and the failure is
+logged at ERROR.
+
+**A second gap, found while testing.** V5's trigger is `FOR EACH ROW`, and
+PostgreSQL does not fire row-level triggers on `TRUNCATE`. One
+`TRUNCATE audit_log` would have erased the whole trail. V6 adds a
+statement-level `BEFORE TRUNCATE` trigger. V5 was not edited: applied
+migrations are immutable, and editing one fails Flyway's checksum validation
+on every existing database.
+
+**Other decisions.**
+- Plain JDBC, not a JPA entity: the table is insert-only, uses `inet` and
+  `jsonb`, and is never loaded as an object graph.
+- Explicit calls rather than an AOP aspect (V5's comment anticipated one): the
+  outcome and the entity id are only known inside the method, and an explicit
+  call is visible to whoever reads the code.
+- Client IP behind the proxy comes from Tomcat's RemoteIpValve
+  (`forward-headers-strategy: native`), which trusts `X-Forwarded-For` only
+  from private-range proxies. The `framework` strategy would trust the header
+  from anyone, letting a client write a fake address into the audit log.
+- Failed logins keep the attempted email: that is what reveals credential
+  stuffing. Both failure branches write the row, so the audit does not
+  reintroduce the timing difference fixed in entry 6.
+- `GET /api/v1/admin/audit` lets an admin search the trail.
+
+**Verified by.** `AuditTrailTest`: a booking is recorded with its actor and
+IP; a booking that loses the race leaves no `APPOINTMENT_BOOKED` row; a
+denial is kept although its request is rolled back; a doctor's read is
+recorded and the patient's own read is not; a failed login is recorded;
+UPDATE, DELETE and TRUNCATE are all refused; only an admin can read the trail.
+
+---
+
+## 8. Pharmacy: dispensing a prescription (PR #9)
+
+**The gap.** Stock logic and its concurrency test existed, but nothing could
+call them, and nothing prevented a prescription being filled twice.
+
+**Endpoints.** `POST /api/v1/pharmacy/prescriptions/{id}/dispense`,
+`POST /api/v1/pharmacy/medicines/{id}/restock`, `GET /api/v1/pharmacy/stock/low`
+(all admin, standing in for a pharmacist role), and a catalogue search for any
+signed-in user. The patient portal now shows when each prescription was
+dispensed.
+
+**Three guarantees, all enforced by PostgreSQL.**
+
+1. *At most once.* V7 adds `prescription_dispensations` with a unique
+   constraint on `prescription_id`. The service inserts that row **before**
+   touching stock. A concurrent second attempt blocks on the unique index
+   until the first commits, then fails with `409 ALREADY_DISPENSED`, having
+   moved no stock. This is the booking pattern reused: optimistic insert,
+   constraint decides, constraint name mapped to a response.
+2. *All or nothing.* Every medicine is decremented in one transaction. If the
+   second medicine is short, the exception rolls back the first decrement and
+   the dispensation row with it. The error names the medicine that is short.
+3. *Never below zero.* Each decrement is the existing conditional UPDATE,
+   backed by the CHECK constraint.
+
+**Deadlock avoidance.** Stock rows are locked in ascending medicine-id order.
+Two prescriptions sharing medicines, processed in opposite orders, would each
+hold one row lock while waiting for the other's: a deadlock that PostgreSQL
+resolves by killing one transaction. A single global lock order makes that
+cycle impossible.
+
+**Superseded prescriptions are refused** (`422 PRESCRIPTION_SUPERSEDED`):
+filling the original would hand the patient instructions the doctor withdrew.
+
+**Refactor.** The constraint-name lookup moved from `BookingService` into
+`common/Constraints` now that two services use it.
+
+**Verified by.** `DispensingTest`: every item decremented with a movement row
+each; a second dispense refused with stock untouched; 16 threads released
+together on one prescription produce exactly one success and stock taken
+once; one short medicine leaves both untouched and records no dispensation;
+superseded refused while its correction succeeds; patient and doctor get 403,
+and the portal shows `dispensedAt` afterwards; restock is audited and clears
+the low-stock flag.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
-- **Audit trail is designed but not yet written to.** The `audit_log` table
-  and its immutability trigger exist (V5), but no code records events yet.
-- **Pharmacy has no HTTP API.** Stock logic and its concurrency test exist;
-  dispensing is not exposed.
 - **No doctor workflow.** Nothing lets a doctor complete a visit or issue a
   prescription; portal history currently comes from seed data.
 - CI tests PostgreSQL 16; production runs 18.

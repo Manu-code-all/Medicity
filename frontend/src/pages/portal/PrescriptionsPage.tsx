@@ -46,11 +46,18 @@ export function PrescriptionsPage() {
               </p>
               <h2>{rx.diagnosis}</h2>
             </div>
-            {rx.revised && (
-              <span className="badge badge--revised" title="This replaces an earlier prescription from the same visit">
-                Revised
-              </span>
-            )}
+            <div className="rx__badges">
+              {rx.revised && (
+                <span className="badge badge--revised" title="This replaces an earlier prescription from the same visit">
+                  Revised
+                </span>
+              )}
+              {rx.dispensedAt ? (
+                <span className="badge badge--completed">Dispensed {formatDate(rx.dispensedAt)}</span>
+              ) : (
+                <span className="badge">Not yet dispensed</span>
+              )}
+            </div>
           </header>
 
           {rx.items.length > 0 ? (

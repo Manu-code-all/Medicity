@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface MedicineStockRepository extends JpaRepository<MedicineStock, UUID> {
@@ -42,4 +43,25 @@ public interface MedicineStockRepository extends JpaRepository<MedicineStock, UU
              WHERE medicine_id = :medicineId
             """, nativeQuery = true)
     int increment(@Param("medicineId") UUID medicineId, @Param("quantity") int quantity);
+
+    /**
+     * Stock at or below its reorder level, emptiest first. Served by the
+     * partial index {@code idx_stock_below_reorder} from V4.
+     */
+    @Query("""
+            SELECT m.id AS medicineId, m.name AS name, m.strength AS strength,
+                   s.quantityOnHand AS quantityOnHand, s.reorderLevel AS reorderLevel
+            FROM MedicineStock s JOIN Medicine m ON m.id = s.medicineId
+            WHERE s.quantityOnHand <= s.reorderLevel AND m.active = true
+            ORDER BY s.quantityOnHand, m.name
+            """)
+    List<LowStock> findAtOrBelowReorderLevel();
+
+    interface LowStock {
+        UUID getMedicineId();
+        String getName();
+        String getStrength();
+        int getQuantityOnHand();
+        int getReorderLevel();
+    }
 }

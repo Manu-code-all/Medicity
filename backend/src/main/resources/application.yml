@@ -36,6 +36,10 @@ server:
   error:
     include-stacktrace: never
   shutdown: graceful           # drain in-flight requests before exiting
+  # Behind the hosting proxy, recover the client address for the audit log.
+  # "native" is Tomcat's RemoteIpValve, which only trusts X-Forwarded-For from
+  # proxies on private ranges; "framework" would trust any client's header.
+  forward-headers-strategy: native
 
 medicity:
   cors:

@@ -1,5 +1,6 @@
 package com.medicity.pharmacy;
 
+import com.medicity.audit.AuditLog;
 import com.medicity.common.ConflictException;
 import com.medicity.common.NotFoundException;
 import com.medicity.common.ValidationException;
@@ -8,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -44,6 +46,7 @@ public class StockLedger {
 
     private final MedicineStockRepository stockRepository;
     private final StockMovementRepository movementRepository;
+    private final AuditLog auditLog;
 
     /**
      * Removes {@code quantity} units from stock.
@@ -93,6 +96,9 @@ public class StockLedger {
                 .reason(StockMovement.Reason.RESTOCK)
                 .referenceId(purchaseOrderId)
                 .build());
+        // Dispensing is audited per prescription by DispensingService; a
+        // restock has no such parent, so it is audited here.
+        auditLog.recordChange("STOCK_RESTOCKED", "MEDICINE", medicineId, Map.of("quantity", quantity));
     }
 
     private static void requirePositive(int quantity) {

@@ -110,6 +110,8 @@ export interface Prescription {
   notes: string | null;
   /** True when this prescription corrects an earlier one, which it replaces. */
   revised: boolean;
+  /** When the pharmacy filled it; null until then. */
+  dispensedAt: string | null;
   items: PrescriptionItem[];
 }
 

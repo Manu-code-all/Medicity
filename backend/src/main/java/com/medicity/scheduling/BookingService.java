@@ -5,9 +5,10 @@ import com.medicity.common.NotFoundException;
 import com.medicity.common.ValidationException;
 import com.medicity.patient.Patient;
 import com.medicity.patient.PatientRepository;
+import com.medicity.audit.AuditLog;
+import com.medicity.common.Constraints;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -81,6 +83,7 @@ public class BookingService {
     private final AppointmentRepository appointmentRepository;
     private final SlotRepository slotRepository;
     private final PatientRepository patientRepository;
+    private final AuditLog auditLog;
 
     /** Injected rather than using {@code Instant.now()} so tests control time. */
     private final Clock clock;
@@ -131,10 +134,14 @@ public class BookingService {
             // below working and being dead code.
             Appointment saved = appointmentRepository.saveAndFlush(appointment);
             log.info("Appointment {} booked: slot={} patient={}", saved.getId(), slotId, patientId);
+            // Same transaction as the insert: reached only if the insert
+            // succeeded, and rolled back with it if the commit fails.
+            auditLog.recordChange("APPOINTMENT_BOOKED", "APPOINTMENT", saved.getId(),
+                    Map.of("slotId", slotId, "patientId", patientId, "scheduledAt", saved.getScheduledAt()));
             return saved;
 
         } catch (DataIntegrityViolationException e) {
-            String constraint = constraintNameOf(e);
+            String constraint = Constraints.nameOf(e);
 
             if (UQ_ACTIVE_APPOINTMENT_PER_SLOT.equalsIgnoreCase(constraint)) {
                 // Lost the race. This is an expected outcome under load, not an
@@ -176,30 +183,16 @@ public class BookingService {
                     "A completed appointment cannot be cancelled");
         }
 
-        if (Duration.between(now, appointment.getScheduledAt()).compareTo(FREE_CANCELLATION_WINDOW) < 0) {
+        boolean late = Duration.between(now, appointment.getScheduledAt()).compareTo(FREE_CANCELLATION_WINDOW) < 0;
+        if (late) {
             log.info("Late cancellation of appointment {} ({} before start)",
                     appointmentId, Duration.between(now, appointment.getScheduledAt()));
         }
 
         appointment.cancel(now, reason);
-        return appointmentRepository.save(appointment);
-    }
-
-    /**
-     * Digs the constraint name out of the exception chain.
-     *
-     * <p>Spring wraps Hibernate's {@link ConstraintViolationException}, which is
-     * where the name actually lives; the Spring-level exception only carries a
-     * formatted message.
-     */
-    private String constraintNameOf(DataIntegrityViolationException e) {
-        Throwable cause = e.getCause();
-        while (cause != null) {
-            if (cause instanceof ConstraintViolationException cve) {
-                return cve.getConstraintName();
-            }
-            cause = cause.getCause();
-        }
-        return null;
+        Appointment saved = appointmentRepository.save(appointment);
+        auditLog.recordChange("APPOINTMENT_CANCELLED", "APPOINTMENT", appointmentId,
+                Map.of("lateCancellation", late, "reason", reason == null ? "" : reason));
+        return saved;
     }
 }

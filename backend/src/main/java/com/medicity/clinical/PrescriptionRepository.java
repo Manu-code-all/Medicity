@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface PrescriptionRepository extends JpaRepository<Prescription, UUID> {
@@ -34,6 +35,19 @@ public interface PrescriptionRepository extends JpaRepository<Prescription, UUID
             ORDER BY p.issuedAt DESC
             """)
     List<Prescription> findCurrentForPatient(@Param("patientId") UUID patientId);
+
+    /** One prescription with its medicines and patient, for dispensing. */
+    @Query("""
+            SELECT p FROM Prescription p
+            JOIN FETCH p.patient
+            LEFT JOIN FETCH p.items i
+            LEFT JOIN FETCH i.medicine
+            WHERE p.id = :id
+            """)
+    Optional<Prescription> findWithItems(@Param("id") UUID id);
+
+    /** True when a correction of this prescription exists, making it void. */
+    boolean existsBySupersedesId(UUID supersedesId);
 
     @Query("""
             SELECT count(p) FROM Prescription p

@@ -6,6 +6,8 @@ import com.medicity.clinical.PrescriptionRepository;
 import com.medicity.common.NotFoundException;
 import com.medicity.common.ValidationException;
 import com.medicity.doctor.Doctor;
+import com.medicity.pharmacy.Dispensation;
+import com.medicity.pharmacy.DispensationRepository;
 import com.medicity.scheduling.Appointment;
 import com.medicity.scheduling.AppointmentRepository;
 import com.medicity.scheduling.AppointmentStatus;
@@ -26,6 +28,7 @@ import java.time.LocalDate;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 /**
@@ -45,6 +48,7 @@ public class PatientPortalController {
     private final PatientRepository patientRepository;
     private final AppointmentRepository appointmentRepository;
     private final PrescriptionRepository prescriptionRepository;
+    private final DispensationRepository dispensationRepository;
     private final Clock clock;
 
     @GetMapping
@@ -96,8 +100,12 @@ public class PatientPortalController {
     @GetMapping("/prescriptions")
     @Operation(summary = "The caller's current prescriptions, newest first")
     public List<PrescriptionResponse> prescriptions(@AuthenticationPrincipal AppUserPrincipal principal) {
-        return prescriptionRepository.findCurrentForPatient(patientId(principal)).stream()
-                .map(PrescriptionResponse::from)
+        List<Prescription> current = prescriptionRepository.findCurrentForPatient(patientId(principal));
+        Map<UUID, Instant> dispensedAt = dispensationRepository
+                .findByPrescriptionIdIn(current.stream().map(Prescription::getId).toList()).stream()
+                .collect(Collectors.toMap(Dispensation::getPrescriptionId, Dispensation::getDispensedAt));
+        return current.stream()
+                .map(p -> PrescriptionResponse.from(p, dispensedAt.get(p.getId())))
                 .toList();
     }
 
@@ -186,14 +194,16 @@ public class PatientPortalController {
             String diagnosis,
             String notes,
             boolean revised,
+            /** When the pharmacy filled it; null if not yet dispensed. */
+            Instant dispensedAt,
             List<ItemResponse> items
     ) {
-        static PrescriptionResponse from(Prescription p) {
+        static PrescriptionResponse from(Prescription p, Instant dispensedAt) {
             Doctor d = p.getDoctor();
             return new PrescriptionResponse(
                     p.getId(), p.getAppointment().getId(), p.getIssuedAt(),
                     d.getUser().getFullName(), d.getSpecialization(),
-                    p.getDiagnosis(), p.getNotes(), p.getSupersedesId() != null,
+                    p.getDiagnosis(), p.getNotes(), p.getSupersedesId() != null, dispensedAt,
                     p.getItems().stream().map(ItemResponse::from).toList());
         }
     }

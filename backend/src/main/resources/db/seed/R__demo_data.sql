@@ -183,6 +183,15 @@ JOIN appointment_slots s ON s.id = a.slot_id
 ON CONFLICT DO NOTHING;
 
 
+-- The two older current prescriptions were filled at the pharmacy the same
+-- day; the most recent one is still waiting to be collected.
+INSERT INTO prescription_dispensations (prescription_id, dispensed_at)
+SELECT p.id, p.issued_at + INTERVAL '40 minutes'
+FROM prescriptions p
+WHERE p.id IN ('ffffffff-6666-4666-8666-ffffffffff01', 'ffffffff-6666-4666-8666-ffffffffff03')
+ON CONFLICT DO NOTHING;
+
+
 INSERT INTO prescription_items (prescription_id, medicine_id, dosage, frequency, duration_days, quantity) VALUES
   ('ffffffff-6666-4666-8666-ffffffffff01', 'cccccccc-3333-4333-8333-cccccccccc06',
    '20mg', 'Once daily, before breakfast', 28, 28),

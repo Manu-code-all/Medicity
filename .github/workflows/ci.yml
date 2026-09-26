@@ -3,11 +3,13 @@ name: CI
 # Push is scoped to main only. Listing feature branches here as well would run
 # the whole suite twice for every commit once a PR is open — once for the push
 # and once for the pull_request event — for identical results.
+#
+# Pull requests run whatever their base: a PR stacked on another feature
+# branch must be tested too, or it merges untested once its base lands.
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 # A new push to the same branch cancels the previous run: there is no value in
 # finishing CI for a commit that has already been superseded.
