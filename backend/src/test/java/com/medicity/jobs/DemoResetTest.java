@@ -156,5 +156,18 @@ class DemoResetTest extends AbstractIntegrationTest {
         doctorRepository.deleteAll();
         userRepository.deleteAll();
         jdbc.update("DELETE FROM notifications");
+        // Other test classes create medicines with the demo's names under
+        // their own ids (StockLedgerConcurrencyTest's "Paracetamol 500mg").
+        // The seed's ON CONFLICT DO NOTHING would then skip the demo's row and
+        // its prescriptions would reference a medicine that is not there.
+        String clashing = """
+                SELECT id FROM medicines
+                WHERE id::text NOT LIKE 'cccccccc-3333-4333-8333-%'
+                  AND (lower(name), coalesce(strength, '')) IN (('paracetamol', '500mg'), ('azithromycin', '250mg'),
+                      ('cetirizine', '10mg'), ('amoxicillin', '500mg'), ('metformin', '500mg'), ('omeprazole', '20mg'))
+                """;
+        jdbc.update("DELETE FROM stock_movements WHERE medicine_id IN (" + clashing + ")");
+        jdbc.update("DELETE FROM prescription_items WHERE medicine_id IN (" + clashing + ")");
+        jdbc.update("DELETE FROM medicines WHERE id IN (" + clashing + ")");
     }
 }
