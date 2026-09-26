@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -43,8 +44,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * The metrics endpoint is admin-only, and the business counters move with
  * what actually happened.
+ *
+ * <p>{@code @AutoConfigureObservability}: Spring Boot turns metric exporters
+ * off in tests by default, so without it {@code /actuator/prometheus} does not
+ * exist here even though it does in the running application.
  */
 @AutoConfigureMockMvc
+@AutoConfigureObservability
 @DisplayName("Metrics")
 class MetricsTest extends AbstractIntegrationTest {
 
