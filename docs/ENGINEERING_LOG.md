@@ -565,6 +565,32 @@ each instance cannot be combined into one.
 **Verified by.** `MetricsTest` (3): anonymous 401, patient 403, admin 200 with
 histogram buckets and the application tag, health still public; a booking and
 a lost race move different counters; a rolled-back booking is not counted.
+## 15. Endpoint denials on long paths were never audited (PR #20)
+
+Found in CI logs while working on metrics:
+`AUDIT WRITE FAILED ... value too long for type character varying(64)`.
+
+A role-level denial is recorded as entity type `ENDPOINT` with entity id
+`METHOD /path`. `audit_log.entity_id` was `VARCHAR(64)`, and a path carrying a
+UUID is longer: `POST /api/v1/pharmacy/prescriptions/<uuid>/dispense` is 81
+characters. Denials are written best-effort, so the 403 still went out and only
+an ERROR line was logged. The audit row, the thing the write existed for, was
+lost. Every existing test passed, because none looked for that row.
+
+**Fix.**
+- V12 widens the column to `VARCHAR(255)`. Widening a VARCHAR in PostgreSQL is
+  a catalog change with no table rewrite, so no audit row is touched and the
+  append-only triggers are not involved.
+- `AuditLog` also cuts ids longer than the column (ending them with "…"). The
+  path is chosen by the client, so without this a long enough URL would still
+  be a way to be refused without leaving a trace.
+
+**Verified by.** `AuditTrailTest.longPathDenialIsRecorded` (a patient calling
+dispense leaves an `ACCESS_DENIED` row with the full path) and
+`overlongEntityIdIsTruncated` (a 500-character id is stored cut to 255).
+
+**Lesson.** A best-effort write that fails quietly needs a test that checks
+the write happened, not only that the response was right.
 
 ---
 

@@ -52,6 +52,9 @@ public class AuditLog {
             VALUES (?, ?, ?, ?, ?, ?, CAST(? AS inet), CAST(? AS jsonb))
             """;
 
+    /** {@code audit_log.entity_id} is VARCHAR(255) (V12). */
+    static final int ENTITY_ID_MAX = 255;
+
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
 
@@ -102,10 +105,20 @@ public class AuditLog {
                 actorRole,
                 action,
                 entityType,
-                entityId == null ? null : entityId.toString(),
+                entityId == null ? null : fit(entityId.toString()),
                 outcome.name(),
                 clientIp(),
                 toJson(detail));
+    }
+
+    /**
+     * An endpoint denial's id is "METHOD /path", and the path is whatever the
+     * client sent. Cut to fit, rather than let an over-long URL make the insert
+     * fail: a failed audit write loses the row, and a long URL would then be a
+     * way to be denied without a trace.
+     */
+    private static String fit(String entityId) {
+        return entityId.length() <= ENTITY_ID_MAX ? entityId : entityId.substring(0, ENTITY_ID_MAX - 1) + "…";
     }
 
     private String toJson(Map<String, ?> detail) {
