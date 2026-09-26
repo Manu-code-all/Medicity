@@ -25,7 +25,11 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 public abstract class AbstractIntegrationTest {
 
     static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>("postgres:16-alpine")
+            // Same major version as production (Railway runs 18). Planner,
+            // locking and error-message behaviour can change between majors,
+            // and a suite that proves correctness on a different version than
+            // production only proves it for that version.
+            new PostgreSQLContainer<>("postgres:18-alpine")
                     .withDatabaseName("medicity_test")
                     .withUsername("medicity")
                     .withPassword("medicity")
