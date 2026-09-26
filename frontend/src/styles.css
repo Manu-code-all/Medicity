@@ -389,6 +389,7 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .rx.is-target { box-shadow: 0 0 0 2px var(--accent); }
 .rx__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .rx__head h2 { margin: 0 0 10px; font-size: 1.15rem; }
+.rx__badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .table-wrap { overflow-x: auto; }
 .rx__table { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
 .rx__table th { text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); padding: 6px 10px 6px 0; border-bottom: 1px solid var(--border); }

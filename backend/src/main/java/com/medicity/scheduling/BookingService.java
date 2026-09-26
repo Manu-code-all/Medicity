@@ -6,9 +6,9 @@ import com.medicity.common.ValidationException;
 import com.medicity.patient.Patient;
 import com.medicity.patient.PatientRepository;
 import com.medicity.audit.AuditLog;
+import com.medicity.common.Constraints;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -141,7 +141,7 @@ public class BookingService {
             return saved;
 
         } catch (DataIntegrityViolationException e) {
-            String constraint = constraintNameOf(e);
+            String constraint = Constraints.nameOf(e);
 
             if (UQ_ACTIVE_APPOINTMENT_PER_SLOT.equalsIgnoreCase(constraint)) {
                 // Lost the race. This is an expected outcome under load, not an
@@ -194,23 +194,5 @@ public class BookingService {
         auditLog.recordChange("APPOINTMENT_CANCELLED", "APPOINTMENT", appointmentId,
                 Map.of("lateCancellation", late, "reason", reason == null ? "" : reason));
         return saved;
-    }
-
-    /**
-     * Digs the constraint name out of the exception chain.
-     *
-     * <p>Spring wraps Hibernate's {@link ConstraintViolationException}, which is
-     * where the name actually lives; the Spring-level exception only carries a
-     * formatted message.
-     */
-    private String constraintNameOf(DataIntegrityViolationException e) {
-        Throwable cause = e.getCause();
-        while (cause != null) {
-            if (cause instanceof ConstraintViolationException cve) {
-                return cve.getConstraintName();
-            }
-            cause = cause.getCause();
-        }
-        return null;
     }
 }

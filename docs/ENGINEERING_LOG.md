@@ -256,10 +256,55 @@ UPDATE, DELETE and TRUNCATE are all refused; only an admin can read the trail.
 
 ---
 
+## 8. Pharmacy: dispensing a prescription (PR #9)
+
+**The gap.** Stock logic and its concurrency test existed, but nothing could
+call them, and nothing prevented a prescription being filled twice.
+
+**Endpoints.** `POST /api/v1/pharmacy/prescriptions/{id}/dispense`,
+`POST /api/v1/pharmacy/medicines/{id}/restock`, `GET /api/v1/pharmacy/stock/low`
+(all admin, standing in for a pharmacist role), and a catalogue search for any
+signed-in user. The patient portal now shows when each prescription was
+dispensed.
+
+**Three guarantees, all enforced by PostgreSQL.**
+
+1. *At most once.* V7 adds `prescription_dispensations` with a unique
+   constraint on `prescription_id`. The service inserts that row **before**
+   touching stock. A concurrent second attempt blocks on the unique index
+   until the first commits, then fails with `409 ALREADY_DISPENSED`, having
+   moved no stock. This is the booking pattern reused: optimistic insert,
+   constraint decides, constraint name mapped to a response.
+2. *All or nothing.* Every medicine is decremented in one transaction. If the
+   second medicine is short, the exception rolls back the first decrement and
+   the dispensation row with it. The error names the medicine that is short.
+3. *Never below zero.* Each decrement is the existing conditional UPDATE,
+   backed by the CHECK constraint.
+
+**Deadlock avoidance.** Stock rows are locked in ascending medicine-id order.
+Two prescriptions sharing medicines, processed in opposite orders, would each
+hold one row lock while waiting for the other's: a deadlock that PostgreSQL
+resolves by killing one transaction. A single global lock order makes that
+cycle impossible.
+
+**Superseded prescriptions are refused** (`422 PRESCRIPTION_SUPERSEDED`):
+filling the original would hand the patient instructions the doctor withdrew.
+
+**Refactor.** The constraint-name lookup moved from `BookingService` into
+`common/Constraints` now that two services use it.
+
+**Verified by.** `DispensingTest`: every item decremented with a movement row
+each; a second dispense refused with stock untouched; 16 threads released
+together on one prescription produce exactly one success and stock taken
+once; one short medicine leaves both untouched and records no dispensation;
+superseded refused while its correction succeeds; patient and doctor get 403,
+and the portal shows `dispensedAt` afterwards; restock is audited and clears
+the low-stock flag.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
-- **Pharmacy has no HTTP API.** Stock logic and its concurrency test exist;
-  dispensing is not exposed.
 - **No doctor workflow.** Nothing lets a doctor complete a visit or issue a
   prescription; portal history currently comes from seed data.
 - CI tests PostgreSQL 16; production runs 18.
