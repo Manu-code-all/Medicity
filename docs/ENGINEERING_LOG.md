@@ -862,6 +862,33 @@ seed leaves everything in place.
 
 ---
 
+## 20. Production outage: the demo reset bean could not be created (PR #25)
+
+**What happened.** After #24 merged, production answered 502 ("Application
+failed to respond") for over ten minutes. `DemoResetJob` had two constructors:
+the public one, and a package-private one added so the test could pass a
+failing seed script. With more than one constructor and none marked
+`@Autowired`, Spring cannot choose; it falls back to a no-argument
+constructor, finds none, and refuses to create the bean
+(`No default constructor found`). The application context fails and the
+process never listens.
+
+**Why CI did not catch it.** The bean is `@Profile("demo")`. Production runs
+the demo profile; the integration tests deliberately do not (it would load the
+demo seed into the shared test database), and `DemoResetTest` built the job
+by hand with `new`. So nothing in CI ever asked Spring to construct it.
+
+**Fix.** `@Autowired` on the public constructor.
+`DemoResetWiringTest` starts a small Spring context under the demo profile
+with the job's dependencies mocked and asserts the bean is created. It fails
+against the old code with the exact production error and passes with the fix.
+
+**Lesson.** Constructing a bean by hand in a test proves the logic, not the
+wiring. Any bean that only exists under a profile the tests do not run needs
+a test that lets Spring build it.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when
