@@ -52,10 +52,16 @@ export const doctors = {
 };
 
 export const appointments = {
-  book: (slotId: string, reason: string) =>
+  /**
+   * `idempotencyKey` identifies this booking attempt. Sending the same key
+   * again (a retry after a dropped response) returns the original booking
+   * instead of a "you already have an appointment" error.
+   */
+  book: (slotId: string, reason: string, idempotencyKey: string) =>
     request<Appointment>("/api/v1/appointments", {
       method: "POST",
       body: { slotId, reason },
+      headers: { "Idempotency-Key": idempotencyKey },
     }),
 
   cancel: (id: string, reason: string) =>

@@ -37,9 +37,18 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    @Operation(summary = "Exchange a refresh token for a new token pair")
+    @Operation(summary = "Exchange a refresh token for a new token pair",
+            description = "Each refresh token works once. Presenting a used one ends the whole session.")
     public AuthService.TokenPair refresh(@Valid @RequestBody RefreshRequest request) {
         return authService.refresh(request.refreshToken());
+    }
+
+    /** Takes the refresh token rather than a bearer token, so an expired access token can still sign out. */
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "End the session the refresh token belongs to")
+    public void logout(@Valid @RequestBody RefreshRequest request) {
+        authService.logout(request.refreshToken());
     }
 
     public record RegisterRequest(

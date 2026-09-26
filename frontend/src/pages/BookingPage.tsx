@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { ApiError } from "../api/client";
@@ -35,11 +35,27 @@ export function BookingPage() {
     staleTime: 30_000,
   });
 
+  // One key per booking attempt: the same slot and reason submitted again (a
+  // double click, a retry after a dropped connection) reuses it, so the server
+  // returns the booking it already made. Changing either starts a new attempt.
+  const attempt = useRef<{ slotId: string; why: string; key: string } | null>(null);
+  function keyFor(slotId: string, why: string): string {
+    if (attempt.current?.slotId !== slotId || attempt.current.why !== why) {
+      attempt.current = { slotId, why, key: crypto.randomUUID() };
+    }
+    return attempt.current.key;
+  }
+
   const booking = useMutation({
     mutationFn: ({ slotId, why }: { slotId: string; why: string }) =>
-      appointments.book(slotId, why),
+      appointments.book(slotId, why, keyFor(slotId, why)),
+    // Safe only because of the key: a network failure may have hidden a
+    // booking that succeeded, and the retry then returns it instead of
+    // booking twice. Errors the server answered are not retried.
+    retry: (failures, error) => !(error instanceof ApiError) && failures < 2,
 
     onSuccess: () => {
+      attempt.current = null;
       setNotice("Appointment confirmed.");
       setSelectedSlot(null);
       setReason("");

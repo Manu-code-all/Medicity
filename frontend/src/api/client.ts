@@ -40,26 +40,32 @@ export const tokenStore = {
 };
 
 /**
- * In-flight refresh, shared across callers.
+ * In-flight refresh, shared across callers in this tab.
  *
  * When an access token expires, every query on screen fails with 401 at roughly
- * the same moment. Without this, each one would fire its own refresh request —
- * a thundering herd where all but one response is discarded, and where a
- * rotating-refresh-token scheme would invalidate the tokens of its own siblings.
+ * the same moment. Without this, each one would fire its own refresh request.
+ * Refresh tokens are single-use and the server treats a second use as theft,
+ * ending the session, so the second request would sign the user out.
  * Holding a single promise means the first 401 refreshes and the rest await it.
  */
 let refreshInFlight: Promise<boolean> | null = null;
 
 async function refreshTokens(): Promise<boolean> {
-  const refreshToken = tokenStore.refresh();
-  if (!refreshToken) return false;
+  const seen = tokenStore.refresh();
+  if (!seen) return false;
 
-  refreshInFlight ??= (async () => {
+  refreshInFlight ??= withRefreshLock(async () => {
     try {
+      // Other tabs share these tokens through localStorage. If one refreshed
+      // while this tab waited for the lock, the token this tab saw is spent;
+      // sending it would look like theft. Use the new one instead.
+      const current = tokenStore.refresh();
+      if (current !== seen) return current !== null;
+
       const response = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify({ refreshToken: current }),
       });
       if (!response.ok) {
         tokenStore.clear();
@@ -69,19 +75,44 @@ async function refreshTokens(): Promise<boolean> {
       return true;
     } catch {
       return false;
-    } finally {
-      // Cleared in `finally` so a failed refresh does not poison every
-      // subsequent attempt with a permanently rejected promise.
-      refreshInFlight = null;
     }
-  })();
+  }).finally(() => {
+    // Cleared in `finally` so a failed refresh does not poison every
+    // subsequent attempt with a permanently rejected promise.
+    refreshInFlight = null;
+  });
 
   return refreshInFlight;
+}
+
+/**
+ * Runs `task` while holding a lock shared by every tab of this origin, so two
+ * tabs never refresh at once. Browsers without the Web Locks API run it
+ * directly: at worst a simultaneous refresh in two tabs signs the user out.
+ */
+async function withRefreshLock(task: () => Promise<boolean>): Promise<boolean> {
+  if (typeof navigator !== "undefined" && "locks" in navigator) {
+    return await navigator.locks.request("medicity.refresh", task);
+  }
+  return task();
+}
+
+/** Ends the session on the server. Best effort: signing out locally must never wait on or fail with it. */
+export function revokeSession(): void {
+  const refreshToken = tokenStore.refresh();
+  if (!refreshToken) return;
+  void fetch(`${BASE_URL}/api/v1/auth/logout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refreshToken }),
+    keepalive: true,
+  }).catch(() => undefined);
 }
 
 interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
+  headers?: Record<string, string>;
   /** Internal: prevents an infinite refresh loop on a retried request. */
   retrying?: boolean;
 }
@@ -89,7 +120,7 @@ interface RequestOptions {
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = "GET", body, retrying = false } = options;
 
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...options.headers };
   if (body !== undefined) headers["Content-Type"] = "application/json";
 
   const accessToken = tokenStore.access();

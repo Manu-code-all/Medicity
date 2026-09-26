@@ -54,6 +54,13 @@ medicity:
     access-ttl: ${JWT_ACCESS_TTL:PT15M}
     refresh-ttl: ${JWT_REFRESH_TTL:P7D}
 
+  auth:
+    login-throttle:
+      # Failed logins allowed per email within the window before further
+      # attempts get 429. Counted from the audit log; see LoginThrottle.
+      max-failures: 5
+      window: PT15M
+
 management:
   endpoints:
     web:
