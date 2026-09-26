@@ -62,7 +62,7 @@ jobs:
           path: backend/target/surefire-reports/
 
   frontend:
-    name: Frontend — lint, typecheck & build
+    name: Frontend — lint, typecheck, test & build
     runs-on: ubuntu-latest
 
     steps:
@@ -85,6 +85,10 @@ jobs:
       - name: Lint
         working-directory: frontend
         run: npm run lint
+
+      - name: Test
+        working-directory: frontend
+        run: npm test
 
       - name: Build
         working-directory: frontend
