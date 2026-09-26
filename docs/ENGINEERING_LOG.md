@@ -751,6 +751,49 @@ expired tokens and day-old keys and keeps spent-but-unexpired tokens.
 
 ---
 
+## 19. Nightly demo reset (PR #24)
+
+The public demo is shared and used up by use: the first visitor to close
+Dr. Rao's waiting visit takes it away from everyone after, bookings fill the
+open slots, and the seed's "today" visits drift into the past (and, since
+entry 17, are marked missed a day later).
+
+`DemoResetJob` runs at 02:30 UTC (08:00 in India) under the `demo` profile
+only, the same switch that loads the seed, so a real deployment never has the
+bean. It:
+1. deletes every appointment with a demo doctor or for a demo patient,
+   with its prescriptions, items and dispensations, then the demo doctors'
+   slots (children first; an original prescription and its correction go in
+   one statement, so the self-reference holds when the statement ends);
+2. clears notifications and stored idempotent responses, which describe
+   bookings that no longer exist;
+3. puts demo stock back to 250 through an `ADJUSTMENT` movement, so on-hand
+   stock stays reconstructable from the ledger;
+4. re-runs the demo seed, whose dates are relative to now.
+
+Visitors' accounts are kept; their bookings with demo doctors go with the rest.
+
+**All or nothing.** Everything, including the seed script (run on the
+transaction's own connection), is one transaction. If re-seeding fails, the
+deletions roll back too, and the demo stays as it was instead of empty.
+`DemoResetTest.resetIsAllOrNothing` runs the job with a seed that fails and
+checks that nothing was deleted.
+
+**Tested without the demo profile.** Running a test class under `demo` would
+load the seed into the database every other test class shares. The test
+builds the job by hand and removes what it seeded afterwards.
+
+**Also:** the landing page says the demo resets nightly. The smoke-test
+booking left on production (on a demo doctor's slot) is removed by the first
+reset.
+
+**Verified by.** `DemoResetTest` (3): seeding produces Meera's history, Dr.
+Rao's day and full stock; a day of visitor changes is undone while the
+visitor's account stays, and stock is restored through the ledger; a failing
+seed leaves everything in place.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when
@@ -778,9 +821,8 @@ expired tokens and day-old keys and keeps spent-but-unexpired tokens.
   already hold its medicines. Planned: a notification through an outbox.
 - **Pharmacy actions use the ADMIN role.** There is no dedicated pharmacist
   role yet, so whoever dispenses can also read the whole audit log.
-- **The public demo is consumed by use.** Closing Dr. Rao's waiting visit or
-  booking the open slots changes the data for the next visitor. Planned: a
-  nightly reset of the demo data.
+- **The demo resets only nightly.** Between resets, one visitor's changes
+  (closing the waiting visit, booking slots) are what the next visitor sees.
 - **Nothing collects the metrics in production.** `/actuator/prometheus`
   works (ADMIN only), but no Prometheus server scrapes it, and there is no
   dashboard or alerting. The counters exist; nobody is watching them yet.

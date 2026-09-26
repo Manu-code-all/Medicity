@@ -42,7 +42,7 @@ export function LandingPage() {
               <p className="hero__demo muted">
                 Trying it out? Sign in as <code>patient@medicity.demo</code> to see the patient portal, or as{" "}
                 <code>dr.rao@medicity.demo</code> for the doctor workspace. Password for both:{" "}
-                <code>demo-password-2026</code>
+                <code>demo-password-2026</code>. The demo resets every night, so feel free to change things.
               </p>
             )}
           </div>
