@@ -1,0 +1,88 @@
+name: Load test
+
+# Runs the booking load test against the real API image and PostgreSQL 18,
+# both on the runner. Manual, or on a PR that changes the test itself: it takes
+# a few minutes and measures the runner as much as the code, so it is not a
+# gate on every change.
+on:
+  workflow_dispatch:
+    inputs:
+      bookings_per_second:
+        description: Booking arrival rate for the throughput scenario
+        default: "40"
+      duration:
+        description: Length of the throughput and read scenarios
+        default: "60s"
+  pull_request:
+    paths:
+      - loadtest/**
+      - .github/workflows/load-test.yml
+
+concurrency:
+  group: load-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  load:
+    name: Booking under load
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start PostgreSQL and the API
+        run: docker compose up -d --build db api
+
+      - name: Wait for the API to be ready
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8080/actuator/health/readiness && exit 0
+            sleep 5
+          done
+          docker compose logs api
+          exit 1
+
+      - name: Seed load-test data
+        run: docker compose exec -T db psql -U medicity -d medicity -v ON_ERROR_STOP=1 -q < loadtest/seed.sql
+
+      - name: Run k6
+        run: |
+          echo "Runner: $(nproc) vCPU, $(free -g | awk '/Mem:/ {print $2}') GB RAM"
+          mkdir -p loadtest/results && chmod 777 loadtest/results
+          docker run --rm --network host \
+            -v "$PWD/loadtest:/scripts:ro" -v "$PWD/loadtest/results:/results" \
+            -e BASE_URL=http://localhost:8080 \
+            -e BOOKINGS_PER_SECOND=${{ inputs.bookings_per_second || '40' }} \
+            -e DURATION=${{ inputs.duration || '60s' }} \
+            grafana/k6:latest run /scripts/booking.js
+
+      - name: Check the database
+        if: always()
+        run: |
+          docker compose exec -T db psql -U medicity -d medicity -v ON_ERROR_STOP=1 < loadtest/verify.sql | tee loadtest/results/verify.txt
+          ! grep -q " f " loadtest/results/verify.txt
+
+      - name: Business counters from /actuator/prometheus
+        if: always()
+        run: |
+          TOKEN=$(curl -s -X POST localhost:8080/api/v1/auth/login -H 'Content-Type: application/json' \
+            -d '{"email":"lt-admin@medicity.test","password":"load-test-password"}' | jq -r .accessToken)
+          curl -s localhost:8080/actuator/prometheus -H "Authorization: Bearer $TOKEN" \
+            | grep -E '^medicity_(bookings|idempotency)' | tee loadtest/results/counters.txt || true
+
+      - name: Write summary
+        if: always()
+        run: |
+          cat loadtest/results/summary.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          {
+            echo "### Database checks"; echo '```'; cat loadtest/results/verify.txt 2>/dev/null; echo '```'
+            echo "### Counters"; echo '```'; cat loadtest/results/counters.txt 2>/dev/null; echo '```'
+            echo "Runner: $(nproc) vCPU, $(free -g | awk '/Mem:/ {print $2}') GB RAM, API + PostgreSQL + k6 on one machine."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-results
+          path: loadtest/results/

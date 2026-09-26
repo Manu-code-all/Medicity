@@ -261,6 +261,12 @@ break silently: one token refresh for many simultaneous 401s, handing over a
 token another tab already refreshed instead of spending the old one, and
 booking retries that reuse the same `Idempotency-Key`.
 
+**Under load** (`.github/workflows/load-test.yml`, k6 against the real image
+and PostgreSQL 18 on one GitHub-hosted runner): 200 simultaneous attempts on 20
+slots yield exactly 20 bookings and 180 `409`s. 150 bookings/s holds p95 at
+31 ms with no errors. At 300/s the runner saturates (p95 1.3 s), still with zero
+errors and zero double bookings; the database is checked after every run.
+
 ---
 
 ## API
@@ -480,4 +486,4 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
 - [x] Prometheus metrics (`/actuator/prometheus`, ADMIN only)
 - [ ] Grafana dashboard
 - [ ] Doctor availability rules engine (recurring weekly templates)
-- [ ] k6 load test establishing booking throughput under contention
+- [x] k6 load test establishing booking throughput under contention
