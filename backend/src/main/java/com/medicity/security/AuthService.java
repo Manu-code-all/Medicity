@@ -1,5 +1,6 @@
 package com.medicity.security;
 
+import com.medicity.audit.AuditLog;
 import com.medicity.common.ConflictException;
 import com.medicity.common.ValidationException;
 import com.medicity.patient.Patient;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -25,6 +27,7 @@ public class AuthService {
     private final PatientRepository patientRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuditLog auditLog;
 
     /**
      * Compared against when the email is unknown, so a failed login costs one
@@ -44,11 +47,13 @@ public class AuthService {
     public AuthService(UserRepository userRepository,
                        PatientRepository patientRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtService jwtService) {
+                       JwtService jwtService,
+                       AuditLog auditLog) {
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.auditLog = auditLog;
         this.timingEqualiserHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
@@ -102,11 +107,20 @@ public class AuthService {
         boolean matches = passwordEncoder.matches(rawPassword, storedHash);
 
         if (user == null || !matches) {
+            // Both branches write this row, so the audit adds equal time to each
+            // and does not reintroduce the timing difference fixed above. The
+            // attempted email is kept: it is what reveals credential stuffing.
+            auditLog.recordIndependently("LOGIN_FAILED", "USER", user == null ? null : user.getId(),
+                    AuditLog.Outcome.DENIED, Map.of("email", email.trim().toLowerCase()));
             throw new BadCredentialsException("Invalid email or password");
         }
         if (!user.isEnabled()) {
+            auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "LOGIN_REFUSED_DISABLED",
+                    "USER", user.getId(), AuditLog.Outcome.DENIED, null);
             throw new ValidationException("ACCOUNT_DISABLED", "This account has been disabled");
         }
+        auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "LOGIN_SUCCEEDED",
+                "USER", user.getId(), AuditLog.Outcome.SUCCESS, null);
         return issue(user);
     }
 

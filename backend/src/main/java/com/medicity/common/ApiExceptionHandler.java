@@ -1,7 +1,9 @@
 package com.medicity.common;
 
+import com.medicity.audit.AuditLog;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -36,8 +38,11 @@ import java.util.UUID;
  * </ol>
  */
 @RestControllerAdvice
+@RequiredArgsConstructor
 @Slf4j
 public class ApiExceptionHandler {
+
+    private final AuditLog auditLog;
 
     // Trailing slash matters: URI.resolve replaces the last path segment, so
     // without it "errors" itself would be dropped from every type URI.
@@ -82,6 +87,12 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ProblemDetail onAccessDenied(AccessDeniedException e, HttpServletRequest request) {
+        // Authenticated, but the role does not allow this endpoint (for example
+        // a doctor calling the patient portal). Row-level denials are recorded
+        // where they are decided, with the record id.
+        auditLog.recordIndependently("ACCESS_DENIED", "ENDPOINT",
+                request.getMethod() + " " + request.getRequestURI(), AuditLog.Outcome.DENIED, null);
+
         // Deliberately identical whether the resource is missing or merely
         // forbidden: distinguishing the two would confirm the existence of other
         // patients' records to anyone probing ids.

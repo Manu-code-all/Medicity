@@ -5,6 +5,7 @@ import com.medicity.common.NotFoundException;
 import com.medicity.common.ValidationException;
 import com.medicity.patient.Patient;
 import com.medicity.patient.PatientRepository;
+import com.medicity.audit.AuditLog;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -81,6 +83,7 @@ public class BookingService {
     private final AppointmentRepository appointmentRepository;
     private final SlotRepository slotRepository;
     private final PatientRepository patientRepository;
+    private final AuditLog auditLog;
 
     /** Injected rather than using {@code Instant.now()} so tests control time. */
     private final Clock clock;
@@ -131,6 +134,10 @@ public class BookingService {
             // below working and being dead code.
             Appointment saved = appointmentRepository.saveAndFlush(appointment);
             log.info("Appointment {} booked: slot={} patient={}", saved.getId(), slotId, patientId);
+            // Same transaction as the insert: reached only if the insert
+            // succeeded, and rolled back with it if the commit fails.
+            auditLog.recordChange("APPOINTMENT_BOOKED", "APPOINTMENT", saved.getId(),
+                    Map.of("slotId", slotId, "patientId", patientId, "scheduledAt", saved.getScheduledAt()));
             return saved;
 
         } catch (DataIntegrityViolationException e) {
@@ -176,13 +183,17 @@ public class BookingService {
                     "A completed appointment cannot be cancelled");
         }
 
-        if (Duration.between(now, appointment.getScheduledAt()).compareTo(FREE_CANCELLATION_WINDOW) < 0) {
+        boolean late = Duration.between(now, appointment.getScheduledAt()).compareTo(FREE_CANCELLATION_WINDOW) < 0;
+        if (late) {
             log.info("Late cancellation of appointment {} ({} before start)",
                     appointmentId, Duration.between(now, appointment.getScheduledAt()));
         }
 
         appointment.cancel(now, reason);
-        return appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.save(appointment);
+        auditLog.recordChange("APPOINTMENT_CANCELLED", "APPOINTMENT", appointmentId,
+                Map.of("lateCancellation", late, "reason", reason == null ? "" : reason));
+        return saved;
     }
 
     /**

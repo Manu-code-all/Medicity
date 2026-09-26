@@ -1,5 +1,6 @@
 package com.medicity.security;
 
+import com.medicity.audit.AuditLog;
 import com.medicity.patient.PatientRepository;
 import com.medicity.user.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -49,7 +50,8 @@ class LoginTimingTest {
         UserRepository users = mock(UserRepository.class);
         when(users.findByEmail(anyString())).thenReturn(Optional.empty());
 
-        AuthService auth = new AuthService(users, mock(PatientRepository.class), encoder, mock(JwtService.class));
+        AuthService auth = new AuthService(users, mock(PatientRepository.class), encoder, mock(JwtService.class),
+                mock(AuditLog.class));
 
         assertThatThrownBy(() -> auth.login("nobody@medicity.test", "some-password-123"))
                 .isInstanceOf(BadCredentialsException.class);

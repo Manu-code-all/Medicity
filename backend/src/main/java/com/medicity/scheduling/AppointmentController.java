@@ -1,5 +1,6 @@
 package com.medicity.scheduling;
 
+import com.medicity.audit.AuditLog;
 import com.medicity.common.ForbiddenException;
 import com.medicity.common.NotFoundException;
 import com.medicity.doctor.DoctorRepository;
@@ -22,6 +23,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -34,6 +36,7 @@ public class AppointmentController {
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
+    private final AuditLog auditLog;
 
     /**
      * Books a slot for the calling patient.
@@ -72,7 +75,7 @@ public class AppointmentController {
         Appointment appointment = appointmentRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new NotFoundException("Appointment", id));
 
-        requireAccess(principal, appointment);
+        requireAccess(principal, appointment, "cancel");
         return AppointmentResponse.from(bookingService.cancel(id, request.reason()));
     }
 
@@ -111,7 +114,14 @@ public class AppointmentController {
         Appointment appointment = appointmentRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new NotFoundException("Appointment", id));
 
-        requireAccess(principal, appointment);
+        requireAccess(principal, appointment, "read");
+
+        // A patient reading their own record is routine. Anyone else reading it
+        // (the treating doctor, an admin) is the access an audit exists to show.
+        if (principal.getRole() != Role.PATIENT) {
+            auditLog.recordIndependently("APPOINTMENT_VIEWED", "APPOINTMENT", id,
+                    AuditLog.Outcome.SUCCESS, Map.of("patientId", appointment.getPatient().getId()));
+        }
         return AppointmentResponse.from(appointment);
     }
 
@@ -123,7 +133,7 @@ public class AppointmentController {
      * read patient B's appointment by guessing an id. Access is therefore decided
      * per row, by ownership.
      */
-    private void requireAccess(AppUserPrincipal principal, Appointment appointment) {
+    private void requireAccess(AppUserPrincipal principal, Appointment appointment, String operation) {
         if (principal.getRole() == Role.ADMIN) {
             return;
         }
@@ -143,6 +153,11 @@ public class AppointmentController {
                 return;
             }
         }
+        // Recorded in its own transaction: the exception below rolls back this
+        // request, and a denial is precisely the event worth keeping.
+        auditLog.recordIndependently("ACCESS_DENIED", "APPOINTMENT", appointment.getId(),
+                AuditLog.Outcome.DENIED, Map.of("operation", operation));
+
         // Same response as "not found" would give, so probing ids cannot confirm
         // which appointments exist.
         throw new ForbiddenException("You do not have access to this appointment");
