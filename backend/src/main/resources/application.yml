@@ -71,6 +71,14 @@ management:
       probes:
         enabled: true          # /readiness and /liveness for orchestrators
       show-details: when_authorized
+  metrics:
+    tags:
+      application: medicity-api
+    distribution:
+      # Latency buckets for every route, so Prometheus can compute p95 and p99
+      # across instances; precomputed percentiles cannot be combined.
+      percentiles-histogram:
+        http.server.requests: true
 
 logging:
   level:

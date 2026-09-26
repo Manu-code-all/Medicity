@@ -1,5 +1,7 @@
 package com.medicity.scheduling;
 
+import com.medicity.common.DomainException;
+import com.medicity.common.DomainMetrics;
 import com.medicity.common.ConflictException;
 import com.medicity.common.NotFoundException;
 import com.medicity.common.ValidationException;
@@ -84,6 +86,7 @@ public class BookingService {
     private final SlotRepository slotRepository;
     private final PatientRepository patientRepository;
     private final AuditLog auditLog;
+    private final DomainMetrics metrics;
 
     /** Injected rather than using {@code Instant.now()} so tests control time. */
     private final Clock clock;
@@ -98,6 +101,19 @@ public class BookingService {
      */
     @Transactional
     public Appointment book(UUID slotId, UUID patientId, String reason) {
+        try {
+            Appointment booked = attemptBooking(slotId, patientId, reason);
+            metrics.bookingCommitted();
+            return booked;
+        } catch (DomainException e) {
+            // SLOT_ALREADY_BOOKED, SLOT_TOO_SOON, ...: how often each happens is
+            // the difference between "busy" and "broken", and both are a 4xx.
+            metrics.bookingRefused(e.getCode());
+            throw e;
+        }
+    }
+
+    private Appointment attemptBooking(UUID slotId, UUID patientId, String reason) {
         Instant now = clock.instant();
 
         AppointmentSlot slot = slotRepository.findById(slotId)

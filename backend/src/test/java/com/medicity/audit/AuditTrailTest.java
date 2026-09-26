@@ -61,6 +61,7 @@ class AuditTrailTest extends AbstractIntegrationTest {
     @Autowired BookingService bookingService;
     @Autowired JwtService jwtService;
     @Autowired Clock clock;
+    @Autowired AuditLog auditLog;
 
     private User aliceUser;
     private User malloryUser;
@@ -163,6 +164,31 @@ class AuditTrailTest extends AbstractIntegrationTest {
                 .toList();
         assertThat(views).hasSize(1);
         assertThat(views.get(0)).containsEntry("actor_id", doctorUser.getId());
+    }
+
+    @Test
+    @DisplayName("a denial on a long path is recorded (it used to overflow entity_id)")
+    void longPathDenialIsRecorded() throws Exception {
+        String path = "/api/v1/pharmacy/prescriptions/" + UUID.randomUUID() + "/dispense";
+
+        mvc.perform(post(path).header("Authorization", bearer(aliceUser)))
+                .andExpect(status().isForbidden());
+
+        assertThat(rowsFor("POST " + path))
+                .extracting(r -> r.get("action"), r -> r.get("outcome"))
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("ACCESS_DENIED", "DENIED"));
+    }
+
+    @Test
+    @DisplayName("an entity id longer than the column is cut to fit, not dropped")
+    void overlongEntityIdIsTruncated() {
+        String marker = "GET /" + UUID.randomUUID() + "/";
+        auditLog.recordIndependently("ACCESS_DENIED", "ENDPOINT", marker + "a".repeat(500),
+                AuditLog.Outcome.DENIED, null);
+
+        String stored = jdbc.queryForObject("SELECT entity_id FROM audit_log WHERE entity_id LIKE ?",
+                String.class, marker + "%");
+        assertThat(stored).hasSize(AuditLog.ENTITY_ID_MAX).endsWith("…");
     }
 
     @Test

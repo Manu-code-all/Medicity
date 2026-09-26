@@ -53,6 +53,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/doctors/me/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/v1/doctors/**").permitAll()
                 .requestMatchers("/actuator/health/**").permitAll()
+                // Metrics describe the system's internals (routes, error rates,
+                // login failures); any signed-in patient could read them before.
+                .requestMatchers("/actuator/**").hasRole("ADMIN")
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 // Default-deny. Anything not opened above needs authentication, so
                 // adding a new endpoint cannot accidentally expose it.

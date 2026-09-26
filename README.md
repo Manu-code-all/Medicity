@@ -258,6 +258,15 @@ unique indexes, GiST exclusion constraints and `tstzrange` either do not exist i
 H2 or behave differently there — a suite that passed on H2 would tell you nothing
 about production, which is the entire point of these tests.
 
+```bash
+cd frontend && npm test
+```
+
+The web app's tests (Vitest, Testing Library) cover the behaviour that would
+break silently: one token refresh for many simultaneous 401s, handing over a
+token another tab already refreshed instead of spending the old one, and
+booking retries that reuse the same `Idempotency-Key`.
+
 ---
 
 ## API
@@ -474,6 +483,7 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
 - [x] Idempotency keys on booking
 - [ ] Editable patient profile
 - [ ] Notification service (email/SMS) on booking and cancellation
-- [ ] Prometheus metrics + Grafana dashboard
+- [x] Prometheus metrics (`/actuator/prometheus`, ADMIN only)
+- [ ] Grafana dashboard
 - [ ] Doctor availability rules engine (recurring weekly templates)
 - [x] k6 load test establishing booking throughput under contention
