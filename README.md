@@ -484,7 +484,8 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
 - [x] Login rate limiting
 - [x] Idempotency keys on booking
 - [ ] Editable patient profile
-- [ ] Notification service (email/SMS) on booking and cancellation
+- [x] In-app notifications through a transactional outbox
+- [ ] Email/SMS delivery (another outbox consumer)
 - [x] Prometheus metrics (`/actuator/prometheus`, ADMIN only)
 - [ ] Grafana dashboard
 - [ ] Doctor availability rules engine (recurring weekly templates)

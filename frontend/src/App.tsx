@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link, Navigate, NavLink, Outlet, Route, Routes, useNavigate } from "react-router-dom";
+import { notifications } from "./api/endpoints";
 import { homeFor, useAuth } from "./auth/context";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BookingPage } from "./pages/BookingPage";
@@ -9,6 +11,7 @@ import { VisitPage } from "./pages/doctor/VisitPage";
 import { DoctorsPage } from "./pages/DoctorsPage";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
+import { NOTIFICATIONS_KEY, NotificationsPage } from "./pages/NotificationsPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { OverviewPage } from "./pages/portal/OverviewPage";
 import { PortalLayout } from "./pages/portal/PortalLayout";
@@ -42,6 +45,7 @@ export function App() {
                     {session.role === "DOCTOR" ? "My workspace" : "My portal"}
                   </NavLink>
                 )}
+                <NotificationsLink />
                 <button type="button" className="link" onClick={signOut}>
                   Sign out
                 </button>
@@ -84,6 +88,7 @@ export function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/doctors/:doctorId/book" element={<BookingPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
             </Route>
             {/* The old URL, kept working for existing bookmarks. */}
             <Route path="/appointments" element={<Navigate to="/portal/visits" replace />} />
@@ -92,6 +97,25 @@ export function App() {
         </Routes>
       </main>
     </div>
+  );
+}
+
+/**
+ * Header link with the unread count. Polled once a minute: notifications are
+ * delivered by a background relay a moment after the change, so a push
+ * channel would add infrastructure for no visible gain at this scale.
+ */
+function NotificationsLink() {
+  const list = useQuery({
+    queryKey: NOTIFICATIONS_KEY,
+    queryFn: notifications.mine,
+    refetchInterval: 60_000,
+  });
+  const unread = list.data?.unread ?? 0;
+  return (
+    <NavLink to="/notifications" aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}>
+      Notifications{unread > 0 && <span className="count-badge">{unread}</span>}
+    </NavLink>
   );
 }
 
