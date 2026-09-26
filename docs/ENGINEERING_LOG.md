@@ -563,6 +563,9 @@ because the previous test's fake `navigator.locks` was still installed:
 the config, not by reordering tests.
 
 **CI** runs `npm test` in the frontend job, between lint and build.
+
+---
+
 ## 14. Metrics (PR #18)
 
 **Two things found before adding anything.**
@@ -599,6 +602,14 @@ each instance cannot be combined into one.
 **Verified by.** `MetricsTest` (3): anonymous 401, patient 403, admin 200 with
 histogram buckets and the application tag, health still public; a booking and
 a lost race move different counters; a rolled-back booking is not counted.
+
+**Verified in production** after merging: the admin gets `/actuator/prometheus`
+with histogram buckets, the application tag and `medicity_logins_total`; a
+patient now gets 403 from `/actuator/metrics` (200 before); anonymous gets 401;
+`/actuator/health/readiness` stays public for Railway's health check.
+
+---
+
 ## 15. Endpoint denials on long paths were never audited (PR #20)
 
 Found in CI logs while working on metrics:
@@ -622,9 +633,14 @@ lost. Every existing test passed, because none looked for that row.
 **Verified by.** `AuditTrailTest.longPathDenialIsRecorded` (a patient calling
 dispense leaves an `ACCESS_DENIED` row with the full path) and
 `overlongEntityIdIsTruncated` (a 500-character id is stored cut to 255).
+In production after merging, a patient calling dispense on an 81-character
+path got 403 and the `ACCESS_DENIED` row appeared in the audit log.
 
 **Lesson.** A best-effort write that fails quietly needs a test that checks
 the write happened, not only that the response was right.
+
+---
+
 ## 16. Load test: the booking guarantee under real concurrency (PR #19)
 
 The concurrency tests prove the invariant with threads inside one JVM. This
@@ -658,6 +674,14 @@ appointments at one instant; one `APPOINTMENT_BOOKED` audit row per booking.
 | 300/s for 10 s | 2,783 | 1,257 ms / 1,621 ms | 1,043 ms | 0 | 246 | all pass |
 
 Contention produced exactly 20 winners and 180 clean 409s in every run.
+
+**The numbers vary between runs.** GitHub's runners are shared machines. The
+last run at 40 bookings/s, after the metrics PR merged, gave a booking p95 of
+71 ms and p99 of 145 ms, against 16 ms and 71 ms in the first. Correctness did
+not vary: 20 winners, 180 refusals, all database checks passing. The server's
+own counters (`medicity_bookings_total`) matched k6 exactly in that run: 2,421
+booked and 180 `slot_already_booked`. Quote latency as a range from these runs,
+not as one number.
 
 **Reading it.** Up to 150 bookings/s the runner kept p95 near 30 ms. At 300/s
 it saturated: latency passed a second and k6 dropped 246 iterations because
@@ -715,4 +739,14 @@ setup; Spring's verifier reads the cost from the hash, so both work.
 - **The public demo is consumed by use.** Closing Dr. Rao's waiting visit or
   booking the open slots changes the data for the next visitor. Planned: a
   nightly reset of the demo data.
+- **Nothing collects the metrics in production.** `/actuator/prometheus`
+  works (ADMIN only), but no Prometheus server scrapes it, and there is no
+  dashboard or alerting. The counters exist; nobody is watching them yet.
+- **The load test runs only when started.** It is manual, or triggered by
+  changes to the test itself, so a performance regression in application code
+  would not be caught automatically. Its numbers come from a shared CI runner
+  and vary between runs.
+- **Frontend tests cover the API client and the booking page only.** The
+  doctor workspace, the portal pages and sign-in have no tests, and there is
+  no browser end-to-end test.
 
