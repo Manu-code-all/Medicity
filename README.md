@@ -468,6 +468,7 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
 - [x] Idempotency keys on booking
 - [ ] Editable patient profile
 - [ ] Notification service (email/SMS) on booking and cancellation
-- [ ] Prometheus metrics + Grafana dashboard
+- [x] Prometheus metrics (`/actuator/prometheus`, ADMIN only)
+- [ ] Grafana dashboard
 - [ ] Doctor availability rules engine (recurring weekly templates)
 - [ ] k6 load test establishing booking throughput under contention

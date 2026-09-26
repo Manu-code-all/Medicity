@@ -46,11 +46,13 @@ public class Idempotency {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
     private final Clock clock;
+    private final DomainMetrics metrics;
 
-    public Idempotency(JdbcTemplate jdbc, ObjectMapper json, Clock clock) {
+    public Idempotency(JdbcTemplate jdbc, ObjectMapper json, Clock clock, DomainMetrics metrics) {
         this.jdbc = jdbc;
         this.json = json;
         this.clock = clock;
+        this.metrics = metrics;
     }
 
     public record Result<T>(T body, boolean replayed) {}
@@ -102,6 +104,7 @@ public class Idempotency {
                         throw new ValidationException("IDEMPOTENCY_KEY_REUSED",
                                 "This Idempotency-Key was already used for a different request");
                     }
+                    metrics.idempotentReplay();
                     return new Result<>(read(rs.getString("body"), responseType), true);
                 },
                 userId, key).stream().findFirst()

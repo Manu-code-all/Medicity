@@ -2,6 +2,7 @@ package com.medicity.security;
 
 import com.medicity.audit.AuditLog;
 import com.medicity.common.ConflictException;
+import com.medicity.common.DomainMetrics;
 import com.medicity.common.TooManyRequestsException;
 import com.medicity.common.ValidationException;
 import com.medicity.patient.Patient;
@@ -38,6 +39,7 @@ public class AuthService {
     private final LoginThrottle loginThrottle;
     private final Duration refreshTtl;
     private final Clock clock;
+    private final DomainMetrics metrics;
 
     /**
      * Compared against when the email is unknown, so a failed login costs one
@@ -62,7 +64,8 @@ public class AuthService {
                        RefreshTokenStore refreshTokens,
                        LoginThrottle loginThrottle,
                        @Value("${medicity.jwt.refresh-ttl}") Duration refreshTtl,
-                       Clock clock) {
+                       Clock clock,
+                       DomainMetrics metrics) {
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
         this.passwordEncoder = passwordEncoder;
@@ -72,6 +75,7 @@ public class AuthService {
         this.loginThrottle = loginThrottle;
         this.refreshTtl = refreshTtl;
         this.clock = clock;
+        this.metrics = metrics;
         this.timingEqualiserHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
@@ -124,6 +128,7 @@ public class AuthService {
         } catch (TooManyRequestsException e) {
             auditLog.recordIndependently("LOGIN_THROTTLED", "USER", null,
                     AuditLog.Outcome.DENIED, Map.of("email", normalised));
+            metrics.login("throttled");
             throw e;
         }
 
@@ -141,15 +146,18 @@ public class AuthService {
             // attempted email is kept: it is what reveals credential stuffing.
             auditLog.recordIndependently("LOGIN_FAILED", "USER", user == null ? null : user.getId(),
                     AuditLog.Outcome.DENIED, Map.of("email", normalised));
+            metrics.login("failed");
             throw new BadCredentialsException("Invalid email or password");
         }
         if (!user.isEnabled()) {
             auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "LOGIN_REFUSED_DISABLED",
                     "USER", user.getId(), AuditLog.Outcome.DENIED, null);
+            metrics.login("disabled");
             throw new ValidationException("ACCOUNT_DISABLED", "This account has been disabled");
         }
         auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "LOGIN_SUCCEEDED",
                 "USER", user.getId(), AuditLog.Outcome.SUCCESS, null);
+        metrics.login("success");
         return startSession(user);
     }
 
@@ -176,6 +184,7 @@ public class AuthService {
                     .filter(RefreshTokenStore.TokenState::used)
                     .ifPresent(reused -> {
                         int revoked = refreshTokens.revokeFamily(reused.familyId(), now);
+                        metrics.refreshTokenReused();
                         log.warn("Refresh token reuse detected for user {}; revoked {} token(s) in family {}",
                                 reused.userId(), revoked, reused.familyId());
                         auditLog.recordIndependentlyAs(reused.userId(), null, "REFRESH_TOKEN_REUSED",
