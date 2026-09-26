@@ -9,6 +9,8 @@ design decision is only as good as the evidence that it holds.
 
 ---
 
+---
+
 ## 1. Rebuild the static template as a real platform (PR #1)
 
 **Starting point.** A purchased Bootstrap HTML template ("Medcity"): static
@@ -704,6 +706,162 @@ setup; Spring's verifier reads the cost from the hash, so both work.
 
 ---
 
+## 17. Scheduled jobs: cleanup and unclosed visits (PR #22)
+
+**One instance per job, without a lock table.** Every API instance has the
+same `@Scheduled` methods, so with two instances each job would run twice.
+Each job first calls `pg_try_advisory_xact_lock(hashtext('medicity.job.<name>'))`
+inside its transaction. The first instance gets the lock; others get `false`
+and skip. The lock is transaction-scoped, so it is released at commit, at
+rollback, or when a crashed instance's connection closes. A session lock
+would need an explicit unlock, and a missed one would block the job for good.
+`ScheduledJobsTest.onlyOneInstanceRunsAJob` holds the lock from another
+thread and checks that the job skips, then runs once it is released.
+
+**Housekeeping** (nightly, 03:30 UTC) deletes refresh tokens past their expiry
+and idempotency keys older than a day, in batches of 5,000 per statement.
+Spent refresh tokens are deliberately kept until they expire: reuse detection
+needs to recognise one when it comes back. This closes the "tables grow
+forever" gap.
+
+**Unclosed visits** (hourly). A visit still `BOOKED` a day after its slot
+ended is marked `NO_SHOW` and audited as `VISIT_AUTO_CLOSED` with no actor, so
+it is never mistaken for a doctor's decision.
+- *One conditional `UPDATE ... RETURNING`*, not load-and-save, so a visit the
+  doctor closes at the same moment is decided by the row lock. The job bumps
+  `version`, so a doctor holding the old version gets `409` rather than
+  silently overwriting.
+- *The job can be wrong.* A doctor who saw the patient but forgot to close the
+  visit would leave a false no-show on the patient's record. So a doctor can
+  now mark a missed visit as seen (`NO_SHOW` to `COMPLETED`), audited with
+  `from: NO_SHOW`; the visit page offers "Patient was seen after all". The
+  other direction stays refused.
+
+**Jobs are off in integration tests** (`medicity.jobs.enabled=false` on the
+test base class), which call them directly. A job firing on its own schedule
+mid-test would change that test's data under it.
+
+**Effect on the demo.** Past demo visits nobody closed, such as Arjun's, will
+be marked missed about an hour after deploying. That is the job working; the
+demo reset (next) restores fresh visits.
+
+**Verified by.** `ScheduledJobsTest` (5): a stale visit is marked missed and
+audited while a recent one and a completed one are untouched, and a second run
+changes nothing; the doctor can correct an auto-closed visit; the job bumps
+the version; the lock makes a second instance skip; housekeeping deletes only
+expired tokens and day-old keys and keeps spent-but-unexpired tokens.
+
+---
+
+## 18. Transactional outbox and in-app notifications (PR #23)
+
+**The problem an outbox solves.** After a booking, someone must be told. Sending
+the notification inside the booking's transaction ties the booking to the
+notifier: if the notifier is slow the booking is slow, and if it fails the
+booking rolls back. Sending it after commit loses it whenever the process dies
+in between. Sending it before commit announces bookings that may still roll
+back.
+
+**How it works (V13).**
+- The change writes an `outbox_events` row in its own transaction
+  (`Outbox.publish` is `MANDATORY`), so the event exists if and only if the
+  change committed. `OutboxNotificationsTest.failedBookingWritesNoEvent`
+  checks that a lost race leaves no event.
+- `OutboxRelay` delivers events afterwards. It claims one due event at a time
+  with `FOR UPDATE SKIP LOCKED`, so any number of instances can drain the
+  outbox without coordinating: each skips rows another has locked. Four relays
+  draining 40 events at once deliver each exactly once.
+- One transaction per event: the consumer's writes and the "published" mark
+  commit together. A failure rolls that back and is recorded in a second
+  transaction, with exponential backoff (5 s, 10 s, 20 s, ... capped at an
+  hour). After 10 attempts the event is set aside (`failed_at`) instead of
+  being retried forever.
+- Delivery is at least once: a crash after delivering but before marking
+  delivers again. The consumer is idempotent through a unique
+  `(event_id, user_id)` on notifications and `ON CONFLICT DO NOTHING`.
+
+**Two lock patterns, on purpose.** The scheduled jobs (entry 17) take an
+advisory lock, because each run must happen once. The relay uses
+`SKIP LOCKED`, because its work is many independent events that any instance
+can take.
+
+**Events and who is told.**
+
+| Event | Notified |
+|---|---|
+| `APPOINTMENT_BOOKED` | the patient |
+| `APPOINTMENT_CANCELLED` | the doctor (the patient cancelled it) |
+| `PRESCRIPTION_ISSUED` | the patient |
+| `PRESCRIPTION_CORRECTED` | the patient, and if the original was already dispensed, every admin (standing in for the pharmacy) |
+
+The last closes a known gap: a prescription corrected after dispensing used to
+reach no one.
+
+**Payloads carry what the consumer needs** (names, the visit time) rather than
+ids to look up later: by the time the relay runs, the appointment may have
+been cancelled or the prescription corrected again.
+
+**Time zones.** A notification stores the visit time as an instant
+(`occurs_at`); the browser formats it. The server never renders a local time
+it would have to guess.
+
+**API and UI.** `GET /api/v1/notifications` (latest 50 and the unread count),
+`POST /{id}/read`, `POST /read-all`, all scoped to the token's user; marking
+someone else's notification answers 404. The header shows a Notifications
+link with an unread badge, polled once a minute; a push channel would be more
+infrastructure than this needs.
+
+**Not built.** Email and SMS would be further consumers of the same events.
+No provider is configured, and a stub that pretended to send would be worse
+than none.
+
+**Verified by.** `OutboxNotificationsTest` (8) and `NotificationsPage.test.tsx` (3).
+
+---
+
+## 19. Nightly demo reset (PR #24)
+
+The public demo is shared and used up by use: the first visitor to close
+Dr. Rao's waiting visit takes it away from everyone after, bookings fill the
+open slots, and the seed's "today" visits drift into the past (and, since
+entry 17, are marked missed a day later).
+
+`DemoResetJob` runs at 02:30 UTC (08:00 in India) under the `demo` profile
+only, the same switch that loads the seed, so a real deployment never has the
+bean. It:
+1. deletes every appointment with a demo doctor or for a demo patient,
+   with its prescriptions, items and dispensations, then the demo doctors'
+   slots (children first; an original prescription and its correction go in
+   one statement, so the self-reference holds when the statement ends);
+2. clears notifications and stored idempotent responses, which describe
+   bookings that no longer exist;
+3. puts demo stock back to 250 through an `ADJUSTMENT` movement, so on-hand
+   stock stays reconstructable from the ledger;
+4. re-runs the demo seed, whose dates are relative to now.
+
+Visitors' accounts are kept; their bookings with demo doctors go with the rest.
+
+**All or nothing.** Everything, including the seed script (run on the
+transaction's own connection), is one transaction. If re-seeding fails, the
+deletions roll back too, and the demo stays as it was instead of empty.
+`DemoResetTest.resetIsAllOrNothing` runs the job with a seed that fails and
+checks that nothing was deleted.
+
+**Tested without the demo profile.** Running a test class under `demo` would
+load the seed into the database every other test class shares. The test
+builds the job by hand and removes what it seeded afterwards.
+
+**Also:** the landing page says the demo resets nightly. The smoke-test
+booking left on production (on a demo doctor's slot) is removed by the first
+reset.
+
+**Verified by.** `DemoResetTest` (3): seeding produces Meera's history, Dr.
+Rao's day and full stock; a day of visitor changes is undone while the
+visitor's account stays, and stock is restored through the ledger; a failing
+seed leaves everything in place.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when
@@ -714,11 +872,6 @@ setup; Spring's verifier reads the cost from the hash, so both work.
   (correctly) ignored. Trusting it needs Railway's published edge ranges in
   `server.tomcat.remoteip.internal-proxies`; guessing a range would let
   clients forge addresses, which is worse than recording the proxy.
-- **Expired refresh tokens and idempotency keys are never deleted.** Every
-  refresh adds a row (roughly one per active user every 15 minutes), and
-  spent, revoked and expired rows stay. Nothing reads them once expired, so
-  this is growth, not a correctness issue. Planned: a nightly cleanup job
-  alongside the other scheduled work.
 - **An access token outlives sign-out by up to 15 minutes.** Access tokens
   are never looked up, so revoking the session (sign-out, detected token
   theft) stops refreshes at once but not the access token already issued.
@@ -731,14 +884,13 @@ setup; Spring's verifier reads the cost from the hash, so both work.
 - **Only booking accepts an `Idempotency-Key`.** Cancelling is idempotent
   by design (a second cancel returns the cancelled appointment unchanged), but a retried
   prescription or dispense gets a 409 rather than the original response.
-- **A prescription can be corrected after it was dispensed** and no one is
-  told. The pharmacy refuses the superseded original, but the patient may
-  already hold its medicines. Planned: a notification through an outbox.
+- **Notifications are in-app only.** No email or SMS provider is configured,
+  so a patient who does not open the app does not hear about a cancellation or
+  a corrected prescription. Both would be further outbox consumers.
 - **Pharmacy actions use the ADMIN role.** There is no dedicated pharmacist
   role yet, so whoever dispenses can also read the whole audit log.
-- **The public demo is consumed by use.** Closing Dr. Rao's waiting visit or
-  booking the open slots changes the data for the next visitor. Planned: a
-  nightly reset of the demo data.
+- **The demo resets only nightly.** Between resets, one visitor's changes
+  (closing the waiting visit, booking slots) are what the next visitor sees.
 - **Nothing collects the metrics in production.** `/actuator/prometheus`
   works (ADMIN only), but no Prometheus server scrapes it, and there is no
   dashboard or alerting. The counters exist; nobody is watching them yet.
