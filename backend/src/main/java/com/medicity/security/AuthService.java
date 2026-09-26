@@ -2,6 +2,7 @@ package com.medicity.security;
 
 import com.medicity.audit.AuditLog;
 import com.medicity.common.ConflictException;
+import com.medicity.common.TooManyRequestsException;
 import com.medicity.common.ValidationException;
 import com.medicity.patient.Patient;
 import com.medicity.patient.PatientRepository;
@@ -9,14 +10,19 @@ import com.medicity.user.Role;
 import com.medicity.user.User;
 import com.medicity.user.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -28,6 +34,10 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuditLog auditLog;
+    private final RefreshTokenStore refreshTokens;
+    private final LoginThrottle loginThrottle;
+    private final Duration refreshTtl;
+    private final Clock clock;
 
     /**
      * Compared against when the email is unknown, so a failed login costs one
@@ -48,12 +58,20 @@ public class AuthService {
                        PatientRepository patientRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
-                       AuditLog auditLog) {
+                       AuditLog auditLog,
+                       RefreshTokenStore refreshTokens,
+                       LoginThrottle loginThrottle,
+                       @Value("${medicity.jwt.refresh-ttl}") Duration refreshTtl,
+                       Clock clock) {
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.auditLog = auditLog;
+        this.refreshTokens = refreshTokens;
+        this.loginThrottle = loginThrottle;
+        this.refreshTtl = refreshTtl;
+        this.clock = clock;
         this.timingEqualiserHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
@@ -93,12 +111,23 @@ public class AuthService {
                 .build());
 
         log.info("Registered patient account {}", user.getId());
-        return issue(user);
+        return startSession(user);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public TokenPair login(String email, String rawPassword) {
-        User user = userRepository.findByEmail(email.trim().toLowerCase())
+        String normalised = email.trim().toLowerCase();
+
+        // Before the account lookup, for every email alike: see LoginThrottle.
+        try {
+            loginThrottle.check(normalised);
+        } catch (TooManyRequestsException e) {
+            auditLog.recordIndependently("LOGIN_THROTTLED", "USER", null,
+                    AuditLog.Outcome.DENIED, Map.of("email", normalised));
+            throw e;
+        }
+
+        User user = userRepository.findByEmail(normalised)
                 .orElse(null);
 
         // Hash even when the user does not exist; see timingEqualiserHash.
@@ -111,7 +140,7 @@ public class AuthService {
             // and does not reintroduce the timing difference fixed above. The
             // attempted email is kept: it is what reveals credential stuffing.
             auditLog.recordIndependently("LOGIN_FAILED", "USER", user == null ? null : user.getId(),
-                    AuditLog.Outcome.DENIED, Map.of("email", email.trim().toLowerCase()));
+                    AuditLog.Outcome.DENIED, Map.of("email", normalised));
             throw new BadCredentialsException("Invalid email or password");
         }
         if (!user.isEnabled()) {
@@ -121,31 +150,82 @@ public class AuthService {
         }
         auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "LOGIN_SUCCEEDED",
                 "USER", user.getId(), AuditLog.Outcome.SUCCESS, null);
-        return issue(user);
+        return startSession(user);
     }
 
     /**
-     * Exchanges a refresh token for a fresh pair.
+     * Exchanges a refresh token for a new pair, consuming it.
      *
-     * <p>{@link JwtService} rejects an access token presented here, so the two
-     * token types cannot be substituted for one another.
+     * <p>A token that was already used is evidence of theft: the legitimate
+     * client and an attacker both hold it, and whichever used it second is
+     * here now. The server cannot tell which one this is, so it ends the whole
+     * session (the token family) and both must sign in again. The attacker's
+     * access token still works until it expires, at most 15 minutes.
+     *
+     * <p>{@code noRollbackFor}: every refusal below is a 401, and the
+     * revocation written just before it must survive that exception rather
+     * than be rolled back with it.
      */
-    @Transactional(readOnly = true)
+    @Transactional(noRollbackFor = BadCredentialsException.class)
     public TokenPair refresh(String refreshToken) {
-        return jwtService.verifyRefreshToken(refreshToken)
-                .flatMap(userRepository::findById)
-                .filter(User::isEnabled)
-                .map(this::issue)
-                .orElseThrow(() -> new BadCredentialsException("Invalid or expired refresh token"));
+        Instant now = clock.instant();
+        Optional<RefreshTokenStore.TokenOwner> claimed = refreshTokens.claim(refreshToken, now);
+
+        if (claimed.isEmpty()) {
+            refreshTokens.find(refreshToken, now)
+                    .filter(RefreshTokenStore.TokenState::used)
+                    .ifPresent(reused -> {
+                        int revoked = refreshTokens.revokeFamily(reused.familyId(), now);
+                        log.warn("Refresh token reuse detected for user {}; revoked {} token(s) in family {}",
+                                reused.userId(), revoked, reused.familyId());
+                        auditLog.recordIndependentlyAs(reused.userId(), null, "REFRESH_TOKEN_REUSED",
+                                "USER", reused.userId(), AuditLog.Outcome.DENIED,
+                                Map.of("familyId", reused.familyId(), "tokensRevoked", revoked));
+                    });
+            // Unknown, expired, revoked or reused: one answer for all, so the
+            // response does not tell a token thief which case they hit.
+            throw invalidRefreshToken();
+        }
+
+        RefreshTokenStore.TokenOwner owner = claimed.get();
+        User user = userRepository.findById(owner.userId()).orElseThrow(AuthService::invalidRefreshToken);
+        if (!user.isEnabled()) {
+            refreshTokens.revokeFamily(owner.familyId(), now);
+            throw invalidRefreshToken();
+        }
+        return issue(user, owner.familyId(), now);
     }
 
-    private TokenPair issue(User user) {
+    /**
+     * Ends the session the refresh token belongs to. Succeeds whatever the
+     * token's state, so signing out never fails and reveals nothing.
+     */
+    @Transactional
+    public void logout(String refreshToken) {
+        Instant now = clock.instant();
+        refreshTokens.find(refreshToken, now).ifPresent(token -> {
+            refreshTokens.revokeFamily(token.familyId(), now);
+            auditLog.recordIndependentlyAs(token.userId(), null, "LOGOUT", "USER", token.userId(),
+                    AuditLog.Outcome.SUCCESS, null);
+        });
+    }
+
+    /** A new sign-in: a new token family. */
+    private TokenPair startSession(User user) {
+        return issue(user, UUID.randomUUID(), clock.instant());
+    }
+
+    private TokenPair issue(User user, UUID familyId, Instant now) {
         return new TokenPair(
                 jwtService.issueAccessToken(user),
-                jwtService.issueRefreshToken(user),
+                refreshTokens.issue(user.getId(), familyId, now, now.plus(refreshTtl)),
                 user.getId().toString(),
                 user.getRole().name(),
                 user.getFullName());
+    }
+
+    private static BadCredentialsException invalidRefreshToken() {
+        return new BadCredentialsException("Invalid or expired refresh token");
     }
 
     public record TokenPair(String accessToken,

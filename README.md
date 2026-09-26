@@ -155,6 +155,7 @@ The schema is the specification. Each of these makes an invalid state
 | `uq_dispensation_prescription` — `UNIQUE` | V7 | One prescription dispensed twice |
 | `uq_presc_original_per_appointment` — partial unique index | V8 | Two original prescriptions for one visit |
 | `appointments_cancel_consistency` — `CHECK` | V2 | A cancelled row with no cancellation timestamp |
+| `uq_refresh_one_live_per_family` — partial unique index | V9 | A session forking into two live refresh tokens |
 | `audit_log` immutability — `BEFORE UPDATE OR DELETE` row trigger + `BEFORE TRUNCATE` statement trigger | V5, V6 | An attacker erasing their own audit trail |
 
 The `EXCLUDE` constraint uses a half-open range `'[)'`, so 10:00–10:30 and
@@ -162,9 +163,15 @@ The `EXCLUDE` constraint uses a half-open range `'[)'`, so 10:00–10:30 and
 
 ### Security
 
-- **JWT with separated token types.** Access and refresh tokens carry a `typ`
-  claim and are verified against it, so a stolen refresh token cannot be replayed
-  as a bearer credential. Tested in `AppointmentAccessControlTest`.
+- **Short-lived access tokens, single-use refresh tokens.** Access tokens are
+  15-minute JWTs. Refresh tokens are opaque, stored only as a SHA-256 hash, and
+  work once; presenting a spent one is treated as theft and ends that whole
+  session. Signing out revokes it server-side. Tested in `SessionSecurityTest`.
+- **Login limit.** 5 failed logins per email in 15 minutes, then `429` with
+  `Retry-After`. Counted from the audit log, so it holds across instances and
+  restarts; unknown emails are limited identically, so it reveals nothing.
+- **Safe retries.** Booking accepts an `Idempotency-Key`, so a retry after a
+  dropped response returns the original booking instead of an error.
 - **Row-level authorization.** Role checks alone are insufficient: every patient
   holds `ROLE_PATIENT`, so `@PreAuthorize("hasRole('PATIENT')")` would let
   patient A read patient B's record by guessing an id. Access is decided per row,
@@ -255,10 +262,11 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 |---|---|---|---|
 | `POST` | `/api/v1/auth/register` | — | Register a patient |
 | `POST` | `/api/v1/auth/login` | — | Obtain a token pair |
-| `POST` | `/api/v1/auth/refresh` | — | Exchange a refresh token for a new pair |
+| `POST` | `/api/v1/auth/refresh` | — | Rotate: spend a refresh token for a new pair (reuse ends the session) |
+| `POST` | `/api/v1/auth/logout` | — | End the session the refresh token belongs to |
 | `GET` | `/api/v1/doctors` | — | Search doctors |
 | `GET` | `/api/v1/doctors/{id}/slots` | — | Available slots |
-| `POST` | `/api/v1/appointments` | PATIENT | **Book a slot** |
+| `POST` | `/api/v1/appointments` | PATIENT | **Book a slot** (optional `Idempotency-Key`) |
 | `POST` | `/api/v1/appointments/{id}/cancel` | owner | Cancel, releasing the slot |
 | `GET` | `/api/v1/appointments/mine` | PATIENT / DOCTOR | Own appointments |
 | `GET` | `/api/v1/patients/me` | PATIENT | Portal: profile |
@@ -342,7 +350,7 @@ backend/
     clinical/     prescriptions
     pharmacy/     catalogue, stock ledger
     audit/        append-only audit trail
-  src/main/resources/db/migration/   V1–V8, the real specification
+  src/main/resources/db/migration/   V1–V11, the real specification
   src/test/java/com/medicity/
     scheduling/SlotBookingConcurrencyTest.java   ← the proof
     security/AppointmentAccessControlTest.java   ← IDOR coverage
@@ -455,9 +463,9 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
 - [x] Patient portal
 - [x] Audit trail, pharmacy dispensing
 - [x] Doctor workspace: close a visit and issue or correct a prescription
-- [ ] Refresh-token rotation with reuse detection
-- [ ] Rate limiting on auth endpoints
-- [ ] Idempotency keys on booking
+- [x] Refresh-token rotation with reuse detection
+- [x] Login rate limiting
+- [x] Idempotency keys on booking
 - [ ] Editable patient profile
 - [ ] Notification service (email/SMS) on booking and cancellation
 - [ ] Prometheus metrics + Grafana dashboard

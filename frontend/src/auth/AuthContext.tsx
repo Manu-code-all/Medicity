@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { tokenStore } from "../api/client";
+import { revokeSession, tokenStore } from "../api/client";
 import { auth as authApi } from "../api/endpoints";
 import type { TokenPair } from "../api/types";
 import { AuthContext, SESSION_KEY, type Session } from "./context";
@@ -56,6 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    // Read the refresh token before clearing it, so the server can end the session.
+    revokeSession();
     tokenStore.clear();
     localStorage.removeItem(SESSION_KEY);
     // Cached queries hold medical records. On a shared computer, leaving them

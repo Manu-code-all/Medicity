@@ -13,17 +13,22 @@ import com.medicity.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
@@ -61,6 +66,7 @@ class AppointmentAccessControlTest extends AbstractIntegrationTest {
     @Autowired JwtService jwtService;
     @Autowired PasswordEncoder passwordEncoder;
     @Autowired Clock clock;
+    @Value("${medicity.jwt.secret}") String jwtSecret;
 
     private String aliceToken;
     private String malloryToken;
@@ -161,12 +167,21 @@ class AppointmentAccessControlTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("a refresh token cannot be replayed as an access token")
-    void refreshTokenIsNotAnAccessToken() throws Exception {
+    @DisplayName("a refresh token from before the switch to opaque tokens is not an access token")
+    void legacyRefreshTokenIsNotAnAccessToken() throws Exception {
         User alice = userRepository.findByEmail("alice@medicity.test").orElseThrow();
-        String refresh = jwtService.issueRefreshToken(alice);
+        // Refresh tokens used to be JWTs signed with the access-token key. Ones
+        // issued before the switch stay correctly signed and unexpired for up
+        // to 7 days, and must still be refused as bearer credentials.
+        String refresh = Jwts.builder()
+                .subject(alice.getId().toString())
+                .claim("role", "PATIENT")
+                .claim("typ", "refresh")
+                .issuedAt(Date.from(clock.instant()))
+                .expiration(Date.from(clock.instant().plus(1, ChronoUnit.DAYS)))
+                .signWith(Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8)))
+                .compact();
 
-        // Correctly signed and unexpired, but issued for a different purpose.
         mvc.perform(get("/api/v1/appointments/" + aliceAppointmentId)
                         .header("Authorization", "Bearer " + refresh))
                 .andExpect(status().isUnauthorized());

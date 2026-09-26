@@ -18,12 +18,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Issues and verifies JWTs.
+ * Issues and verifies access tokens: short-lived, stateless JWTs.
  *
- * <p>Access tokens are short-lived and stateless; refresh tokens are long-lived
- * and carry a {@code typ} claim so a refresh token can never be replayed as an
- * access token. Without that distinction, a stolen refresh token would grant
- * immediate API access — a common oversight in JWT implementations.
+ * <p>Refresh tokens are not JWTs; they are opaque, stored and single-use (see
+ * {@link RefreshTokenStore}). An access token cannot be revoked before it
+ * expires, which is why it lives 15 minutes: signing out, or a detected refresh
+ * token theft, cuts a session off within that window at most.
  */
 @Service
 @Slf4j
@@ -32,16 +32,13 @@ public class JwtService {
     private static final String CLAIM_ROLE = "role";
     private static final String CLAIM_TYPE = "typ";
     private static final String TYPE_ACCESS = "access";
-    private static final String TYPE_REFRESH = "refresh";
 
     private final SecretKey key;
     private final Duration accessTtl;
-    private final Duration refreshTtl;
     private final Clock clock;
 
     public JwtService(@Value("${medicity.jwt.secret}") String secret,
                       @Value("${medicity.jwt.access-ttl}") Duration accessTtl,
-                      @Value("${medicity.jwt.refresh-ttl}") Duration refreshTtl,
                       Clock clock) {
         byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
         if (bytes.length < 32) {
@@ -52,41 +49,23 @@ public class JwtService {
         }
         this.key = Keys.hmacShaKeyFor(bytes);
         this.accessTtl = accessTtl;
-        this.refreshTtl = refreshTtl;
         this.clock = clock;
     }
 
     public String issueAccessToken(User user) {
-        return issue(user, TYPE_ACCESS, accessTtl);
-    }
-
-    public String issueRefreshToken(User user) {
-        return issue(user, TYPE_REFRESH, refreshTtl);
-    }
-
-    private String issue(User user, String type, Duration ttl) {
         Date now = Date.from(clock.instant());
         return Jwts.builder()
                 .subject(user.getId().toString())
                 .claim(CLAIM_ROLE, user.getRole().name())
-                .claim(CLAIM_TYPE, type)
+                .claim(CLAIM_TYPE, TYPE_ACCESS)
                 .issuedAt(now)
-                .expiration(Date.from(clock.instant().plus(ttl)))
+                .expiration(Date.from(clock.instant().plus(accessTtl)))
                 .signWith(key)
                 .compact();
     }
 
-    /** @return the user id if this is a valid, unexpired ACCESS token. */
+    /** @return the user id if this is a valid, unexpired access token. */
     public Optional<UUID> verifyAccessToken(String token) {
-        return verify(token, TYPE_ACCESS);
-    }
-
-    /** @return the user id if this is a valid, unexpired REFRESH token. */
-    public Optional<UUID> verifyRefreshToken(String token) {
-        return verify(token, TYPE_REFRESH);
-    }
-
-    private Optional<UUID> verify(String token, String expectedType) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(key)
@@ -95,9 +74,11 @@ public class JwtService {
                     .parseSignedClaims(token)
                     .getPayload();
 
-            if (!expectedType.equals(claims.get(CLAIM_TYPE, String.class))) {
-                // Right signature, wrong purpose — e.g. a refresh token presented
-                // as a bearer credential.
+            if (!TYPE_ACCESS.equals(claims.get(CLAIM_TYPE, String.class))) {
+                // Right signature, wrong purpose. Refresh tokens used to be JWTs
+                // signed with this same key, with typ "refresh"; ones issued
+                // before the switch stay correctly signed until they expire, and
+                // this check keeps them from being accepted as bearer credentials.
                 return Optional.empty();
             }
             return Optional.of(UUID.fromString(claims.getSubject()));

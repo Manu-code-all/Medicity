@@ -2,6 +2,7 @@ package com.medicity.scheduling;
 
 import com.medicity.audit.AuditLog;
 import com.medicity.common.ForbiddenException;
+import com.medicity.common.Idempotency;
 import com.medicity.common.NotFoundException;
 import com.medicity.doctor.DoctorRepository;
 import com.medicity.patient.PatientRepository;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 @RestController
 @RequestMapping("/api/v1/appointments")
@@ -37,6 +40,9 @@ public class AppointmentController {
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
     private final AuditLog auditLog;
+    private final Idempotency idempotency;
+
+    static final String IDEMPOTENCY_KEY = "Idempotency-Key";
 
     /**
      * Books a slot for the calling patient.
@@ -44,25 +50,39 @@ public class AppointmentController {
      * <p>The patient id comes from the authenticated principal, never from the
      * request body. Accepting a {@code patientId} field would let any logged-in
      * user book appointments in someone else's name — the classic IDOR.
+     *
+     * <p>With an {@code Idempotency-Key} header, a retry of a booking that
+     * already succeeded returns the original 201, marked
+     * {@code Idempotent-Replayed: true}, instead of a 409 for a clash with the
+     * patient's own new appointment.
      */
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('PATIENT')")
     @Operation(summary = "Book an appointment slot")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Booked"),
+            @ApiResponse(responseCode = "201", description = "Booked, or a replay of an earlier booking with the same Idempotency-Key"),
             @ApiResponse(responseCode = "409", description = "Slot taken by another patient"),
-            @ApiResponse(responseCode = "422", description = "Slot blocked or too close to now")
+            @ApiResponse(responseCode = "422", description = "Slot blocked, too close to now, or Idempotency-Key reused for a different request")
     })
-    public AppointmentResponse book(@AuthenticationPrincipal AppUserPrincipal principal,
-                                    @Valid @RequestBody BookRequest request) {
+    public ResponseEntity<AppointmentResponse> book(
+            @AuthenticationPrincipal AppUserPrincipal principal,
+            @RequestHeader(name = IDEMPOTENCY_KEY, required = false) String idempotencyKey,
+            @Valid @RequestBody BookRequest request) {
 
         UUID patientId = patientRepository.findByUserId(principal.getId())
                 .orElseThrow(() -> new NotFoundException("Patient profile for user", principal.getId()))
                 .getId();
-
-        return AppointmentResponse.from(
+        Supplier<AppointmentResponse> booking = () -> AppointmentResponse.from(
                 bookingService.book(request.slotId(), patientId, request.reason()));
+
+        if (idempotencyKey == null) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(booking.get());
+        }
+        Idempotency.Result<AppointmentResponse> result = idempotency.run(principal.getId(), idempotencyKey,
+                "POST /api/v1/appointments", request, HttpStatus.CREATED.value(), AppointmentResponse.class, booking);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header("Idempotent-Replayed", Boolean.toString(result.replayed()))
+                .body(result.body());
     }
 
     @PostMapping("/{id}/cancel")

@@ -9,6 +9,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -51,7 +53,8 @@ class LoginTimingTest {
         when(users.findByEmail(anyString())).thenReturn(Optional.empty());
 
         AuthService auth = new AuthService(users, mock(PatientRepository.class), encoder, mock(JwtService.class),
-                mock(AuditLog.class));
+                mock(AuditLog.class), mock(RefreshTokenStore.class), mock(LoginThrottle.class),
+                Duration.ofDays(7), Clock.systemUTC());
 
         assertThatThrownBy(() -> auth.login("nobody@medicity.test", "some-password-123"))
                 .isInstanceOf(BadCredentialsException.class);

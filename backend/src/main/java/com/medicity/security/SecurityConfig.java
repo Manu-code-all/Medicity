@@ -92,7 +92,11 @@ public class SecurityConfig {
         // authenticated responses.
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // The web app runs on another origin, so any request header it sends must
+        // be listed here or the browser's preflight fails before the request is made.
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key"));
+        // Cross-origin scripts can read only a few response headers unless told otherwise.
+        config.setExposedHeaders(List.of("Retry-After", "Idempotent-Replayed"));
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

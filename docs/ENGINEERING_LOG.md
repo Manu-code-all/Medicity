@@ -413,6 +413,106 @@ Redis, rotation and legacy references.
 
 ---
 
+## 12. Security hardening: sessions, login limits, safe retries (PR #15)
+
+Three weaknesses, each a question an interviewer asks about any JWT app.
+
+### Refresh tokens: single-use, with theft detection
+
+**Before.** The refresh token was a signed JWT the server kept no record of.
+It worked for its whole 7 days however often it was used, signing out only
+deleted it from the browser, and a stolen copy would never be noticed.
+
+**Now.** A refresh token is 32 random bytes; the database (V9) stores only its
+SHA-256. SHA-256 rather than BCrypt because the value has 256 bits of
+entropy, so there is nothing to brute-force, and finding the row needs a
+deterministic hash. Each sign-in starts a **family**. Using a token marks it
+used and issues its successor in the same family.
+
+**Reuse detection.** A used token presented again means two parties hold it.
+The server cannot tell the user from the thief, so it revokes the whole family
+and both must sign in again; the event is audited as `REFRESH_TOKEN_REUSED`.
+Other sign-ins (another device) are untouched. This is the scheme described in
+the OAuth 2.0 Security Best Current Practice.
+
+**Races.** The claim is one statement:
+`UPDATE ... SET used_at = now WHERE token_hash = ? AND used_at IS NULL AND revoked_at IS NULL AND expires_at > now RETURNING ...`.
+A second request with the same token waits on the first's row lock, then
+re-checks the `WHERE`, matches nothing, and is treated as reuse. A partial
+unique index allows at most one live token per family, so a family can never
+fork.
+
+**A deadlock avoided.** The revocation is followed by a 401, which would roll
+it back, so the obvious fix is `REQUIRES_NEW`. But when a refresh has already
+claimed a token (then finds the account disabled), its transaction holds that
+row's lock; a new transaction revoking the family would wait for it while it
+waits for the new one. The database cannot detect that, because one side is
+idle rather than blocked. Instead `refresh` is
+`@Transactional(noRollbackFor = BadCredentialsException.class)`.
+
+**Two tabs.** Tokens are shared across tabs through localStorage. Two tabs
+refreshing at once would send the same token twice and sign the user out. The
+client now takes a cross-tab Web Lock before refreshing and, once it has it,
+uses the stored token if another tab already replaced it.
+
+**Sign-out** calls `POST /auth/logout`, which revokes the family.
+
+**Limit that remains.** An access token cannot be revoked; it lives at most
+15 minutes, so that is the window after sign-out or detected theft.
+
+### Login limit
+
+After 5 failed logins for one email within 15 minutes, further attempts get
+`429 TOO_MANY_LOGIN_ATTEMPTS` with `Retry-After`, even with the right password.
+
+- **Counted from the audit log,** whose `LOGIN_FAILED` rows already carry the
+  email (V10 adds a partial index). Shared by every instance, survives
+  restarts, and cannot be deleted, so there is no counter to reset and no Redis.
+- **Per email, not per IP:** behind Railway every client appears as one of a
+  few edge addresses (Known gaps), so a per-IP limit would throttle everyone together.
+- **Unknown emails are limited identically,** and the check runs before the
+  account lookup, so a 429 does not reveal whether an account exists.
+- **A sliding window, not a lockout:** someone failing logins for a victim's
+  email keeps them out only while they keep going, not until an admin intervenes.
+- Refused attempts are audited as `LOGIN_THROTTLED` and do not extend the limit.
+
+### Idempotent booking
+
+`POST /appointments` accepts an `Idempotency-Key` header (V11). The key row is
+inserted before the booking, in the same transaction, so a concurrent
+duplicate waits on it: if the first commits, the duplicate gets its stored
+response (`201`, `Idempotent-Replayed: true`); if it rolls back, the duplicate
+books. Keys are scoped per user, a key reused with a different body is `422`,
+failures are not stored (so retrying a 409 runs again), and keys expire after
+24 hours.
+
+The database already refused a duplicate booking; what the key fixes is the
+**answer**. Without it, a retry after a dropped response gets a 409 "you
+already have an appointment" for a booking that succeeded. The web app now
+sends a key per attempt and retries network failures automatically, which is
+only safe because of the key.
+
+CORS had to allow the new request header and expose `Retry-After` and
+`Idempotent-Replayed`; without that the browser would block the deployed app's
+booking request at preflight.
+
+**Verified by.** `SessionSecurityTest` (11): rotation; reuse revokes the
+family and is audited; reuse leaves other sessions alone; 8 simultaneous
+refreshes with one token leave at most one winner and no live token; logout;
+access token refused as refresh token; disabled account; only the hash
+stored; 5 failures then 429 with `Retry-After` even for the right password;
+4 failures still allow sign-in; limit is per account; unknown email limited
+the same. `IdempotentBookingTest` (7): replay, no-key conflict, key reuse,
+per-user scope, failures not stored, 8 simultaneous duplicates yield one
+booking and 7 replays, malformed key. A legacy JWT refresh token is still
+refused as a bearer token.
+
+**Deploying.** Refresh tokens issued before this change are not in the table,
+so every signed-in user is asked to sign in again once, when their access
+token next expires.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when
