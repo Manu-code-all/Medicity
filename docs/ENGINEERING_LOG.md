@@ -529,6 +529,40 @@ header up by exact case. The header was there.
 
 ---
 
+## 13. Frontend tests (PR #17)
+
+The web app had no tests. Week 3 put logic in it that fails silently: if two
+requests refresh with the same token, or a retry sends a new idempotency key,
+nothing errors locally; a user is signed out, or books twice, in production.
+
+**Tools.** Vitest (shares the Vite config, so no separate build setup) with
+jsdom and Testing Library. `fetch` is replaced per test with a function that
+records each request and states the server's answer, so a test reads as the
+conversation between browser and API.
+
+**What is covered (19 tests):**
+- `api/client.ts`: three simultaneous 401s cause one refresh and three
+  replays; a token another tab already refreshed is used instead of spending
+  the old one; a refused refresh clears the session; a server that always
+  answers 401 is replayed once, not forever; a non-JSON 502 page becomes a
+  normal error; sign-out sends the refresh token.
+- `BookingPage`: a network failure is retried with the same key; an error the
+  server answered is not retried; resubmitting the same slot and reason keeps
+  the key while changing the reason makes a new one (reusing it would be
+  refused as `IDEMPOTENCY_KEY_REUSED`); a lost race shows the message and
+  reloads the free slots.
+- `lib/format.ts`: age on and around the birthday, initials without "Dr.".
+
+**Checked that they can fail.** Making the page create a new key on every
+attempt, and removing the "another tab already refreshed" check, each broke
+the tests aimed at them (3 failures); both changes were then reverted.
+
+**A test bug found on the way.** The first run failed one refresh test
+because the previous test's fake `navigator.locks` was still installed:
+`vi.stubGlobal` persists across tests unless `unstubGlobals` is set. Fixed in
+the config, not by reordering tests.
+
+**CI** runs `npm test` in the frontend job, between lint and build.
 ## 14. Metrics (PR #18)
 
 **Two things found before adding anything.**

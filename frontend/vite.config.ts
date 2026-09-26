@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
@@ -17,5 +18,15 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+    // Each test file gets fresh module state: client.ts keeps the in-flight
+    // refresh in a module variable, and it must not leak between files.
+    isolate: true,
+    restoreMocks: true,
+    // Tests stub fetch and navigator.locks; each must start from the real ones.
+    unstubGlobals: true,
   },
 });

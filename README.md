@@ -252,6 +252,15 @@ unique indexes, GiST exclusion constraints and `tstzrange` either do not exist i
 H2 or behave differently there — a suite that passed on H2 would tell you nothing
 about production, which is the entire point of these tests.
 
+```bash
+cd frontend && npm test
+```
+
+The web app's tests (Vitest, Testing Library) cover the behaviour that would
+break silently: one token refresh for many simultaneous 401s, handing over a
+token another tab already refreshed instead of spending the old one, and
+booking retries that reuse the same `Idempotency-Key`.
+
 ---
 
 ## API
