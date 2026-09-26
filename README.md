@@ -172,6 +172,9 @@ The `EXCLUDE` constraint uses a half-open range `'[)'`, so 10:00–10:30 and
 - **No user enumeration.** Login hashes a dummy value when the account is missing,
   keeping the timing profile of both branches comparable.
 - **Default-deny routing.** Adding an endpoint cannot accidentally expose it.
+- **No cross-account cache bleed.** The web client clears its query cache on
+  sign-in and sign-out, so on a shared computer the next person to sign in never
+  sees the previous patient's records, even for a frame.
 - **BCrypt cost 12** (~250 ms/hash) and a 12-character minimum password with no
   composition rules, following NIST SP 800-63B.
 
@@ -254,6 +257,15 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/appointments` | PATIENT | **Book a slot** |
 | `POST` | `/api/v1/appointments/{id}/cancel` | owner | Cancel, releasing the slot |
 | `GET` | `/api/v1/appointments/mine` | PATIENT / DOCTOR | Own appointments |
+| `GET` | `/api/v1/patients/me` | PATIENT | Portal: profile |
+| `GET` | `/api/v1/patients/me/summary` | PATIENT | Portal: totals and next visit |
+| `GET` | `/api/v1/patients/me/appointments?scope=upcoming\|past` | PATIENT | Portal: visit history |
+| `GET` | `/api/v1/patients/me/prescriptions` | PATIENT | Portal: current prescriptions |
+
+The portal routes take **no patient id at all**. "Me" is resolved from the token,
+so there is no parameter a caller could alter to reach another patient's history:
+the IDOR surface is removed rather than guarded. `PatientPortalTest` gives a
+second patient a history of their own and asserts none of it leaks.
 
 Errors follow **RFC 9457** `application/problem+json` and carry a stable
 machine-readable `code`, so clients branch on the code rather than on prose:
@@ -389,7 +401,32 @@ changing one has no effect until the app is rebuilt.
 Leave **Root Directory empty** in the Vercel project. Pointing it at a
 subdirectory means `vercel.json` is never read.
 
+## Patient experience
+
+- **Landing page** (`/`) — what Medicity offers, live specialists pulled from the
+  API, and a preview of the portal. Degrades gracefully: if the API is down, the
+  page still renders without the doctors section.
+- **Patient portal** (`/portal`) — where a patient lands after signing in:
+  - *Overview*: the next visit with a countdown, totals, recent visits and the
+    latest prescription.
+  - *Visits*: upcoming (soonest first) and history (newest first). The two lists
+    are exact complements, so a visit whose time passed while still `BOOKED`
+    moves to history instead of vanishing. Upcoming visits can be cancelled.
+  - *Prescriptions*: dose, frequency and duration per medicine. Prescriptions are
+    append-only; a correction supersedes the original, and only the current
+    version is shown, so a patient never sees two conflicting sets of instructions.
+  - *Profile*: personal and contact details.
+
+The demo patient (`patient@medicity.demo` / `demo-password-2026`) is seeded with
+a realistic history: completed visits with prescriptions, a cancellation, a
+missed visit, a corrected prescription and an upcoming appointment.
+
+---
+
 ## Roadmap
+
+- [ ] Doctor workspace: close a visit and issue or correct a prescription
+- [ ] Editable patient profile
 
 - [ ] Redis-backed rate limiting on auth endpoints
 - [ ] Notification service (email/SMS) on booking and cancellation

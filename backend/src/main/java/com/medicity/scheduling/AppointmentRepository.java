@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,6 +22,72 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             ORDER BY a.scheduledAt DESC
             """)
     Page<Appointment> findForPatient(@Param("patientId") UUID patientId, Pageable pageable);
+
+    /**
+     * Upcoming visits: still booked and not yet started. Soonest first, because
+     * the question a patient is asking here is "what is next?".
+     *
+     * <p>{@code countQuery} is given explicitly because Spring Data cannot derive
+     * a count from a query containing JOIN FETCH.
+     */
+    @Query(value = """
+            SELECT a FROM Appointment a
+            JOIN FETCH a.slot s
+            JOIN FETCH s.doctor d
+            JOIN FETCH d.user
+            WHERE a.patient.id = :patientId
+              AND a.status = com.medicity.scheduling.AppointmentStatus.BOOKED
+              AND a.scheduledAt >= :now
+            ORDER BY a.scheduledAt ASC
+            """,
+            countQuery = """
+            SELECT count(a) FROM Appointment a
+            WHERE a.patient.id = :patientId
+              AND a.status = com.medicity.scheduling.AppointmentStatus.BOOKED
+              AND a.scheduledAt >= :now
+            """)
+    Page<Appointment> findUpcomingForPatient(@Param("patientId") UUID patientId,
+                                             @Param("now") Instant now,
+                                             Pageable pageable);
+
+    /**
+     * History: everything that is not upcoming — completed, cancelled, missed,
+     * and bookings whose time has passed without being closed. The exact
+     * complement of {@link #findUpcomingForPatient}, so no visit appears in both
+     * lists or in neither.
+     */
+    @Query(value = """
+            SELECT a FROM Appointment a
+            JOIN FETCH a.slot s
+            JOIN FETCH s.doctor d
+            JOIN FETCH d.user
+            WHERE a.patient.id = :patientId
+              AND (a.status <> com.medicity.scheduling.AppointmentStatus.BOOKED
+                   OR a.scheduledAt < :now)
+            ORDER BY a.scheduledAt DESC
+            """,
+            countQuery = """
+            SELECT count(a) FROM Appointment a
+            WHERE a.patient.id = :patientId
+              AND (a.status <> com.medicity.scheduling.AppointmentStatus.BOOKED
+                   OR a.scheduledAt < :now)
+            """)
+    Page<Appointment> findPastForPatient(@Param("patientId") UUID patientId,
+                                         @Param("now") Instant now,
+                                         Pageable pageable);
+
+    /** Per-status totals for the portal overview, in one grouped query. */
+    @Query("""
+            SELECT a.status AS status, count(a) AS total FROM Appointment a
+            WHERE a.patient.id = :patientId
+            GROUP BY a.status
+            """)
+    List<StatusCount> countByStatusForPatient(@Param("patientId") UUID patientId);
+
+    interface StatusCount {
+        AppointmentStatus getStatus();
+        long getTotal();
+    }
 
     @Query("""
             SELECT a FROM Appointment a

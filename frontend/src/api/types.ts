@@ -52,3 +52,65 @@ export interface Page<T> {
   totalPages: number;
   number: number;
 }
+
+// --- Patient portal ------------------------------------------------------
+
+export interface PatientProfile {
+  fullName: string;
+  email: string;
+  phone: string | null;
+  dateOfBirth: string;
+  gender: "MALE" | "FEMALE" | "OTHER" | "UNDISCLOSED";
+  bloodGroup: string | null;
+  addressLine: string | null;
+  city: string | null;
+  emergencyContact: string | null;
+  memberSince: string;
+}
+
+export interface Visit {
+  id: string;
+  status: AppointmentStatus;
+  scheduledAt: string;
+  endsAt: string;
+  reason: string | null;
+  doctorId: string;
+  doctorName: string;
+  specialization: string;
+  cancelledAt: string | null;
+  cancelReason: string | null;
+}
+
+export interface PortalSummary {
+  upcoming: number;
+  completed: number;
+  cancelled: number;
+  missed: number;
+  prescriptions: number;
+  nextVisit: Visit | null;
+}
+
+export interface PrescriptionItem {
+  medicine: string;
+  strength: string | null;
+  form: string;
+  dosage: string;
+  frequency: string;
+  durationDays: number;
+  quantity: number;
+}
+
+export interface Prescription {
+  id: string;
+  appointmentId: string;
+  issuedAt: string;
+  doctorName: string;
+  specialization: string;
+  diagnosis: string;
+  notes: string | null;
+  /** True when this prescription corrects an earlier one, which it replaces. */
+  revised: boolean;
+  items: PrescriptionItem[];
+}
+
+export type VisitScope = "upcoming" | "past";

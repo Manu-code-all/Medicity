@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { appointments, doctors } from "../api/endpoints";
 import type { Slot } from "../api/types";
@@ -44,7 +44,8 @@ export function BookingPage() {
       setSelectedSlot(null);
       setReason("");
       void queryClient.invalidateQueries({ queryKey: ["slots", doctorId] });
-      void queryClient.invalidateQueries({ queryKey: ["my-appointments"] });
+      // Every portal view (next visit, counts, lists) now has a new row.
+      void queryClient.invalidateQueries({ queryKey: ["portal"] });
     },
 
     onError: (error: unknown) => {
@@ -88,6 +89,12 @@ export function BookingPage() {
       {notice && (
         <p className="notice" role="status" aria-live="polite">
           {notice}
+          {booking.isSuccess && (
+            <>
+              {" "}
+              <Link to="/portal/visits">See it in your portal</Link>
+            </>
+          )}
         </p>
       )}
 

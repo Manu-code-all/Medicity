@@ -30,7 +30,7 @@ export function RegisterPage() {
     setBusy(true);
     try {
       await register(form);
-      navigate("/appointments", { replace: true });
+      navigate("/portal", { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         // Server-side validation is the authority; mirror its field errors
