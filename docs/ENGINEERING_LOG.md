@@ -326,5 +326,14 @@ Boot upgrade brings a newer Flyway.
 
 ## Known gaps (tracked, not hidden)
 
+- **Audit IP addresses are Railway's edge proxies, not clients.** Found when
+  checking the audit trail on production: consecutive requests from one
+  machine were recorded as 152.233.15.120, .121, .123 and 152.233.68.97.
+  Tomcat's RemoteIpValve only trusts `X-Forwarded-For` from private-range
+  proxies, and Railway's edge uses public addresses, so the header is
+  (correctly) ignored. Trusting it needs Railway's published edge ranges in
+  `server.tomcat.remoteip.internal-proxies`; guessing a range would let
+  clients forge addresses, which is worse than recording the proxy.
+
 - **No doctor workflow.** Nothing lets a doctor complete a visit or issue a
   prescription; portal history currently comes from seed data.
