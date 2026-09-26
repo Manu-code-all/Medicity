@@ -26,7 +26,7 @@ instant.*
 | PostgreSQL | Partial unique indexes and GiST exclusion constraints make the core invariant enforceable *in the database* | MySQL: no exclusion constraints, no partial indexes |
 | Flyway | Schema is versioned and reviewed like code; Hibernate only validates (`ddl-auto: validate`) | `ddl-auto: update`: silent, unreviewable schema drift |
 | React + TypeScript + TanStack Query | Server state (caching, invalidation, refetch) handled by a library built for it | Hand-rolled `useEffect` fetching |
-| Testcontainers | Tests run against real PostgreSQL 16 | H2: has none of the constraints the design depends on |
+| Testcontainers | Tests run against real PostgreSQL, same major version as production | H2: has none of the constraints the design depends on |
 
 **The core design: let the database arbitrate.**
 
@@ -303,8 +303,28 @@ the low-stock flag.
 
 ---
 
+## 9. Test on the database version production runs (PR #10)
+
+Railway provisioned PostgreSQL 18; CI and `docker-compose` ran 16. Every
+guarantee in this project is a PostgreSQL behaviour (partial indexes,
+exclusion constraints, trigger semantics, error texts the tests match on), so
+proving them on 16 said nothing certain about 18. Testcontainers and compose
+now use `postgres:18-alpine`.
+
+The 18 image moved its data directory to `/var/lib/postgresql/18/docker` and
+refuses to start with a volume mounted at the old `/var/lib/postgresql/data`,
+so the compose volume now mounts `/var/lib/postgresql`. A local volume
+created by the 16 image cannot be opened by 18 and must be recreated.
+
+Flyway logs that PostgreSQL 18 is newer than its tested versions. Migrations
+apply cleanly in CI and production; the warning is expected until the Spring
+Boot upgrade brings a newer Flyway.
+
+**Verified by.** The full suite passing on PostgreSQL 18 in CI.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **No doctor workflow.** Nothing lets a doctor complete a visit or issue a
   prescription; portal history currently comes from seed data.
-- CI tests PostgreSQL 16; production runs 18.

@@ -90,7 +90,7 @@ A `CountDownLatch` parks every thread until all of them are alive, then releases
 them together. Without it, thread pool scheduling staggers the starts enough that
 the race often never occurs and the test passes vacuously — proving nothing.
 
-The suite runs on every push against real PostgreSQL 16 via Testcontainers:
+The suite runs on every push against real PostgreSQL 18 via Testcontainers:
 
 ```
 SlotBookingConcurrencyTest   Tests run: 6, Failures: 0, Errors: 0
@@ -129,7 +129,7 @@ flowchart TB
     end
 
     subgraph data [Data]
-        PG[("PostgreSQL 16<br/>constraints as invariants")]
+        PG[("PostgreSQL 18<br/>constraints as invariants")]
         RD[("Redis<br/>cache · rate limiting")]
     end
 
@@ -236,7 +236,7 @@ cd backend && mvn spring-boot:run
 cd backend && mvn verify
 ```
 
-The suite uses **Testcontainers with real PostgreSQL 16**, never H2. Partial
+The suite uses **Testcontainers with real PostgreSQL 18**, never H2. Partial
 unique indexes, GiST exclusion constraints and `tstzrange` either do not exist in
 H2 or behave differently there — a suite that passed on H2 would tell you nothing
 about production, which is the entire point of these tests.
