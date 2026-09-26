@@ -10,7 +10,8 @@ export interface Session {
 
 export interface AuthContextValue {
   session: Session | null;
-  login: (email: string, password: string) => Promise<void>;
+  /** Resolves with the new session, so the caller can route by role. */
+  login: (email: string, password: string) => Promise<Session>;
   register: (input: Parameters<typeof authApi.register>[0]) => Promise<void>;
   logout: () => void;
 }
@@ -18,6 +19,18 @@ export interface AuthContextValue {
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export const SESSION_KEY = "medicity.session";
+
+/** Where each role lands after signing in. */
+export function homeFor(role: Role): string {
+  switch (role) {
+    case "PATIENT":
+      return "/portal";
+    case "DOCTOR":
+      return "/doctor";
+    default:
+      return "/";
+  }
+}
 
 /**
  * Lives here rather than beside the provider so that AuthContext.tsx exports

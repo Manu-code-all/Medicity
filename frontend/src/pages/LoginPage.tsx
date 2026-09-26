@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
-import { useAuth } from "../auth/context";
+import { homeFor, useAuth } from "../auth/context";
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -13,15 +13,16 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const redirectTo = (location.state as { from?: string } | null)?.from ?? "/portal";
+  // A protected page that sent the user here wins; otherwise each role goes home.
+  const returnTo = (location.state as { from?: string } | null)?.from;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setBusy(true);
     try {
-      await login(email, password);
-      navigate(redirectTo, { replace: true });
+      const session = await login(email, password);
+      navigate(returnTo ?? homeFor(session.role), { replace: true });
     } catch (err) {
       // The server returns the same message whether the account is unknown or
       // the password is wrong; the UI must not elaborate on it either.

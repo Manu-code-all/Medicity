@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,6 +36,19 @@ public interface PrescriptionRepository extends JpaRepository<Prescription, UUID
             ORDER BY p.issuedAt DESC
             """)
     List<Prescription> findCurrentForPatient(@Param("patientId") UUID patientId);
+
+    /** The current prescription of each given visit, with its medicines. */
+    @Query("""
+            SELECT DISTINCT p FROM Prescription p
+            LEFT JOIN FETCH p.items i
+            LEFT JOIN FETCH i.medicine
+            JOIN FETCH p.doctor d
+            JOIN FETCH d.user
+            WHERE p.appointment.id IN :appointmentIds
+              AND NOT EXISTS (
+                  SELECT 1 FROM Prescription newer WHERE newer.supersedesId = p.id)
+            """)
+    List<Prescription> findCurrentForAppointments(@Param("appointmentIds") Collection<UUID> appointmentIds);
 
     /** One prescription with its medicines and patient, for dispensing. */
     @Query("""

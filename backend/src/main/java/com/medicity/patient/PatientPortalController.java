@@ -176,7 +176,7 @@ public class PatientPortalController {
             Instant cancelledAt,
             String cancelReason
     ) {
-        static VisitResponse from(Appointment a) {
+        public static VisitResponse from(Appointment a) {
             Doctor d = a.getSlot().getDoctor();
             return new VisitResponse(
                     a.getId(), a.getStatus().name(), a.getScheduledAt(), a.getSlot().getEndsAt(),
@@ -198,7 +198,7 @@ public class PatientPortalController {
             Instant dispensedAt,
             List<ItemResponse> items
     ) {
-        static PrescriptionResponse from(Prescription p, Instant dispensedAt) {
+        public static PrescriptionResponse from(Prescription p, Instant dispensedAt) {
             Doctor d = p.getDoctor();
             return new PrescriptionResponse(
                     p.getId(), p.getAppointment().getId(), p.getIssuedAt(),

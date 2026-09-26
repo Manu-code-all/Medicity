@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.ErrorResponse;
@@ -132,6 +133,19 @@ public class ApiExceptionHandler {
         String code = status instanceof HttpStatus known ? known.name() : "HTTP_" + status.value();
         ProblemDetail problem = clientError(status, e.getBody().getDetail(), code, request);
         return ResponseEntity.status(status).headers(e.getHeaders()).body(problem);
+    }
+
+    /**
+     * Two people changed the same record at once and this request lost: for
+     * example a patient cancelling while the doctor completes the visit. The
+     * {@code @Version} check refused the stale write, so nothing was lost; the
+     * caller should reload and decide again.
+     */
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ProblemDetail onConcurrentUpdate(ObjectOptimisticLockingFailureException e, HttpServletRequest request) {
+        return clientError(HttpStatus.CONFLICT,
+                "This record was changed by someone else a moment ago. Reload and try again.",
+                "CONCURRENT_UPDATE", request);
     }
 
     /** Body is not valid JSON, or a field has the wrong JSON type. */

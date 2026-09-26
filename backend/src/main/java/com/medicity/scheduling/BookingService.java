@@ -182,6 +182,10 @@ public class BookingService {
             throw new ValidationException("ALREADY_COMPLETED",
                     "A completed appointment cannot be cancelled");
         }
+        if (appointment.getStatus() == AppointmentStatus.NO_SHOW) {
+            throw new ValidationException("ALREADY_CLOSED",
+                    "A missed appointment cannot be cancelled");
+        }
 
         boolean late = Duration.between(now, appointment.getScheduledAt()).compareTo(FREE_CANCELLATION_WINDOW) < 0;
         if (late) {
@@ -190,7 +194,9 @@ public class BookingService {
         }
 
         appointment.cancel(now, reason);
-        Appointment saved = appointmentRepository.save(appointment);
+        // Flushed here so that if the doctor closed this visit a moment ago,
+        // the version check fails inside this call and is answered as 409.
+        Appointment saved = appointmentRepository.saveAndFlush(appointment);
         auditLog.recordChange("APPOINTMENT_CANCELLED", "APPOINTMENT", appointmentId,
                 Map.of("lateCancellation", late, "reason", reason == null ? "" : reason));
         return saved;

@@ -20,7 +20,11 @@ export function PortalLayout() {
         <div className="card empty">
           <h1>The portal is for patients</h1>
           <p className="muted">You are signed in as {session.role.toLowerCase()}.</p>
-          <Link to="/doctors">Go to the doctor directory</Link>
+          {session.role === "DOCTOR" ? (
+            <Link to="/doctor">Go to your workspace</Link>
+          ) : (
+            <Link to="/doctors">Go to the doctor directory</Link>
+          )}
         </div>
       </div>
     );

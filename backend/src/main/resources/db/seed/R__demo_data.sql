@@ -202,3 +202,50 @@ INSERT INTO prescription_items (prescription_id, medicine_id, dosage, frequency,
   ('ffffffff-6666-4666-8666-ffffffffff04', 'cccccccc-3333-4333-8333-cccccccccc06',
    '20mg', 'Once daily, before breakfast', 14, 14)
 ON CONFLICT DO NOTHING;
+
+
+-- ---------------------------------------------------------------------
+-- A working day for the demo doctor (dr.rao@medicity.demo), so the doctor
+-- workspace has something to act on: one visit that has already started
+-- and is waiting to be closed, and one later in the day. Two more patients
+-- keep the calendar from being all one person.
+--
+-- Times are relative to the hour this seed runs. Fixed ids mean each row is
+-- inserted once; on later days these visits simply move into the past,
+-- where a doctor can still close them.
+-- ---------------------------------------------------------------------
+INSERT INTO users (id, email, password_hash, full_name, phone, role) VALUES
+  ('22222222-2222-4222-8222-222222222202', 'arjun@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Arjun Mehta', '+919876500102', 'PATIENT'),
+  ('22222222-2222-4222-8222-222222222203', 'kavya@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Kavya Reddy', '+919876500103', 'PATIENT')
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO patients (id, user_id, date_of_birth, gender, blood_group, city) VALUES
+  ('bbbbbbbb-2222-4222-8222-bbbbbbbbbb02', '22222222-2222-4222-8222-222222222202',
+   '1988-02-03', 'MALE', 'A+', 'Mumbai'),
+  ('bbbbbbbb-2222-4222-8222-bbbbbbbbbb03', '22222222-2222-4222-8222-222222222203',
+   '2001-11-19', 'FEMALE', 'B+', 'Hyderabad')
+ON CONFLICT (user_id) DO NOTHING;
+
+INSERT INTO appointment_slots (id, doctor_id, starts_at, ends_at, status) VALUES
+  ('dddddddd-4444-4444-8444-dddddddddd06', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa01',
+   date_trunc('hour', now()) - INTERVAL '2 hours',
+   date_trunc('hour', now()) - INTERVAL '1 hour 30 minutes', 'OPEN'),
+  ('dddddddd-4444-4444-8444-dddddddddd07', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa01',
+   date_trunc('hour', now()) + INTERVAL '2 hours',
+   date_trunc('hour', now()) + INTERVAL '2 hours 30 minutes', 'OPEN')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO appointments (id, slot_id, patient_id, status, reason, scheduled_at)
+SELECT v.id::uuid, s.id, v.patient_id::uuid, 'BOOKED', v.reason, s.starts_at
+FROM (VALUES
+  ('eeeeeeee-5555-4555-8555-eeeeeeeeee07', 'dddddddd-4444-4444-8444-dddddddddd06',
+   'bbbbbbbb-2222-4222-8222-bbbbbbbbbb02', 'Chest tightness when climbing stairs, 2 weeks'),
+  ('eeeeeeee-5555-4555-8555-eeeeeeeeee08', 'dddddddd-4444-4444-8444-dddddddddd07',
+   'bbbbbbbb-2222-4222-8222-bbbbbbbbbb03', 'Racing heartbeat after coffee')
+) AS v (id, slot_id, patient_id, reason)
+JOIN appointment_slots s ON s.id = v.slot_id::uuid
+ON CONFLICT DO NOTHING;

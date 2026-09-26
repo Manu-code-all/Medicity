@@ -116,3 +116,67 @@ export interface Prescription {
 }
 
 export type VisitScope = "upcoming" | "past";
+
+// --- Doctor workspace ----------------------------------------------------
+
+export interface PatientBrief {
+  id: string;
+  fullName: string;
+  age: number;
+  gender: PatientProfile["gender"];
+  bloodGroup: string | null;
+}
+
+export interface DoctorVisitSummary {
+  id: string;
+  status: AppointmentStatus;
+  scheduledAt: string;
+  endsAt: string;
+  reason: string | null;
+  patient: PatientBrief;
+  prescriptionId: string | null;
+  dispensedAt: string | null;
+}
+
+export interface DoctorVisitDetail {
+  id: string;
+  status: AppointmentStatus;
+  scheduledAt: string;
+  endsAt: string;
+  reason: string | null;
+  cancelReason: string | null;
+  /** Whether the start time has passed, so the visit can be closed. */
+  started: boolean;
+  patient: PatientBrief;
+  prescription: Prescription | null;
+}
+
+export interface PatientHistory {
+  patient: PatientBrief;
+  visits: Visit[];
+  prescriptions: Prescription[];
+}
+
+export interface PrescriptionDraftItem {
+  medicineId: string;
+  dosage: string;
+  frequency: string;
+  durationDays: number;
+  quantity: number;
+}
+
+export interface PrescriptionDraft {
+  diagnosis: string;
+  notes: string;
+  items: PrescriptionDraftItem[];
+}
+
+export interface Medicine {
+  id: string;
+  name: string;
+  genericName: string;
+  form: string;
+  strength: string | null;
+  quantityOnHand: number;
+  lowStock: boolean;
+}

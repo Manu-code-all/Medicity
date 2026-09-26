@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(readStoredSession);
   const queryClient = useQueryClient();
 
-  const adopt = useCallback((pair: TokenPair) => {
+  const adopt = useCallback((pair: TokenPair): Session => {
     tokenStore.save(pair);
     // A different account may be signing in on this browser; nothing cached
     // for the previous one may be shown to the new one.
@@ -38,11 +38,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // value in devtools changes nothing but the greeting.
     localStorage.setItem(SESSION_KEY, JSON.stringify(next));
     setSession(next);
+    return next;
   }, [queryClient]);
 
   const login = useCallback(
     async (email: string, password: string) => {
-      adopt(await authApi.login(email, password));
+      return adopt(await authApi.login(email, password));
     },
     [adopt],
   );

@@ -47,6 +47,10 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                // Must come before the public rule below: matchers are checked in
+                // order and the first match wins, so without this line every GET
+                // under /doctors/me/ would be open to anonymous callers.
+                .requestMatchers("/api/v1/doctors/me/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/v1/doctors/**").permitAll()
                 .requestMatchers("/actuator/health/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
