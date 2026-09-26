@@ -182,3 +182,11 @@ unless the base ends in `/`.
 - **No doctor workflow.** Nothing lets a doctor complete a visit or issue a
   prescription; portal history currently comes from seed data.
 - CI tests PostgreSQL 16; production runs 18.
+- **Login timing leak (found while writing this log).** `AuthService.login`
+  hashes a placeholder when the email is unknown, so both branches should take
+  the same time. The placeholder is 59 characters after the `$2a$12$` prefix;
+  BCrypt needs exactly 53, and Spring's `BCryptPasswordEncoder` rejects a
+  malformed hash with a full-string pattern match *before* hashing. Measured on
+  production over 8 interleaved attempts each: known email 0.72 s average,
+  unknown email 0.50 s. The ~220 ms gap is one cost-12 hash, and it reveals
+  which emails are registered. Fix planned: generate a real hash at startup.
