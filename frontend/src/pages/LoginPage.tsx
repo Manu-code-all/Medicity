@@ -13,7 +13,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const redirectTo = (location.state as { from?: string } | null)?.from ?? "/appointments";
+  const redirectTo = (location.state as { from?: string } | null)?.from ?? "/portal";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

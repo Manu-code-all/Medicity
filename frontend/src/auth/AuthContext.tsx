@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { tokenStore } from "../api/client";
 import { auth as authApi } from "../api/endpoints";
 import type { TokenPair } from "../api/types";
@@ -20,9 +21,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Read synchronously during the first render. Deferring this to an effect
   // would flash the logged-out UI for one frame on every page load.
   const [session, setSession] = useState<Session | null>(readStoredSession);
+  const queryClient = useQueryClient();
 
   const adopt = useCallback((pair: TokenPair) => {
     tokenStore.save(pair);
+    // A different account may be signing in on this browser; nothing cached
+    // for the previous one may be shown to the new one.
+    queryClient.clear();
     const next: Session = {
       userId: pair.userId,
       fullName: pair.fullName,
@@ -33,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // value in devtools changes nothing but the greeting.
     localStorage.setItem(SESSION_KEY, JSON.stringify(next));
     setSession(next);
-  }, []);
+  }, [queryClient]);
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -52,8 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     tokenStore.clear();
     localStorage.removeItem(SESSION_KEY);
+    // Cached queries hold medical records. On a shared computer, leaving them
+    // in memory would show one patient's history to whoever signs in next.
+    queryClient.clear();
     setSession(null);
-  }, []);
+  }, [queryClient]);
 
   const value = useMemo(
     () => ({ session, login, register, logout }),
