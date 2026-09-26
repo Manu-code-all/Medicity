@@ -173,6 +173,34 @@ unless the base ends in `/`.
 
 ---
 
+## 6. Login timing leak: account existence was detectable (PR #7)
+
+**How it was found.** While writing the interview guide, each security claim
+was checked against the code. `AuthService.login` claimed that a failed login
+takes the same time whether or not the email exists. Measuring production
+disproved it: over 8 interleaved attempts each, a known email averaged 0.72 s
+and an unknown one 0.50 s. That ~220 ms gap is one cost-12 BCrypt hash, and it
+lets anyone test which emails are registered.
+
+**Cause.** For unknown emails, the code compared against a hand-typed
+placeholder hash so that BCrypt would still run. The placeholder had 59
+characters after `$2a$12$` where BCrypt needs exactly 53. Spring's
+`BCryptPasswordEncoder` checks the full string against a pattern *before*
+hashing and returns `false` at once on a mismatch, so no hashing happened.
+(A first check with Python's `re.match` wrongly passed it: that matches a
+prefix, while Java's `Matcher.matches()` requires the whole string.)
+
+**Fix.** Generate the placeholder at startup with the application's own
+encoder. It is then well-formed by construction and always has the same cost
+factor as stored passwords, even if the cost is changed later.
+
+**Verified by.** `LoginTimingTest` records the hash the encoder is asked to
+check for an unknown email and asserts it is well-formed and of equal cost.
+Timing itself is not asserted, since wall-clock tests are flaky. The test was
+run against the old code and fails there, naming the malformed hash.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit trail is designed but not yet written to.** The `audit_log` table
@@ -182,11 +210,3 @@ unless the base ends in `/`.
 - **No doctor workflow.** Nothing lets a doctor complete a visit or issue a
   prescription; portal history currently comes from seed data.
 - CI tests PostgreSQL 16; production runs 18.
-- **Login timing leak (found while writing this log).** `AuthService.login`
-  hashes a placeholder when the email is unknown, so both branches should take
-  the same time. The placeholder is 59 characters after the `$2a$12$` prefix;
-  BCrypt needs exactly 53, and Spring's `BCryptPasswordEncoder` rejects a
-  malformed hash with a full-string pattern match *before* hashing. Measured on
-  production over 8 interleaved attempts each: known email 0.72 s average,
-  unknown email 0.50 s. The ~220 ms gap is one cost-12 hash, and it reveals
-  which emails are registered. Fix planned: generate a real hash at startup.

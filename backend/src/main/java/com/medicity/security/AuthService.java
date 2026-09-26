@@ -7,7 +7,6 @@ import com.medicity.patient.PatientRepository;
 import com.medicity.user.Role;
 import com.medicity.user.User;
 import com.medicity.user.UserRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -16,9 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class AuthService {
 
@@ -26,6 +25,32 @@ public class AuthService {
     private final PatientRepository patientRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+
+    /**
+     * Compared against when the email is unknown, so a failed login costs one
+     * full hash either way and response time does not reveal whether an
+     * account exists.
+     *
+     * <p>Generated at startup by the application's own encoder rather than
+     * written as a literal. It previously was a hand-typed literal, 59
+     * characters where BCrypt needs 53; Spring rejects a malformed hash without
+     * hashing, so unknown emails answered about 220 ms faster in production —
+     * a user-enumeration leak hidden behind a comment claiming the opposite.
+     * Encoding a real value guarantees the right format and the same cost
+     * factor as every stored password, including after the cost is changed.
+     */
+    private final String timingEqualiserHash;
+
+    public AuthService(UserRepository userRepository,
+                       PatientRepository patientRepository,
+                       PasswordEncoder passwordEncoder,
+                       JwtService jwtService) {
+        this.userRepository = userRepository;
+        this.patientRepository = patientRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.timingEqualiserHash = passwordEncoder.encode(UUID.randomUUID().toString());
+    }
 
     /**
      * Self-service registration, which creates a PATIENT only.
@@ -71,12 +96,8 @@ public class AuthService {
         User user = userRepository.findByEmail(email.trim().toLowerCase())
                 .orElse(null);
 
-        // Hash even when the user does not exist, so response time does not reveal
-        // whether an address is registered. Comparing against a throwaway hash
-        // keeps the timing profile of both branches roughly equal.
-        String storedHash = user != null
-                ? user.getPasswordHash()
-                : "$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvalidinv";
+        // Hash even when the user does not exist; see timingEqualiserHash.
+        String storedHash = user != null ? user.getPasswordHash() : timingEqualiserHash;
 
         boolean matches = passwordEncoder.matches(rawPassword, storedHash);
 
