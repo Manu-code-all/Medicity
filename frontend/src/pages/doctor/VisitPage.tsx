@@ -123,6 +123,26 @@ export function VisitPage() {
         </section>
       )}
 
+      {v.status === "NO_SHOW" && (
+        <section className="card">
+          <h2 className="portal__subtitle">Marked as missed</h2>
+          <p className="muted">
+            Visits that are not closed within a day of ending are marked missed automatically. If the patient was
+            seen, record it here.
+          </p>
+          <div className="actions">
+            <button
+              type="button"
+              className="button--ghost"
+              disabled={complete.isPending}
+              onClick={() => complete.mutate()}
+            >
+              {complete.isPending ? "Saving…" : "Patient was seen after all"}
+            </button>
+          </div>
+        </section>
+      )}
+
       {v.status === "COMPLETED" && (
         <section className="card">
           <div className="section__head">
