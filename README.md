@@ -124,18 +124,18 @@ flowchart TB
     subgraph api [Spring Boot 3 · Java 21]
         SEC["Security filter chain<br/>JWT · BCrypt · RBAC"]
         CTL["REST controllers<br/>/api/v1"]
-        SVC["Domain services<br/>BookingService · StockLedger"]
+        SVC["Domain services<br/>Booking · Visits · Prescribing · Dispensing"]
+        AUD["AuditLog<br/>append-only"]
         REPO["Spring Data JPA"]
     end
 
     subgraph data [Data]
         PG[("PostgreSQL 18<br/>constraints as invariants")]
-        RD[("Redis<br/>cache · rate limiting")]
     end
 
     WEB -->|"Bearer JWT"| SEC
     SEC --> CTL --> SVC --> REPO --> PG
-    SVC --> RD
+    SVC --> AUD --> PG
 
     style PG fill:#1a5f3f,color:#fff
     style SEC fill:#7a3b1f,color:#fff
@@ -152,8 +152,10 @@ The schema is the specification. Each of these makes an invalid state
 | `no_overlapping_slots_per_doctor` — GiST `EXCLUDE` on `tstzrange` | V2 | A doctor double-booked across two overlapping slots |
 | `uq_patient_active_at_time` — partial unique index | V2 | One patient booked with two doctors at the same instant |
 | `stock_never_negative` — `CHECK` | V4 | Overselling medicine under concurrent dispensing |
+| `uq_dispensation_prescription` — `UNIQUE` | V7 | One prescription dispensed twice |
+| `uq_presc_original_per_appointment` — partial unique index | V8 | Two original prescriptions for one visit |
 | `appointments_cancel_consistency` — `CHECK` | V2 | A cancelled row with no cancellation timestamp |
-| `audit_log` immutability — `BEFORE UPDATE OR DELETE` trigger | V5 | An attacker erasing their own audit trail |
+| `audit_log` immutability — `BEFORE UPDATE OR DELETE` row trigger + `BEFORE TRUNCATE` statement trigger | V5, V6 | An attacker erasing their own audit trail |
 
 The `EXCLUDE` constraint uses a half-open range `'[)'`, so 10:00–10:30 and
 10:30–11:00 do *not* conflict — exactly what back-to-back consultations need.
@@ -206,11 +208,13 @@ SPRING_PROFILES_ACTIVE=demo docker compose up --build
 
 | Demo account | Role |
 |---|---|
-| `patient@medicity.demo` | PATIENT |
-| `dr.rao@medicity.demo` | DOCTOR |
-| `admin@medicity.demo` | ADMIN |
+| `patient@medicity.demo` | PATIENT — Meera, with a full visit and prescription history |
+| `arjun@medicity.demo`, `kavya@medicity.demo` | PATIENT — on Dr. Rao's calendar today |
+| `dr.rao@medicity.demo` | DOCTOR — one visit waiting to be closed, one later today |
+| `dr.iyer@medicity.demo` | DOCTOR — useful for checking that doctors cannot reach each other's patients |
+| `admin@medicity.demo` | ADMIN — pharmacy and audit trail |
 
-Password for all three: `demo-password-2026`
+Password for all of them: `demo-password-2026`
 
 The seed lives in `db/seed/`, which is added to the Flyway path *only* by the
 `demo` profile — a deployed environment has no path by which these accounts
@@ -226,7 +230,7 @@ could be created.
 ### Backend alone
 
 ```bash
-docker compose up -d db redis
+docker compose up -d db
 cd backend && mvn spring-boot:run
 ```
 
@@ -251,7 +255,7 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 |---|---|---|---|
 | `POST` | `/api/v1/auth/register` | — | Register a patient |
 | `POST` | `/api/v1/auth/login` | — | Obtain a token pair |
-| `POST` | `/api/v1/auth/refresh` | — | Rotate tokens |
+| `POST` | `/api/v1/auth/refresh` | — | Exchange a refresh token for a new pair |
 | `GET` | `/api/v1/doctors` | — | Search doctors |
 | `GET` | `/api/v1/doctors/{id}/slots` | — | Available slots |
 | `POST` | `/api/v1/appointments` | PATIENT | **Book a slot** |
@@ -261,6 +265,18 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `GET` | `/api/v1/patients/me/summary` | PATIENT | Portal: totals and next visit |
 | `GET` | `/api/v1/patients/me/appointments?scope=upcoming\|past` | PATIENT | Portal: visit history |
 | `GET` | `/api/v1/patients/me/prescriptions` | PATIENT | Portal: current prescriptions |
+| `GET` | `/api/v1/doctors/me/visits?from&to` | DOCTOR | Workspace: own schedule (max 31 days) |
+| `GET` | `/api/v1/doctors/me/visits/{id}` | own doctor | Visit detail with current prescription |
+| `POST` | `/api/v1/doctors/me/visits/{id}/complete` | own doctor | Close a visit as seen |
+| `POST` | `/api/v1/doctors/me/visits/{id}/no-show` | own doctor | Close a visit as missed |
+| `POST` | `/api/v1/doctors/me/visits/{id}/prescriptions` | own doctor | Issue the visit's prescription |
+| `POST` | `/api/v1/doctors/me/prescriptions/{id}/corrections` | author | Correct (supersede) a prescription |
+| `GET` | `/api/v1/doctors/me/patients/{id}/history` | treating doctor | A patient's history (audited) |
+| `GET` | `/api/v1/pharmacy/medicines` | signed in | Medicine catalogue |
+| `GET` | `/api/v1/pharmacy/stock/low` | ADMIN | Medicines below reorder level |
+| `POST` | `/api/v1/pharmacy/medicines/{id}/restock` | ADMIN | Add stock |
+| `POST` | `/api/v1/pharmacy/prescriptions/{id}/dispense` | ADMIN | Dispense, decrementing stock atomically |
+| `GET` | `/api/v1/admin/audit` | ADMIN | Search the audit trail |
 
 The portal routes take **no patient id at all**. "Me" is resolved from the token,
 so there is no parameter a caller could alter to reach another patient's history:
@@ -325,17 +341,14 @@ backend/
     scheduling/   BookingService  ← the interesting part
     clinical/     prescriptions
     pharmacy/     catalogue, stock ledger
-  src/main/resources/db/migration/   V1–V5, the real specification
+    audit/        append-only audit trail
+  src/main/resources/db/migration/   V1–V8, the real specification
   src/test/java/com/medicity/
     scheduling/SlotBookingConcurrencyTest.java   ← the proof
     security/AppointmentAccessControlTest.java   ← IDOR coverage
 frontend/         React 18 + TypeScript + Vite
-legacy-template/  the original static HTML theme, kept for reference only
+docs/ENGINEERING_LOG.md   every change, why it was made, and how it was verified
 ```
-
-`legacy-template/` is a third-party commercial theme that predates this rebuild.
-It is retained only so the original pages remain viewable; none of it is part of
-the running application.
 
 ---
 
@@ -421,14 +434,31 @@ The demo patient (`patient@medicity.demo` / `demo-password-2026`) is seeded with
 a realistic history: completed visits with prescriptions, a cancellation, a
 missed visit, a corrected prescription and an upcoming appointment.
 
+## Doctor experience
+
+- **Schedule** (`/doctor`) — the day's visits in the doctor's own time zone, with
+  visits that have started but are still open flagged as *waiting to be closed*.
+- **Visit** — close it as seen or as a no-show (only once it has started, and only
+  from `BOOKED`), then write the prescription. A correction supersedes the
+  original instead of editing it. If the patient cancels at the same moment the
+  doctor closes the visit, optimistic locking lets exactly one win and the other
+  gets a clear `409`.
+- **Patient history** — available only to doctors who have treated that patient;
+  every view, and every refused attempt, is written to the audit trail.
+
+Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
+
 ---
 
 ## Roadmap
 
-- [ ] Doctor workspace: close a visit and issue or correct a prescription
+- [x] Patient portal
+- [x] Audit trail, pharmacy dispensing
+- [x] Doctor workspace: close a visit and issue or correct a prescription
+- [ ] Refresh-token rotation with reuse detection
+- [ ] Rate limiting on auth endpoints
+- [ ] Idempotency keys on booking
 - [ ] Editable patient profile
-
-- [ ] Redis-backed rate limiting on auth endpoints
 - [ ] Notification service (email/SMS) on booking and cancellation
 - [ ] Prometheus metrics + Grafana dashboard
 - [ ] Doctor availability rules engine (recurring weekly templates)
