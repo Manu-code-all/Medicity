@@ -389,6 +389,30 @@ hold its medicines; a real system would notify the pharmacy. Not yet built.
 
 ---
 
+## 11. README says only what the code does (PR #14)
+
+A review of the README before starting security work found it claiming more
+than the code does, which is the fastest way to lose an interviewer's trust:
+
+- `/auth/refresh` was described as "Rotate tokens". It issues a new pair, but
+  the old refresh token stays valid and replay is not detected. Relabelled;
+  real rotation is the next piece of work.
+- The architecture diagram showed Redis for caching and rate limiting. Nothing
+  uses Redis (the unused starter was removed earlier because it broke the
+  health check), and `docker compose up -d db redis` named a service that does
+  not exist. Both removed.
+- The API table, constraint table and demo accounts stopped at the patient
+  portal, hiding the doctor workspace, pharmacy, audit trail and V6–V8.
+
+The landing page now names the doctor demo account alongside the patient one,
+and the 6.4 MB third-party HTML theme (`legacy-template/`) is deleted: none of
+it ran, and it remains in git history.
+
+**Verified by.** `npm run lint` and `npm run build`; a grep of the README for
+Redis, rotation and legacy references.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when

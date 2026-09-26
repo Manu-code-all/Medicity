@@ -40,7 +40,8 @@ export function LandingPage() {
             </div>
             {!session && (
               <p className="hero__demo muted">
-                Trying it out? Sign in as <code>patient@medicity.demo</code> /{" "}
+                Trying it out? Sign in as <code>patient@medicity.demo</code> to see the patient portal, or as{" "}
+                <code>dr.rao@medicity.demo</code> for the doctor workspace. Password for both:{" "}
                 <code>demo-password-2026</code>
               </p>
             )}
