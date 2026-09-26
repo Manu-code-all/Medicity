@@ -19,7 +19,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * Starting a container per class would add roughly a second per class for no
  * isolation benefit, since each test cleans up after itself.
  */
-@SpringBootTest
+@SpringBootTest(properties = "medicity.jobs.enabled=false")
 @ActiveProfiles("test")
 @Testcontainers
 public abstract class AbstractIntegrationTest {
