@@ -187,13 +187,15 @@ class AuditTrailTest extends AbstractIntegrationTest {
     void auditLogIsImmutable() {
         bookingService.book(persistSlot(6).getId(), alice.getId(), "Anything");
 
+        // Spring wraps the database error, so the trigger's message is in the
+        // cause chain rather than on the outer exception.
         assertThatThrownBy(() -> jdbc.update("UPDATE audit_log SET outcome = 'DENIED'"))
-                .hasMessageContaining("append-only");
+                .hasStackTraceContaining("append-only");
         assertThatThrownBy(() -> jdbc.update("DELETE FROM audit_log"))
-                .hasMessageContaining("append-only");
+                .hasStackTraceContaining("append-only");
         // Row-level triggers do not fire on TRUNCATE; V6 adds the statement-level one.
         assertThatThrownBy(() -> jdbc.execute("TRUNCATE audit_log"))
-                .hasMessageContaining("append-only");
+                .hasStackTraceContaining("append-only");
     }
 
     @Test
