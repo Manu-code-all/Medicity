@@ -704,6 +704,53 @@ setup; Spring's verifier reads the cost from the hash, so both work.
 
 ---
 
+## 17. Scheduled jobs: cleanup and unclosed visits (PR #22)
+
+**One instance per job, without a lock table.** Every API instance has the
+same `@Scheduled` methods, so with two instances each job would run twice.
+Each job first calls `pg_try_advisory_xact_lock(hashtext('medicity.job.<name>'))`
+inside its transaction. The first instance gets the lock; others get `false`
+and skip. The lock is transaction-scoped, so it is released at commit, at
+rollback, or when a crashed instance's connection closes. A session lock
+would need an explicit unlock, and a missed one would block the job for good.
+`ScheduledJobsTest.onlyOneInstanceRunsAJob` holds the lock from another
+thread and checks that the job skips, then runs once it is released.
+
+**Housekeeping** (nightly, 03:30 UTC) deletes refresh tokens past their expiry
+and idempotency keys older than a day, in batches of 5,000 per statement.
+Spent refresh tokens are deliberately kept until they expire: reuse detection
+needs to recognise one when it comes back. This closes the "tables grow
+forever" gap.
+
+**Unclosed visits** (hourly). A visit still `BOOKED` a day after its slot
+ended is marked `NO_SHOW` and audited as `VISIT_AUTO_CLOSED` with no actor, so
+it is never mistaken for a doctor's decision.
+- *One conditional `UPDATE ... RETURNING`*, not load-and-save, so a visit the
+  doctor closes at the same moment is decided by the row lock. The job bumps
+  `version`, so a doctor holding the old version gets `409` rather than
+  silently overwriting.
+- *The job can be wrong.* A doctor who saw the patient but forgot to close the
+  visit would leave a false no-show on the patient's record. So a doctor can
+  now mark a missed visit as seen (`NO_SHOW` to `COMPLETED`), audited with
+  `from: NO_SHOW`; the visit page offers "Patient was seen after all". The
+  other direction stays refused.
+
+**Jobs are off in integration tests** (`medicity.jobs.enabled=false` on the
+test base class), which call them directly. A job firing on its own schedule
+mid-test would change that test's data under it.
+
+**Effect on the demo.** Past demo visits nobody closed, such as Arjun's, will
+be marked missed about an hour after deploying. That is the job working; the
+demo reset (next) restores fresh visits.
+
+**Verified by.** `ScheduledJobsTest` (5): a stale visit is marked missed and
+audited while a recent one and a completed one are untouched, and a second run
+changes nothing; the doctor can correct an auto-closed visit; the job bumps
+the version; the lock makes a second instance skip; housekeeping deletes only
+expired tokens and day-old keys and keeps spent-but-unexpired tokens.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when
@@ -714,11 +761,6 @@ setup; Spring's verifier reads the cost from the hash, so both work.
   (correctly) ignored. Trusting it needs Railway's published edge ranges in
   `server.tomcat.remoteip.internal-proxies`; guessing a range would let
   clients forge addresses, which is worse than recording the proxy.
-- **Expired refresh tokens and idempotency keys are never deleted.** Every
-  refresh adds a row (roughly one per active user every 15 minutes), and
-  spent, revoked and expired rows stay. Nothing reads them once expired, so
-  this is growth, not a correctness issue. Planned: a nightly cleanup job
-  alongside the other scheduled work.
 - **An access token outlives sign-out by up to 15 minutes.** Access tokens
   are never looked up, so revoking the session (sign-out, detected token
   theft) stops refreshes at once but not the access token already issued.

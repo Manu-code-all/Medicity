@@ -22,6 +22,12 @@ import java.util.UUID;
  * whose calendar the visit is on, and only once the visit's start time has
  * passed: a visit cannot be "completed" before it began.
  *
+ * <p>One correction is allowed: a missed visit can be marked seen. Visits the
+ * doctor never closes are marked missed automatically a day later
+ * ({@link com.medicity.jobs.UnclosedVisitsJob}), and so is a patient who came
+ * late or a mis-click; without this, a patient who was treated would stay
+ * recorded as a no-show.
+ *
  * <p>Concurrency: a patient may cancel at the same moment the doctor completes.
  * Both load the row at the same {@code version}; whichever writes second
  * updates zero rows ({@code WHERE version = ?}) and fails with an optimistic
@@ -66,7 +72,9 @@ public class VisitService {
     private Appointment transition(UUID appointmentId, UUID doctorId, AppointmentStatus target, String action) {
         Appointment visit = requireOwnVisit(appointmentId, doctorId);
 
-        if (visit.getStatus() != AppointmentStatus.BOOKED) {
+        AppointmentStatus from = visit.getStatus();
+        boolean correctingNoShow = from == AppointmentStatus.NO_SHOW && target == AppointmentStatus.COMPLETED;
+        if (from != AppointmentStatus.BOOKED && !correctingNoShow) {
             throw new ValidationException("INVALID_VISIT_STATE",
                     "This visit is already %s".formatted(visit.getStatus().name().toLowerCase().replace('_', ' ')));
         }
@@ -80,7 +88,7 @@ public class VisitService {
         // failure inside this call, not later at commit.
         Appointment saved = appointmentRepository.saveAndFlush(visit);
         auditLog.recordChange(action, "APPOINTMENT", appointmentId,
-                Map.of("patientId", visit.getPatient().getId()));
+                Map.of("patientId", visit.getPatient().getId(), "from", from.name()));
         return saved;
     }
 }
