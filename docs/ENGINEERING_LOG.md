@@ -511,6 +511,22 @@ refused as a bearer token.
 so every signed-in user is asked to sign in again once, when their access
 token next expires.
 
+**Verified in production** after merging, without changing demo data:
+- the refresh token is now a 43-character opaque value;
+- refreshing works once; reusing the spent token gets 401, and so does the
+  newest token in that session;
+- a separate sign-in keeps working; logout returns 204 and the token is
+  refused afterwards;
+- five failed logins for an unused email get 401, the sixth 429 with
+  `Retry-After: 897`;
+- a malformed `Idempotency-Key` gets 400 before anything is booked;
+- a browser preflight from the Vercel origin allows `Idempotency-Key`;
+- `REFRESH_TOKEN_REUSED`, `LOGIN_THROTTLED` and `LOGOUT` appear in the audit log.
+
+The first run reported `Retry-After` missing. Railway's edge answers over
+HTTP/2, which sends header names in lower case, and the check looked the
+header up by exact case. The header was there.
+
 ---
 
 ## Known gaps (tracked, not hidden)
@@ -523,4 +539,29 @@ token next expires.
   (correctly) ignored. Trusting it needs Railway's published edge ranges in
   `server.tomcat.remoteip.internal-proxies`; guessing a range would let
   clients forge addresses, which is worse than recording the proxy.
+- **Expired refresh tokens and idempotency keys are never deleted.** Every
+  refresh adds a row (roughly one per active user every 15 minutes), and
+  spent, revoked and expired rows stay. Nothing reads them once expired, so
+  this is growth, not a correctness issue. Planned: a nightly cleanup job
+  alongside the other scheduled work.
+- **An access token outlives sign-out by up to 15 minutes.** Access tokens
+  are never looked up, so revoking the session (sign-out, detected token
+  theft) stops refreshes at once but not the access token already issued.
+  Closing that needs a denylist checked on every request; the short lifetime
+  is the trade-off taken instead.
+- **Only login is rate-limited, and only per email.** Registration has no
+  limit, so one client can create accounts in bulk. There is no per-IP limit,
+  because every client appears to come from a few Railway edge addresses
+  (see the first gap); one becomes possible once client IPs are trusted.
+- **Only booking accepts an `Idempotency-Key`.** Cancelling is idempotent
+  by design (a second cancel returns the cancelled appointment unchanged), but a retried
+  prescription or dispense gets a 409 rather than the original response.
+- **A prescription can be corrected after it was dispensed** and no one is
+  told. The pharmacy refuses the superseded original, but the patient may
+  already hold its medicines. Planned: a notification through an outbox.
+- **Pharmacy actions use the ADMIN role.** There is no dedicated pharmacist
+  role yet, so whoever dispenses can also read the whole audit log.
+- **The public demo is consumed by use.** Closing Dr. Rao's waiting visit or
+  booking the open slots changes the data for the next visitor. Planned: a
+  nightly reset of the demo data.
 
