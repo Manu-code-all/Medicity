@@ -5,6 +5,7 @@ import type {
   DoctorVisitDetail,
   DoctorVisitSummary,
   Medicine,
+  NotificationList,
   PatientHistory,
   PrescriptionDraft,
   Page,
@@ -121,4 +122,11 @@ export const workspace = {
 
 export const pharmacy = {
   medicines: () => request<Page<Medicine>>("/api/v1/pharmacy/medicines?size=100"),
+};
+
+/** The signed-in user's notifications. Scoped by the token, like the portal. */
+export const notifications = {
+  mine: () => request<NotificationList>("/api/v1/notifications"),
+  markRead: (id: string) => request<void>(`/api/v1/notifications/${id}/read`, { method: "POST" }),
+  markAllRead: () => request<void>("/api/v1/notifications/read-all", { method: "POST" }),
 };
