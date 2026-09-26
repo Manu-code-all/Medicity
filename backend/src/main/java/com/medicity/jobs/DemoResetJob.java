@@ -2,6 +2,7 @@ package com.medicity.jobs;
 
 import com.medicity.audit.AuditLog;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
@@ -55,6 +56,13 @@ public class DemoResetJob {
     private final AuditLog auditLog;
     private final Resource seed;
 
+    /**
+     * {@code @Autowired} is required, not decoration: with two constructors and
+     * neither marked, Spring cannot choose one, the bean fails to be created
+     * and the application does not start. That happened in production, where
+     * the {@code demo} profile creates this bean and the tests do not.
+     */
+    @Autowired
     public DemoResetJob(JdbcTemplate jdbc, DataSource dataSource, JobLock lock, AuditLog auditLog) {
         this(jdbc, dataSource, lock, auditLog, SEED);
     }
