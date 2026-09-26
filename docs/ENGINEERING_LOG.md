@@ -704,6 +704,72 @@ setup; Spring's verifier reads the cost from the hash, so both work.
 
 ---
 
+## 18. Transactional outbox and in-app notifications (PR #23)
+
+**The problem an outbox solves.** After a booking, someone must be told. Sending
+the notification inside the booking's transaction ties the booking to the
+notifier: if the notifier is slow the booking is slow, and if it fails the
+booking rolls back. Sending it after commit loses it whenever the process dies
+in between. Sending it before commit announces bookings that may still roll
+back.
+
+**How it works (V13).**
+- The change writes an `outbox_events` row in its own transaction
+  (`Outbox.publish` is `MANDATORY`), so the event exists if and only if the
+  change committed. `OutboxNotificationsTest.failedBookingWritesNoEvent`
+  checks that a lost race leaves no event.
+- `OutboxRelay` delivers events afterwards. It claims one due event at a time
+  with `FOR UPDATE SKIP LOCKED`, so any number of instances can drain the
+  outbox without coordinating: each skips rows another has locked. Four relays
+  draining 40 events at once deliver each exactly once.
+- One transaction per event: the consumer's writes and the "published" mark
+  commit together. A failure rolls that back and is recorded in a second
+  transaction, with exponential backoff (5 s, 10 s, 20 s, ... capped at an
+  hour). After 10 attempts the event is set aside (`failed_at`) instead of
+  being retried forever.
+- Delivery is at least once: a crash after delivering but before marking
+  delivers again. The consumer is idempotent through a unique
+  `(event_id, user_id)` on notifications and `ON CONFLICT DO NOTHING`.
+
+**Two lock patterns, on purpose.** The scheduled jobs (entry 17) take an
+advisory lock, because each run must happen once. The relay uses
+`SKIP LOCKED`, because its work is many independent events that any instance
+can take.
+
+**Events and who is told.**
+
+| Event | Notified |
+|---|---|
+| `APPOINTMENT_BOOKED` | the patient |
+| `APPOINTMENT_CANCELLED` | the doctor (the patient cancelled it) |
+| `PRESCRIPTION_ISSUED` | the patient |
+| `PRESCRIPTION_CORRECTED` | the patient, and if the original was already dispensed, every admin (standing in for the pharmacy) |
+
+The last closes a known gap: a prescription corrected after dispensing used to
+reach no one.
+
+**Payloads carry what the consumer needs** (names, the visit time) rather than
+ids to look up later: by the time the relay runs, the appointment may have
+been cancelled or the prescription corrected again.
+
+**Time zones.** A notification stores the visit time as an instant
+(`occurs_at`); the browser formats it. The server never renders a local time
+it would have to guess.
+
+**API and UI.** `GET /api/v1/notifications` (latest 50 and the unread count),
+`POST /{id}/read`, `POST /read-all`, all scoped to the token's user; marking
+someone else's notification answers 404. The header shows a Notifications
+link with an unread badge, polled once a minute; a push channel would be more
+infrastructure than this needs.
+
+**Not built.** Email and SMS would be further consumers of the same events.
+No provider is configured, and a stub that pretended to send would be worse
+than none.
+
+**Verified by.** `OutboxNotificationsTest` (8) and `NotificationsPage.test.tsx` (3).
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when
@@ -731,9 +797,9 @@ setup; Spring's verifier reads the cost from the hash, so both work.
 - **Only booking accepts an `Idempotency-Key`.** Cancelling is idempotent
   by design (a second cancel returns the cancelled appointment unchanged), but a retried
   prescription or dispense gets a 409 rather than the original response.
-- **A prescription can be corrected after it was dispensed** and no one is
-  told. The pharmacy refuses the superseded original, but the patient may
-  already hold its medicines. Planned: a notification through an outbox.
+- **Notifications are in-app only.** No email or SMS provider is configured,
+  so a patient who does not open the app does not hear about a cancellation or
+  a corrected prescription. Both would be further outbox consumers.
 - **Pharmacy actions use the ADMIN role.** There is no dedicated pharmacist
   role yet, so whoever dispenses can also read the whole audit log.
 - **The public demo is consumed by use.** Closing Dr. Rao's waiting visit or

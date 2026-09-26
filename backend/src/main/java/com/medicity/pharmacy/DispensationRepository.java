@@ -10,4 +10,6 @@ public interface DispensationRepository extends JpaRepository<Dispensation, UUID
 
     /** One query for a whole list of prescriptions, not one per prescription. */
     List<Dispensation> findByPrescriptionIdIn(Collection<UUID> prescriptionIds);
+
+    boolean existsByPrescriptionId(UUID prescriptionId);
 }
