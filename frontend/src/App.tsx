@@ -1,7 +1,11 @@
 import { Link, Navigate, NavLink, Outlet, Route, Routes, useNavigate } from "react-router-dom";
-import { useAuth } from "./auth/context";
+import { homeFor, useAuth } from "./auth/context";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BookingPage } from "./pages/BookingPage";
+import { DoctorLayout } from "./pages/doctor/DoctorLayout";
+import { PatientHistoryPage } from "./pages/doctor/PatientHistoryPage";
+import { SchedulePage } from "./pages/doctor/SchedulePage";
+import { VisitPage } from "./pages/doctor/VisitPage";
 import { DoctorsPage } from "./pages/DoctorsPage";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -33,7 +37,11 @@ export function App() {
             <NavLink to="/doctors">Find a doctor</NavLink>
             {session ? (
               <>
-                <NavLink to="/portal">My portal</NavLink>
+                {session.role !== "ADMIN" && (
+                  <NavLink to={homeFor(session.role)}>
+                    {session.role === "DOCTOR" ? "My workspace" : "My portal"}
+                  </NavLink>
+                )}
                 <button type="button" className="link" onClick={signOut}>
                   Sign out
                 </button>
@@ -61,6 +69,11 @@ export function App() {
               <Route path="visits" element={<VisitsPage />} />
               <Route path="prescriptions" element={<PrescriptionsPage />} />
               <Route path="profile" element={<ProfilePage />} />
+            </Route>
+            <Route path="/doctor" element={<DoctorLayout />}>
+              <Route index element={<SchedulePage />} />
+              <Route path="visits/:visitId" element={<VisitPage />} />
+              <Route path="patients/:patientId" element={<PatientHistoryPage />} />
             </Route>
           </Route>
 

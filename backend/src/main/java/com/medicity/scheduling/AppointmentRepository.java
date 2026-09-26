@@ -115,10 +115,33 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             SELECT a FROM Appointment a
             JOIN FETCH a.slot s
             JOIN FETCH s.doctor d
+            JOIN FETCH d.user
             JOIN FETCH a.patient p
+            JOIN FETCH p.user
             WHERE a.id = :id
             """)
     Optional<Appointment> findByIdWithDetails(@Param("id") UUID id);
+
+    /**
+     * A doctor's calendar between two instants, earliest first. The caller
+     * passes the bounds of "today" in its own time zone, so the server never
+     * has to guess where the doctor is.
+     */
+    @Query("""
+            SELECT a FROM Appointment a
+            JOIN FETCH a.slot s
+            JOIN FETCH a.patient p
+            JOIN FETCH p.user
+            WHERE s.doctor.id = :doctorId
+              AND a.scheduledAt >= :from AND a.scheduledAt < :to
+            ORDER BY a.scheduledAt ASC
+            """)
+    List<Appointment> findForDoctorBetween(@Param("doctorId") UUID doctorId,
+                                           @Param("from") Instant from,
+                                           @Param("to") Instant to);
+
+    /** Whether this doctor has ever had this patient on their calendar. */
+    boolean existsBySlotDoctorIdAndPatientId(UUID doctorId, UUID patientId);
 
     /** The live holder of a slot, if any. Mirrors the partial unique index. */
     @Query("""

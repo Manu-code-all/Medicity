@@ -324,6 +324,71 @@ Boot upgrade brings a newer Flyway.
 
 ---
 
+## 10. Doctor workspace (PR #13)
+
+**Goal.** Close the loop: a doctor sees their day, records what happened at
+each visit, prescribes, and corrects prescriptions. Patient history now comes
+from real use rather than seed data.
+
+**Endpoints** under `/api/v1/doctors/me`: `visits?from&to`, `visits/{id}`,
+`visits/{id}/complete`, `visits/{id}/no-show`, `visits/{id}/prescriptions`,
+`prescriptions/{id}/corrections`, `patients/{id}/history`. As in the portal,
+no route takes a doctor id.
+
+**A security rule that depended on order.** `SecurityConfig` made every
+`GET /api/v1/doctors/**` public, for the doctor directory. The new routes live
+under that prefix, so `GET /doctors/me/visits` would have been reachable
+anonymously at the filter level. Spring Security checks matchers in order and
+the first match wins, so a rule for `/doctors/me/**` now sits **above** the
+public one. `workspaceIsNotPublic` asserts 401 for anonymous and 403 for a
+patient, and that the directory is still public.
+
+**Rules for closing a visit.** Only from `BOOKED`, only by the doctor whose
+calendar it is on, and only after its start time.
+
+**Three races, three mechanisms.**
+
+| Race | Guard | Why this one |
+|---|---|---|
+| Two tabs issue the first prescription for a visit | V8 partial unique index: one original (`supersedes_id IS NULL`) per appointment | An insert race: a constraint decides |
+| Two corrections of the same prescription | `uq_presc_supersedes` from V3 | Same, keeps the chain linear |
+| Patient cancels while the doctor completes | `@Version` optimistic locking, answered as `409 CONCURRENT_UPDATE` | Read-decide-write on **one existing row**; no insert to constrain |
+
+The third is the first place in the project where `@Version` is the actual
+guard. Both requests read version *n*; the second `UPDATE ... WHERE version = n`
+matches no row. `BookingService.cancel` now flushes inside the method so the
+failure surfaces there and maps to a clean 409, rather than escaping at commit.
+
+**"Today" is the client's.** The schedule endpoint takes two instants. The
+browser computes local midnight to midnight, so the server never guesses the
+doctor's time zone.
+
+**Patient history is scoped and audited.** A doctor may read the full history
+(across all doctors) of a patient who has been on their own calendar, and no
+one else's. Every read writes `PATIENT_HISTORY_VIEWED`; a refusal writes
+`ACCESS_DENIED`.
+
+**Also.** Cancelling a missed visit is now refused. A site-wide link colour
+was added: plain links rendered in the browser's default blue, unreadable on
+the dark theme. Demo data gains two patients and two visits today for
+`dr.rao@medicity.demo`, one already started.
+
+**Verified by.** `DoctorWorkspaceTest` (10 tests): access rules; schedule
+window and ownership; complete-before-start refused, double close refused;
+another doctor refused and audited; 10 rounds of cancel-versus-complete each
+producing exactly one winner; prescribing needs a completed visit and a second
+original is refused; invalid and duplicate items rejected; 8 simultaneous
+issues produce one prescription; a correction replaces the original for the
+patient and cannot be repeated; history scoped and audited. The UI was
+exercised against a mock API: sign in as doctor, open a visit, complete,
+prescribe, open a correction.
+
+**Known limitation.** A prescription can be corrected after it was dispensed.
+The pharmacy will refuse the superseded original, but the patient may already
+hold its medicines; a real system would notify the pharmacy. Not yet built.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when
@@ -335,5 +400,3 @@ Boot upgrade brings a newer Flyway.
   `server.tomcat.remoteip.internal-proxies`; guessing a range would let
   clients forge addresses, which is worse than recording the proxy.
 
-- **No doctor workflow.** Nothing lets a doctor complete a visit or issue a
-  prescription; portal history currently comes from seed data.

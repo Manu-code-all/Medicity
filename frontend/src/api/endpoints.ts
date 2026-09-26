@@ -2,6 +2,11 @@ import { request } from "./client";
 import type {
   Appointment,
   Doctor,
+  DoctorVisitDetail,
+  DoctorVisitSummary,
+  Medicine,
+  PatientHistory,
+  PrescriptionDraft,
   Page,
   PatientProfile,
   PortalSummary,
@@ -75,4 +80,39 @@ export const portal = {
     request<Page<Visit>>(`/api/v1/patients/me/appointments?scope=${scope}&page=${page}&size=${size}`),
 
   prescriptions: () => request<Prescription[]>("/api/v1/patients/me/prescriptions"),
+};
+
+/** The signed-in doctor's own calendar and patients; "me" comes from the token. */
+export const workspace = {
+  visits: (from: string, to: string) =>
+    request<DoctorVisitSummary[]>(
+      `/api/v1/doctors/me/visits?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    ),
+
+  visit: (id: string) => request<DoctorVisitDetail>(`/api/v1/doctors/me/visits/${id}`),
+
+  complete: (id: string) =>
+    request<DoctorVisitDetail>(`/api/v1/doctors/me/visits/${id}/complete`, { method: "POST" }),
+
+  noShow: (id: string) =>
+    request<DoctorVisitDetail>(`/api/v1/doctors/me/visits/${id}/no-show`, { method: "POST" }),
+
+  prescribe: (visitId: string, draft: PrescriptionDraft) =>
+    request<DoctorVisitDetail>(`/api/v1/doctors/me/visits/${visitId}/prescriptions`, {
+      method: "POST",
+      body: draft,
+    }),
+
+  correct: (prescriptionId: string, draft: PrescriptionDraft) =>
+    request<DoctorVisitDetail>(`/api/v1/doctors/me/prescriptions/${prescriptionId}/corrections`, {
+      method: "POST",
+      body: draft,
+    }),
+
+  patientHistory: (patientId: string) =>
+    request<PatientHistory>(`/api/v1/doctors/me/patients/${patientId}/history`),
+};
+
+export const pharmacy = {
+  medicines: () => request<Page<Medicine>>("/api/v1/pharmacy/medicines?size=100"),
 };

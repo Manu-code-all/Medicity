@@ -66,6 +66,10 @@ body {
   line-height: 1.5;
 }
 
+/* Plain links take the accent in both themes; the browser default blue is
+   unreadable on the dark surface. Components that style links override this. */
+a { color: var(--accent); }
+
 /* ---------- Chrome ---------- */
 
 .topbar {
@@ -402,6 +406,41 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .details dt { color: var(--text-muted); }
 .details dd { margin: 0; }
 
+/* ---------- Doctor workspace ---------- */
+
+.day-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+.day-nav .tab { border: 1px solid var(--border); background: var(--surface); }
+
+.sched { display: flex; gap: 16px; text-decoration: none; color: var(--text); }
+.sched:hover { border-color: var(--accent); }
+.sched--cancelled, .sched--no_show { opacity: 0.7; }
+.sched__time { display: flex; flex-direction: column; min-width: 64px; font-variant-numeric: tabular-nums; }
+.sched__time strong { font-size: 1.05rem; }
+.sched__body { flex: 1; min-width: 0; }
+.sched__flags { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 0; }
+.sched__flags:empty { display: none; }
+
+.visit-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin: 0; }
+.visit-head p { margin: 4px 0 0; }
+.visit-head a { display: inline-block; margin-top: 10px; color: var(--accent); font-weight: 600; }
+.visit-head__reason { margin-top: 10px !important; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.empty-inline { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.empty-inline p { margin: 0; }
+.rx-view h3 { margin: 0 0 6px; }
+.rx-view ul { margin: 0; padding-left: 18px; }
+
+.rx-form { display: flex; flex-direction: column; gap: 6px; }
+.rx-form label { font-weight: 600; font-size: 0.9rem; }
+.rx-form__actions { display: flex; gap: 16px; align-items: center; margin-top: 12px; }
+.rx-items { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin: 10px 0; display: flex; flex-direction: column; gap: 12px; }
+.rx-items legend { font-weight: 700; padding: 0 6px; }
+.rx-item { display: grid; grid-template-columns: minmax(0, 2.2fr) 1fr 1.6fr 0.7fr 0.7fr; gap: 8px; align-items: end; padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+.rx-item:last-of-type { border-bottom: none; }
+.rx-item__remove { grid-column: 1 / -1; justify-self: start; }
+.field-error { font-size: 0.85rem; }
+.small { font-size: 0.85rem; }
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 900px) {
@@ -426,4 +465,8 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
   .next-visit__link { margin-left: 0; }
   .details { grid-template-columns: 1fr; gap: 2px; }
   .details dd { margin-bottom: 10px; }
+  .rx-item { grid-template-columns: 1fr 1fr; }
+  .rx-item__medicine { grid-column: 1 / -1; }
+  .sched { flex-direction: column; gap: 6px; }
+  .sched__time { flex-direction: row; gap: 8px; }
 }
