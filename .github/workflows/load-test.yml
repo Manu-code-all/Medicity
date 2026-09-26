@@ -48,6 +48,7 @@ jobs:
 
       - name: Run k6
         run: |
+          echo "Runner: $(nproc) vCPU, $(free -g | awk '/Mem:/ {print $2}') GB RAM"
           mkdir -p loadtest/results && chmod 777 loadtest/results
           docker run --rm --network host \
             -v "$PWD/loadtest:/scripts:ro" -v "$PWD/loadtest/results:/results" \

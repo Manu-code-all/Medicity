@@ -247,6 +247,12 @@ cd backend && mvn spring-boot:run
 cd backend && mvn verify
 ```
 
+**Under load** (`.github/workflows/load-test.yml`, k6 against the real image
+and PostgreSQL 18 on one GitHub-hosted runner): 200 simultaneous attempts on 20
+slots yield exactly 20 bookings and 180 `409`s. 150 bookings/s holds p95 at
+31 ms with no errors. At 300/s the runner saturates (p95 1.3 s), still with zero
+errors and zero double bookings; the database is checked after every run.
+
 The suite uses **Testcontainers with real PostgreSQL 18**, never H2. Partial
 unique indexes, GiST exclusion constraints and `tstzrange` either do not exist in
 H2 or behave differently there — a suite that passed on H2 would tell you nothing
@@ -470,4 +476,4 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
 - [ ] Notification service (email/SMS) on booking and cancellation
 - [ ] Prometheus metrics + Grafana dashboard
 - [ ] Doctor availability rules engine (recurring weekly templates)
-- [ ] k6 load test establishing booking throughput under contention
+- [x] k6 load test establishing booking throughput under contention

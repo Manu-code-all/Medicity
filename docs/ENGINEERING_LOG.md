@@ -529,6 +529,61 @@ header up by exact case. The header was there.
 
 ---
 
+## 16. Load test: the booking guarantee under real concurrency (PR #19)
+
+The concurrency tests prove the invariant with threads inside one JVM. This
+runs the real Docker image against PostgreSQL 18 over HTTP, the way production
+runs, and then checks the database rather than trusting status codes.
+
+**Setup.** `.github/workflows/load-test.yml` starts the API image and
+PostgreSQL with Docker Compose on a GitHub-hosted runner, seeds
+`loadtest/seed.sql`, runs `loadtest/booking.js` with k6, and runs
+`loadtest/verify.sql`. The API, the database and k6 share one machine, so the
+latencies describe that machine, not production hardware.
+
+**Scenarios.**
+- *contention*: 200 patients book at once, 10 on each of 20 slots.
+  Threshold: exactly 20 `201` and 180 `409 SLOT_ALREADY_BOOKED`.
+- *booking_throughput*: a fixed arrival rate of bookings on free slots, so
+  it measures the cost of a booking, not of a race.
+- *reads*: 60 requests/s of browsing (doctors, slots, the portal list)
+  alongside.
+
+**Database checks after every run:** no slot with two active appointments;
+each of the 20 contended slots booked exactly once; no patient holding two
+appointments at one instant; one `APPOINTMENT_BOOKED` audit row per booking.
+
+**Results.**
+
+| Booking rate | Bookings | Booking p95 / p99 | Read p95 | Errors | Dropped | DB checks |
+|---|---|---|---|---|---|---|
+| 40/s for 60 s | 2,420 | 16 ms / 71 ms | 6 ms | 0 | 0 | all pass |
+| 150/s for 20 s | 3,021 | 31 ms / 92 ms | 28 ms | 0 | 0 | all pass |
+| 300/s for 10 s | 2,783 | 1,257 ms / 1,621 ms | 1,043 ms | 0 | 246 | all pass |
+
+Contention produced exactly 20 winners and 180 clean 409s in every run.
+
+**Reading it.** Up to 150 bookings/s the runner kept p95 near 30 ms. At 300/s
+it saturated: latency passed a second and k6 dropped 246 iterations because
+every virtual user was waiting. That run fails its latency thresholds, as it
+should. What did not change at any rate: zero errors, zero double bookings,
+every booking audited. Under overload the system slowed down; it did not
+become wrong.
+
+**Two bugs in the test itself, caught before the first run.**
+- VU ids in k6 are shared across scenarios, so the contention scenario could
+  not use them to pick 200 distinct patients; it uses its iteration number.
+- The first cold doctor's slots started at the same instants as the hot slots,
+  so a patient who won a hot slot could be sent to a cold one at the same
+  time and get a correct `PATIENT_DOUBLE_BOOKED`, counted as a failure. Cold
+  grids now start 7, 14 and 21 minutes past the hot one.
+
+**Seeding.** Load-test passwords are hashed by pgcrypto at BCrypt cost 4.
+The application uses 12, and 300 logins at about 250 ms each would dominate
+setup; Spring's verifier reads the cost from the hash, so both work.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when
