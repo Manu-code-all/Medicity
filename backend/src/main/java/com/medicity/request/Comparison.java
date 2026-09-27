@@ -30,12 +30,19 @@ public record Comparison(
         int storesAsked,
         int radiusM,
         List<Item> items,
-        List<StoreAnswer> stores
+        List<StoreAnswer> stores,
+        /** The latest reservation on this question, with the pick-up code while held; null if none. */
+        ReservationService.PatientReservation reservation
 ) {
 
     Comparison(RequestHeader h, List<Item> items, List<StoreAnswer> ranked) {
         this(h.id(), h.status(), h.createdAt(), h.expiresAt(), h.prescriptionId(), h.doctorName(), h.diagnosis(),
-                h.storesAsked(), h.radiusM(), items, ranked);
+                h.storesAsked(), h.radiusM(), items, ranked, null);
+    }
+
+    Comparison withReservation(ReservationService.PatientReservation r) {
+        return new Comparison(id, status, createdAt, expiresAt, prescriptionId, doctorName, diagnosis, storesAsked,
+                radiusM, items, stores, r);
     }
 
     static final Comparator<StoreAnswer> BEST_FIRST = Comparator

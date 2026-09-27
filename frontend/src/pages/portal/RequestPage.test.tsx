@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { Comparison } from "../../api/types";
@@ -39,10 +40,21 @@ const COMPARISON: Comparison = {
       medicinesAvailable: 0, complete: false, total: null, cheapestComplete: false, nearestComplete: false,
     },
   ],
+  reservation: null,
+};
+
+const RESERVED: Comparison = {
+  ...COMPARISON,
+  status: "RESERVED",
+  reservation: {
+    id: "res1", storeId: "s1", storeName: "Lakshmi Medical Stores", storePhone: "+919876500303",
+    storeAddress: "CMH Road", pickupCode: "482913", status: "HELD", total: 58.8, complete: true,
+    expiresAt: "2030-01-01T14:00:00Z", collectedAt: null,
+  },
 };
 
 function renderPage() {
-  mockFetch(() => json(200, COMPARISON));
+  const calls = mockFetch(({ method }) => json(method === "POST" ? 201 : 200, method === "POST" ? RESERVED : COMPARISON));
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
@@ -53,6 +65,7 @@ function renderPage() {
       </MemoryRouter>
     </QueryClientProvider>,
   );
+  return calls;
 }
 
 describe("RequestPage", () => {
@@ -78,5 +91,23 @@ describe("RequestPage", () => {
 
     expect(within(cards[2]!).getByText("Not answered yet.")).toBeInTheDocument();
     expect(screen.getByText(/2 of 3 stores answered/)).toBeInTheDocument();
+  });
+
+  it("reserves at a store that has something, then shows the pick-up code", async () => {
+    const calls = renderPage();
+    const cards = await screen.findAllByRole("listitem");
+    // Only stores that answered with something can be reserved at.
+    expect(within(cards[2]!).queryByRole("button", { name: /Reserve here/ })).toBeNull();
+
+    await userEvent.click(within(cards[0]!).getByRole("button", { name: "Reserve here · kept 4 h" }));
+
+    expect(await screen.findByText("482913")).toBeInTheDocument();
+    expect(screen.getByText(/Show this code at the counter/)).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST")).toMatchObject({
+      url: "/api/v1/patients/me/medicine-requests/r1/reserve",
+      body: { storeId: "s1" },
+    });
+    // Once reserved, no other store can be reserved at.
+    expect(screen.queryByRole("button", { name: /Reserve here/ })).toBeNull();
   });
 });

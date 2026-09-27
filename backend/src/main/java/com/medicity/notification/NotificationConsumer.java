@@ -103,6 +103,29 @@ public class NotificationConsumer implements OutboxConsumer {
                         "/portal/requests/" + event.aggregateId(), null);
             }
 
+            case Outbox.RESERVATION_MADE -> notify(event, uuid(p, "storeOwnerUserId"),
+                    "Keep aside for " + p.path("patientName").asText(),
+                    p.path("medicines").asInt() + (p.path("medicines").asInt() == 1 ? " medicine" : " medicines")
+                            + " reserved. The patient will show a pick-up code.",
+                    "/store/reservations", instant(p, "expiresAt"));
+
+            case Outbox.RESERVATION_CANCELLED -> notify(event, uuid(p, "storeOwnerUserId"), "Reservation cancelled",
+                    p.path("patientName").asText() + " no longer needs the medicines. They can go back on the shelf.",
+                    "/store/reservations", null);
+
+            case Outbox.RESERVATION_EXPIRED -> {
+                notify(event, uuid(p, "patientUserId"), "Your reservation expired",
+                        p.path("storeName").asText() + " has put the medicines back. You can reserve again.",
+                        "/portal/requests", null);
+                notify(event, uuid(p, "storeOwnerUserId"), "Reservation not collected",
+                        p.path("patientName").asText() + " did not come. The medicines can go back on the shelf.",
+                        "/store/reservations", null);
+            }
+
+            case Outbox.RESERVATION_COLLECTED -> notify(event, uuid(p, "patientUserId"),
+                    "Collected at " + p.path("storeName").asText(), "Your medicines were handed over.",
+                    "/portal/prescriptions", null);
+
             default -> {
                 return false;
             }

@@ -222,6 +222,16 @@ public class MedicineRequestService {
                 items, Comparison.rank(answers));
     }
 
+    /** Open questions past their lifetime stop being open. Run by the expiry job. */
+    @Transactional
+    public int expireOverdue() {
+        Timestamp now = Timestamp.from(clock.instant());
+        return jdbc.update("""
+                UPDATE medicine_requests SET status = 'EXPIRED', closed_at = ?
+                WHERE status = 'OPEN' AND expires_at <= ?
+                """, now, now);
+    }
+
     // --- the store's side ----------------------------------------------------
 
     /** The store's queue: questions waiting for it, or ones it answered. */

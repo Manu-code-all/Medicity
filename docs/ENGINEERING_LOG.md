@@ -1011,6 +1011,53 @@ still have it waiting in their queues.
 
 ---
 
+## 23. Reserve at a store, pick up with a code (PR #28)
+
+Feature 5. The patient picks one store's answer. The store keeps what it has
+aside for its hold time (2 to 4 hours, the store's own setting) and the
+patient gets a six-digit code. At the counter the chemist types in the code
+the patient shows, and that is what marks the medicines collected.
+
+**The store never sees the code.** It is in the patient's response only, and
+only while the reservation is held; a test checks that the store's list does
+not contain it. So a store cannot mark something collected without the
+patient there, and someone who only knows the patient's name cannot collect
+her medicines. At the counter the store does get her full name, now that she
+chose the store; before that it only had "Meera N.".
+
+**What the database decides:**
+
+- *One reservation per question*: reserving moves the question from OPEN to
+  RESERVED in one conditional UPDATE. A partial unique index on live
+  reservations backs it up. A test races 8 reservations, alternating between
+  two stores: exactly one holds.
+- *Only a store that answered*: the reservation's foreign key is the store's
+  recipient row, and the service refuses a store that has nothing.
+- *Hold window*: a CHECK keeps `expires_at` within 4 hours of creation,
+  whatever the code does.
+- *Collecting* is one UPDATE whose WHERE clause requires: held, not expired,
+  fewer than five wrong codes, and a matching code.
+
+**Wrong codes count even though they fail.** Six digits can be guessed with
+enough tries, so five wrong codes lock the reservation against codes. The
+patient can cancel and reserve again. The count is written and then a 422 is
+thrown, so `collect` is `@Transactional(noRollbackFor =
+WrongPickupCodeException.class)`: without it, the rollback would erase the
+count and every guess would be free. This is the same pattern as refresh-token
+reuse (entry 12), and a test checks that the count is on record after the error.
+
+**Expiry** is a job every minute (advisory-locked like the others). Held
+reservations past their time expire and their question reopens, if its own six
+hours are not up. Both sides are told. Open questions past six hours are closed
+by the same job. The job makes expiry visible; it does not make it true.
+Collecting checks the time in its own UPDATE, so an overdue reservation cannot
+be collected even if the job is late.
+
+**Where it was collected** now shows on the patient's prescription ("Collected
+at Sri Sai Medicals, 27 Sep"). Refill reminders will build on that date.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when

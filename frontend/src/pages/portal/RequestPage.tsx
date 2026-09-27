@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { ApiError } from "../../api/client";
 import { medicineRequests } from "../../api/endpoints";
-import type { AnswerLine, Comparison, RequestItem, StoreAnswer } from "../../api/types";
-import { formatTime } from "../../lib/format";
+import type { AnswerLine, Comparison, PatientReservation, RequestItem, StoreAnswer } from "../../api/types";
+import { formatDate, formatTime } from "../../lib/format";
 import { formatDistance } from "../../lib/geo";
 import { formatRupees, requestStatusLabel } from "../../lib/requests";
 
@@ -21,12 +21,18 @@ export function RequestPage() {
     // Answers arrive over the next minutes; refresh while the question is open.
     refetchInterval: (query) => (query.state.data?.status === "OPEN" ? 20_000 : false),
   });
-  const close = useMutation({
-    mutationFn: () => medicineRequests.close(requestId),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(key, updated);
-      void queryClient.invalidateQueries({ queryKey: ["medicine-requests"], exact: true });
-    },
+  const onUpdated = (updated: Comparison) => {
+    queryClient.setQueryData(key, updated);
+    void queryClient.invalidateQueries({ queryKey: ["medicine-requests"], exact: true });
+  };
+  const close = useMutation({ mutationFn: () => medicineRequests.close(requestId), onSuccess: onUpdated });
+  const reserve = useMutation({
+    mutationFn: (storeId: string) => medicineRequests.reserve(requestId, storeId),
+    onSuccess: onUpdated,
+  });
+  const cancel = useMutation({
+    mutationFn: (reservationId: string) => medicineRequests.cancelReservation(reservationId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
   });
 
   if (comparison.isPending) return <div className="card skeleton" style={{ height: 240 }} />;
@@ -47,13 +53,36 @@ export function RequestPage() {
         </p>
       </header>
 
+      {c.reservation && (
+        <ReservationCard
+          reservation={c.reservation}
+          cancelling={cancel.isPending}
+          onCancel={() => cancel.mutate(c.reservation!.id)}
+        />
+      )}
+      {(reserve.isError || cancel.isError) && (
+        <p className="error" role="alert">
+          {[reserve.error, cancel.error].find((e) => e instanceof ApiError)?.message ?? "Something went wrong."}
+        </p>
+      )}
+
       {answered === 0 && c.status === "OPEN" && (
         <div className="notice">Asked {c.storesAsked} stores. Answers appear here as they come in.</div>
       )}
 
       <ol className="compare">
         {c.stores.map((store) => (
-          <StoreCard key={store.storeId} store={store} items={c.items} />
+          <StoreCard
+            key={store.storeId}
+            store={store}
+            items={c.items}
+            onReserve={
+              c.status === "OPEN" && store.answered && store.medicinesAvailable > 0
+                ? () => reserve.mutate(store.storeId)
+                : undefined
+            }
+            reserving={reserve.isPending}
+          />
         ))}
       </ol>
 
@@ -74,7 +103,62 @@ export function RequestPage() {
   );
 }
 
-function StoreCard({ store, items }: { store: StoreAnswer; items: Comparison["items"] }) {
+function ReservationCard({
+  reservation: r,
+  cancelling,
+  onCancel,
+}: {
+  reservation: PatientReservation;
+  cancelling: boolean;
+  onCancel: () => void;
+}) {
+  if (r.status === "HELD") {
+    return (
+      <section className="card pickup" aria-label="Your reservation">
+        <p className="eyebrow">Reserved at {r.storeName}</p>
+        <p className="pickup__code" aria-label={`Pick-up code ${r.pickupCode?.split("").join(" ")}`}>
+          {r.pickupCode}
+        </p>
+        <p>
+          Show this code at the counter. Kept aside until <strong>{formatTime(r.expiresAt)}</strong>
+          {!r.complete && " (what the store had; the rest you will need elsewhere)"}.
+        </p>
+        <p className="muted">
+          {r.storeAddress} · <a href={`tel:${r.storePhone}`}>{r.storePhone}</a> · about {formatRupees(r.total)}, pay at
+          the store
+        </p>
+        <button type="button" className="link link--danger" disabled={cancelling} onClick={onCancel}>
+          I no longer need it
+        </button>
+      </section>
+    );
+  }
+  if (r.status === "COLLECTED") {
+    return (
+      <div className="notice notice--ok">
+        Collected at {r.storeName} on {formatDate(r.collectedAt!)} at {formatTime(r.collectedAt!)}.
+      </div>
+    );
+  }
+  return (
+    <div className="notice">
+      Your reservation at {r.storeName} {r.status === "EXPIRED" ? "expired" : "was cancelled"}. You can reserve again
+      while the question is open.
+    </div>
+  );
+}
+
+function StoreCard({
+  store,
+  items,
+  onReserve,
+  reserving,
+}: {
+  store: StoreAnswer;
+  items: Comparison["items"];
+  onReserve: (() => void) | undefined;
+  reserving: boolean;
+}) {
   const byMedicine = new Map(store.lines.map((l) => [l.medicineId, l]));
   return (
     <li className={store.complete ? "card compare__store compare__store--complete" : "card compare__store"}>
@@ -111,6 +195,11 @@ function StoreCard({ store, items }: { store: StoreAnswer; items: Comparison["it
               <strong className="muted">Has none of these</strong>
             )}
             <a href={`tel:${store.phone}`}>{store.phone}</a>
+            {onReserve && (
+              <button type="button" disabled={reserving} onClick={onReserve}>
+                Reserve here · kept {store.holdHours} h
+              </button>
+            )}
           </div>
           {store.note && <p className="compare__note">“{store.note}”</p>}
         </>

@@ -54,7 +54,11 @@ export function PrescriptionsPage() {
                   Revised
                 </span>
               )}
-              {rx.dispensedAt ? (
+              {rx.collectedAt ? (
+                <span className="badge badge--completed">
+                  Collected at {rx.collectedFrom} {formatDate(rx.collectedAt)}
+                </span>
+              ) : rx.dispensedAt ? (
                 <span className="badge badge--completed">Dispensed {formatDate(rx.dispensedAt)}</span>
               ) : (
                 <span className="badge">Not yet dispensed</span>

@@ -34,6 +34,10 @@ public class Outbox {
     public static final String STORE_VERIFIED = "STORE_VERIFIED";
     public static final String MEDICINE_REQUEST_CREATED = "MEDICINE_REQUEST_CREATED";
     public static final String STORE_ANSWERED = "STORE_ANSWERED";
+    public static final String RESERVATION_MADE = "RESERVATION_MADE";
+    public static final String RESERVATION_CANCELLED = "RESERVATION_CANCELLED";
+    public static final String RESERVATION_EXPIRED = "RESERVATION_EXPIRED";
+    public static final String RESERVATION_COLLECTED = "RESERVATION_COLLECTED";
 
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;

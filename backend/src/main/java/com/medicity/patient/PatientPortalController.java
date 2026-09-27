@@ -8,6 +8,7 @@ import com.medicity.common.ValidationException;
 import com.medicity.doctor.Doctor;
 import com.medicity.pharmacy.Dispensation;
 import com.medicity.pharmacy.DispensationRepository;
+import com.medicity.request.ReservationService;
 import com.medicity.scheduling.Appointment;
 import com.medicity.scheduling.AppointmentRepository;
 import com.medicity.scheduling.AppointmentStatus;
@@ -49,6 +50,7 @@ public class PatientPortalController {
     private final AppointmentRepository appointmentRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final DispensationRepository dispensationRepository;
+    private final ReservationService reservations;
     private final Clock clock;
 
     @GetMapping
@@ -104,8 +106,10 @@ public class PatientPortalController {
         Map<UUID, Instant> dispensedAt = dispensationRepository
                 .findByPrescriptionIdIn(current.stream().map(Prescription::getId).toList()).stream()
                 .collect(Collectors.toMap(Dispensation::getPrescriptionId, Dispensation::getDispensedAt));
+        Map<UUID, ReservationService.Collected> collected = reservations.lastCollected(
+                current.stream().map(Prescription::getId).toList());
         return current.stream()
-                .map(p -> PrescriptionResponse.from(p, dispensedAt.get(p.getId())))
+                .map(p -> PrescriptionResponse.from(p, dispensedAt.get(p.getId()), collected.get(p.getId())))
                 .toList();
     }
 
@@ -196,14 +200,22 @@ public class PatientPortalController {
             boolean revised,
             /** When the pharmacy filled it; null if not yet dispensed. */
             Instant dispensedAt,
+            /** When it was last collected from a neighbourhood store, and which; null if never. */
+            Instant collectedAt,
+            String collectedFrom,
             List<ItemResponse> items
     ) {
         public static PrescriptionResponse from(Prescription p, Instant dispensedAt) {
+            return from(p, dispensedAt, null);
+        }
+
+        public static PrescriptionResponse from(Prescription p, Instant dispensedAt, ReservationService.Collected collected) {
             Doctor d = p.getDoctor();
             return new PrescriptionResponse(
                     p.getId(), p.getAppointment().getId(), p.getIssuedAt(),
                     d.getUser().getFullName(), d.getSpecialization(),
                     p.getDiagnosis(), p.getNotes(), p.getSupersedesId() != null, dispensedAt,
+                    collected == null ? null : collected.at(), collected == null ? null : collected.storeName(),
                     p.getItems().stream().map(ItemResponse::from).toList());
         }
     }
