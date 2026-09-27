@@ -7,7 +7,7 @@ import com.medicity.common.NotFoundException;
 import com.medicity.common.ValidationException;
 import com.medicity.outbox.Outbox;
 import com.medicity.patient.Patient;
-import com.medicity.patient.PatientRepository;
+import com.medicity.patient.ActingPatient;
 import com.medicity.request.Comparison.StoreAnswer;
 import com.medicity.store.Store;
 import com.medicity.store.StoreService;
@@ -50,7 +50,7 @@ public class ReservationService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final JdbcTemplate jdbc;
-    private final PatientRepository patientRepository;
+    private final ActingPatient acting;
     private final MedicineRequestService requests;
     private final StoreService storeService;
     private final AuditLog auditLog;
@@ -165,7 +165,7 @@ public class ReservationService {
             jdbc.update("UPDATE medicine_requests SET status = 'CLOSED', closed_at = ? WHERE id = ?",
                     Timestamp.from(now), requestId);
             UUID patientUserId = jdbc.queryForObject("""
-                    SELECT p.user_id FROM reservations r JOIN patients p ON p.id = r.patient_id WHERE r.id = ?
+                    SELECT coalesce(p.user_id, p.guardian_user_id) FROM reservations r JOIN patients p ON p.id = r.patient_id WHERE r.id = ?
                     """, UUID.class, reservationId);
             auditLog.recordChange("RESERVATION_COLLECTED", "RESERVATION", reservationId,
                     Map.of("storeId", store.getId()));
@@ -205,10 +205,10 @@ public class ReservationService {
         Store store = storeService.requireOwn(ownerUserId);
         List<StoreReservation> rows = jdbc.query("""
                 SELECT r.id, r.request_id, r.status, r.total, r.complete, r.created_at, r.expires_at,
-                       r.collected_at, r.wrong_code_attempts, pu.full_name AS patient_name
+                       r.collected_at, r.wrong_code_attempts, coalesce(pu.full_name, p.full_name) AS patient_name
                 FROM reservations r
                 JOIN patients p ON p.id = r.patient_id
-                JOIN users pu ON pu.id = p.user_id
+                LEFT JOIN users pu ON pu.id = p.user_id
                 WHERE r.store_id = ? AND %s
                 ORDER BY %s
                 LIMIT 50
@@ -283,9 +283,10 @@ public class ReservationService {
         for (Ended e : expired) {
             reopen(e.requestId(), now);
             Map<String, Object> who = jdbc.queryForMap("""
-                    SELECT p.user_id AS patient_user_id, pu.full_name AS patient_name, s.owner_user_id, s.name
+                    SELECT coalesce(p.user_id, p.guardian_user_id) AS patient_user_id, coalesce(pu.full_name, p.full_name) AS patient_name,
+                           s.owner_user_id, s.name
                     FROM reservations r
-                    JOIN patients p ON p.id = r.patient_id JOIN users pu ON pu.id = p.user_id
+                    JOIN patients p ON p.id = r.patient_id LEFT JOIN users pu ON pu.id = p.user_id
                     JOIN stores s ON s.id = r.store_id
                     WHERE r.id = ?
                     """, e.reservationId());
@@ -330,12 +331,11 @@ public class ReservationService {
     }
 
     private Patient requirePatient(UUID userId) {
-        return patientRepository.findWithUserByUserId(userId)
-                .orElseThrow(() -> new NotFoundException("Patient profile for user", userId));
+        return acting.resolve(userId);
     }
 
     private static String patientName(Patient p) {
-        return p.getUser().getFullName();
+        return p.displayName();
     }
 
     private static String newCode() {

@@ -5,7 +5,7 @@ import com.medicity.common.ForbiddenException;
 import com.medicity.common.Idempotency;
 import com.medicity.common.NotFoundException;
 import com.medicity.doctor.DoctorRepository;
-import com.medicity.patient.PatientRepository;
+import com.medicity.patient.ActingPatient;
 import com.medicity.security.AppUserPrincipal;
 import com.medicity.user.Role;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,7 +37,7 @@ public class AppointmentController {
 
     private final BookingService bookingService;
     private final AppointmentRepository appointmentRepository;
-    private final PatientRepository patientRepository;
+    private final ActingPatient acting;
     private final DoctorRepository doctorRepository;
     private final AuditLog auditLog;
     private final Idempotency idempotency;
@@ -69,17 +69,18 @@ public class AppointmentController {
             @RequestHeader(name = IDEMPOTENCY_KEY, required = false) String idempotencyKey,
             @Valid @RequestBody BookRequest request) {
 
-        UUID patientId = patientRepository.findByUserId(principal.getId())
-                .orElseThrow(() -> new NotFoundException("Patient profile for user", principal.getId()))
-                .getId();
+        UUID patientId = acting.resolve(principal.getId()).getId();
         Supplier<AppointmentResponse> booking = () -> AppointmentResponse.from(
                 bookingService.book(request.slotId(), patientId, request.reason()));
 
         if (idempotencyKey == null) {
             return ResponseEntity.status(HttpStatus.CREATED).body(booking.get());
         }
+        // The patient is part of what the key identifies: the same key and body
+        // for another family member is a different request, not a retry.
         Idempotency.Result<AppointmentResponse> result = idempotency.run(principal.getId(), idempotencyKey,
-                "POST /api/v1/appointments", request, HttpStatus.CREATED.value(), AppointmentResponse.class, booking);
+                "POST /api/v1/appointments", new BookingFingerprint(patientId, request), HttpStatus.CREATED.value(),
+                AppointmentResponse.class, booking);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header("Idempotent-Replayed", Boolean.toString(result.replayed()))
                 .body(result.body());
@@ -111,9 +112,7 @@ public class AppointmentController {
         var pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100));
 
         if (principal.getRole() == Role.PATIENT) {
-            UUID patientId = patientRepository.findByUserId(principal.getId())
-                    .orElseThrow(() -> new NotFoundException("Patient profile", principal.getId()))
-                    .getId();
+            UUID patientId = acting.resolve(principal.getId()).getId();
             return appointmentRepository.findForPatient(patientId, pageable)
                     .map(AppointmentResponse::from);
         }
@@ -158,9 +157,8 @@ public class AppointmentController {
             return;
         }
         if (principal.getRole() == Role.PATIENT) {
-            boolean owns = patientRepository.findByUserId(principal.getId())
-                    .map(p -> p.getId().equals(appointment.getPatient().getId()))
-                    .orElse(false);
+            // The account holder's own visits and their family members'.
+            boolean owns = principal.getId().equals(appointment.getPatient().accountUserId());
             if (owns) {
                 return;
             }
@@ -182,6 +180,9 @@ public class AppointmentController {
         // which appointments exist.
         throw new ForbiddenException("You do not have access to this appointment");
     }
+
+    /** What an Idempotency-Key identifies: whom the booking is for, and what was asked. */
+    record BookingFingerprint(UUID patientId, BookRequest request) {}
 
     public record BookRequest(
             @NotNull UUID slotId,

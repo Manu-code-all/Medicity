@@ -5,6 +5,7 @@ import type {
   Comparison,
   Course,
   Doctor,
+  FamilyMember,
   DoctorVisitDetail,
   DoctorVisitSummary,
   Medicine,
@@ -217,4 +218,17 @@ export const storeWorkspace = {
 
   autoAnswer: (enabled: boolean) =>
     request<StockView>("/api/v1/stores/me/auto-answer", { method: "PUT", body: { enabled } }),
+};
+
+/** The account holder and the family members they manage. */
+export const family = {
+  list: () => request<FamilyMember[]>("/api/v1/patients/me/family"),
+
+  add: (input: {
+    fullName: string;
+    relationship: string;
+    dateOfBirth: string;
+    gender: string;
+    bloodGroup?: string | undefined;
+  }) => request<FamilyMember>("/api/v1/patients/me/family", { method: "POST", body: input }),
 };

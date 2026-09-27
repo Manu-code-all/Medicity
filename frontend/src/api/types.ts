@@ -56,6 +56,9 @@ export interface Page<T> {
 // --- Patient portal ------------------------------------------------------
 
 export interface PatientProfile {
+  patientId: string;
+  /** Set when this is a family member the account manages. */
+  relationship: string | null;
   fullName: string;
   email: string;
   phone: string | null;
@@ -510,4 +513,19 @@ export interface Course {
   /** Taken long-term: running out means asking again. */
   ongoing: boolean;
   status: CourseStatus;
+}
+
+// --- Family ---------------------------------------------------------------
+
+export type Relationship = "PARENT" | "CHILD" | "SPOUSE" | "SIBLING" | "OTHER";
+
+export interface FamilyMember {
+  patientId: string;
+  fullName: string;
+  /** Null for the account holder. */
+  relationship: Relationship | null;
+  self: boolean;
+  age: number;
+  gender: PatientProfile["gender"];
+  bloodGroup: string | null;
 }

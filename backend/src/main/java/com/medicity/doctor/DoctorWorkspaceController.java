@@ -160,7 +160,7 @@ public class DoctorWorkspaceController {
         auditLog.recordIndependently("PATIENT_HISTORY_VIEWED", "PATIENT", patientId, AuditLog.Outcome.SUCCESS, null);
 
         return new PatientHistory(
-                PatientBrief.from(patientRepository.findWithUserByUserId(patient.getUser().getId()).orElseThrow(),
+                PatientBrief.from(patientRepository.findWithUserById(patient.getId()).orElseThrow(),
                         LocalDate.now(clock)),
                 visits,
                 current.stream().map(p -> PrescriptionResponse.from(p, dispensed.get(p.getId()))).toList());
@@ -220,7 +220,7 @@ public class DoctorWorkspaceController {
 
     public record PatientBrief(UUID id, String fullName, int age, String gender, String bloodGroup) {
         static PatientBrief from(Patient p, LocalDate today) {
-            return new PatientBrief(p.getId(), p.getUser().getFullName(),
+            return new PatientBrief(p.getId(), p.displayName(),
                     Period.between(p.getDateOfBirth(), today).getYears(), p.getGender().name(), p.getBloodGroup());
         }
     }

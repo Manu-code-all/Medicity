@@ -1151,6 +1151,65 @@ after the reset she gets "Omeprazole 20mg runs out in 2 days".
 
 ---
 
+## 26. Family members on one account (PR #31)
+
+Feature 7: parents and children under one sign-in. A family member is a
+patient like any other: visits, prescriptions, questions to chemists and
+reservations all hang off `patients.id`. The difference is that they have no
+sign-in; the account holder (their guardian) acts for them.
+
+**The model.** `patients.user_id` became nullable, and a new
+`guardian_user_id` is set for family members, who keep their own name on the
+patient row. A CHECK allows exactly one of the two; another requires a family
+member to have a name and a relationship. So "a patient nobody can reach" and
+"a patient with two owners" cannot be written. `Patient.displayName()` and
+`Patient.accountUserId()` replace `getUser().getFullName()` and
+`getUser().getId()` everywhere. The account is whom notifications go to, so
+Meera is told "For Aarav, with Dr. Rao." and "Lalitha's Metformin 500mg runs
+out in 2 days".
+
+**Choosing whom to act for: one checked place.** The portal's routes still say
+"me" and still take no patient id in the path (the IDOR design from entry 4).
+A family member is chosen with an `X-Patient-Id` header. `ActingPatient` is
+the only place it is read: the id must be the account's own patient or one of
+its family members. Anything else answers 404, exactly like an id that does not
+exist, and is audited. Every service that works "as the patient" (portal,
+booking, questions, reservations, courses) now asks `ActingPatient`, so there
+is no second, weaker check to find. Tests cover acting for another family's
+child, for a random id, and for another account holder: all 404.
+
+**Found while changing it:**
+
+- *Inner joins would have hidden family members.* Three appointment queries
+  did `JOIN FETCH p.user`. With `user_id` null for a family member, an inner
+  join silently drops their visits from the doctor's schedule. These are now
+  `LEFT JOIN FETCH`. The SQL in the chemist network reads names with
+  `coalesce(pu.full_name, p.full_name)`.
+- *The idempotency key had to include the patient.* The fingerprint was the
+  route and body. Booking the same slot body with the same key, first for
+  herself and then for her son, would have replayed her booking as his. The
+  fingerprint is now `(patientId, body)`; a test checks that the second is
+  refused as a reused key, not replayed.
+- *CORS.* The new header had to be allowed, or the browser's preflight would
+  fail before the request (the Idempotency-Key lesson from entry 12).
+
+**Frontend.** A switcher in the portal sidebar ("Lalitha Nair · Parent") sets
+whom the portal is for. Switching removes every cached query except the family
+list, so one person's records never appear under another's name. The header
+is added only to patient requests (`/patients/me/*` except the family list,
+and `/appointments`), with a client test. Booking pages say "Booking for
+Lalitha Nair".
+
+**Limits.** At most 8 family members per account. That is checked, not
+constrained: two simultaneous adds at the limit could make nine, and that is
+not worth a lock.
+
+**Demo.** Meera manages her mother Lalitha (metformin 500mg for diabetes,
+dispensed 27 days into a 30-day course) and her son Aarav. The nightly reset
+removes any family members visitors add to the demo accounts.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when

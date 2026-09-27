@@ -10,7 +10,7 @@ import com.medicity.common.NotFoundException;
 import com.medicity.common.ValidationException;
 import com.medicity.outbox.Outbox;
 import com.medicity.patient.Patient;
-import com.medicity.patient.PatientRepository;
+import com.medicity.patient.ActingPatient;
 import com.medicity.store.Store;
 import com.medicity.store.StoreDirectory;
 import com.medicity.store.StoreDirectory.StoreInReach;
@@ -56,7 +56,7 @@ public class MedicineRequestService {
     private static final String UQ_ACTIVE = "uq_request_active_per_prescription";
 
     private final JdbcTemplate jdbc;
-    private final PatientRepository patientRepository;
+    private final ActingPatient acting;
     private final PrescriptionRepository prescriptionRepository;
     private final StoreDirectory storeDirectory;
     private final StoreService storeService;
@@ -252,12 +252,12 @@ public class MedicineRequestService {
         Instant now = clock.instant();
         return jdbc.query("""
                 SELECT r.id, r.created_at, r.expires_at, r.status AS request_status, rr.status, rr.distance_m,
-                       rr.answered_at, pu.full_name AS patient_name, du.full_name AS doctor_name,
+                       rr.answered_at, coalesce(pu.full_name, p.full_name) AS patient_name, du.full_name AS doctor_name,
                        (SELECT count(*) FROM medicine_request_items i WHERE i.request_id = r.id) AS medicines
                 FROM request_recipients rr
                 JOIN medicine_requests r ON r.id = rr.request_id
                 JOIN patients p ON p.id = r.patient_id
-                JOIN users pu ON pu.id = p.user_id
+                LEFT JOIN users pu ON pu.id = p.user_id
                 JOIN prescriptions rx ON rx.id = r.prescription_id
                 JOIN doctors d ON d.id = rx.doctor_id
                 JOIN users du ON du.id = d.user_id
@@ -504,12 +504,12 @@ public class MedicineRequestService {
 
     private Optional<RequestHeader> header(UUID requestId) {
         return jdbc.query("""
-                SELECT r.id, r.patient_id, p.user_id AS patient_user_id, pu.full_name AS patient_name,
+                SELECT r.id, r.patient_id, coalesce(p.user_id, p.guardian_user_id) AS patient_user_id, coalesce(pu.full_name, p.full_name) AS patient_name,
                        r.prescription_id, r.status, r.created_at, r.expires_at, r.stores_asked, r.radius_m,
                        du.full_name AS doctor_name, rx.diagnosis
                 FROM medicine_requests r
                 JOIN patients p ON p.id = r.patient_id
-                JOIN users pu ON pu.id = p.user_id
+                LEFT JOIN users pu ON pu.id = p.user_id
                 JOIN prescriptions rx ON rx.id = r.prescription_id
                 JOIN doctors d ON d.id = rx.doctor_id
                 JOIN users du ON du.id = d.user_id
@@ -569,8 +569,7 @@ public class MedicineRequestService {
     }
 
     private Patient requirePatient(UUID userId) {
-        return patientRepository.findByUserId(userId)
-                .orElseThrow(() -> new NotFoundException("Patient profile for user", userId));
+        return acting.resolve(userId);
     }
 
     /** OPEN past its expiry reads as EXPIRED, before the job has written it. */

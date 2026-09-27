@@ -75,6 +75,7 @@ class DemoResetTest extends AbstractIntegrationTest {
         assertThat(count("SELECT quantity_on_hand FROM medicine_stock WHERE medicine_id = '" + OMEPRAZOLE + "'"))
                 .isEqualTo(250);
         assertThat(count("SELECT count(*) FROM stores WHERE verified_at IS NOT NULL")).isEqualTo(5);
+        assertThat(count("SELECT count(*) FROM patients WHERE guardian_user_id IS NOT NULL")).isEqualTo(2);
         // Today's open question (3 answers) and last week's three (3 answers each).
         assertThat(count("SELECT count(*) FROM request_recipients WHERE status = 'ANSWERED'")).isEqualTo(12);
         assertThat(count("SELECT count(*) FROM request_answer_lines")).isEqualTo(18);
@@ -109,6 +110,10 @@ class DemoResetTest extends AbstractIntegrationTest {
         jdbc.update("UPDATE stores SET hold_hours = 4, name = 'Renamed' WHERE id = '" + SAI_MEDICALS + "'");
         jdbc.update("UPDATE medicine_requests SET status = 'CLOSED', closed_at = now()");
         jdbc.update("""
+                INSERT INTO patients (guardian_user_id, full_name, relationship, date_of_birth, gender)
+                VALUES ('22222222-2222-4222-8222-222222222201', 'Visitor Added', 'SIBLING', '1990-01-01', 'OTHER')
+                """);
+        jdbc.update("""
                 INSERT INTO notifications (user_id, event_id, kind, title, body)
                 VALUES ('99999999-9999-4999-8999-999999999901', gen_random_uuid(), 'X', 't', 'b')
                 """);
@@ -124,6 +129,7 @@ class DemoResetTest extends AbstractIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT name FROM stores WHERE id = '" + SAI_MEDICALS + "'", String.class))
                 .isEqualTo("Sri Sai Medicals");
         assertThat(count("SELECT count(*) FROM medicine_requests WHERE status = 'OPEN'")).isEqualTo(1);
+        assertThat(count("SELECT count(*) FROM patients WHERE full_name = 'Visitor Added'")).isZero();
         assertThat(count("SELECT quantity_on_hand FROM medicine_stock WHERE medicine_id = '" + OMEPRAZOLE + "'"))
                 .isEqualTo(250);
         assertThat(count("""

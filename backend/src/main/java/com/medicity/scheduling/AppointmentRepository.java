@@ -92,7 +92,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     @Query("""
             SELECT a FROM Appointment a
             JOIN FETCH a.patient p
-            JOIN FETCH p.user
+            LEFT JOIN FETCH p.user
             JOIN FETCH a.slot s
             WHERE s.doctor.id = :doctorId
             ORDER BY a.scheduledAt DESC
@@ -117,7 +117,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             JOIN FETCH s.doctor d
             JOIN FETCH d.user
             JOIN FETCH a.patient p
-            JOIN FETCH p.user
+            LEFT JOIN FETCH p.user
             WHERE a.id = :id
             """)
     Optional<Appointment> findByIdWithDetails(@Param("id") UUID id);
@@ -131,7 +131,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             SELECT a FROM Appointment a
             JOIN FETCH a.slot s
             JOIN FETCH a.patient p
-            JOIN FETCH p.user
+            LEFT JOIN FETCH p.user
             WHERE s.doctor.id = :doctorId
               AND a.scheduledAt >= :from AND a.scheduledAt < :to
             ORDER BY a.scheduledAt ASC

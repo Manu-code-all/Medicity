@@ -1,3 +1,4 @@
+import { actingFor, actsAsPatient } from "./acting";
 import type { ProblemDetail, TokenPair } from "./types";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -125,6 +126,9 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 
   const accessToken = tokenStore.access();
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
+  const member = actingFor.get();
+  if (member && actsAsPatient(path)) headers["X-Patient-Id"] = member;
 
   const response = await fetch(`${BASE_URL}${path}`, {
     method,

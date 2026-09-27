@@ -97,7 +97,7 @@ public class SecurityConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         // The web app runs on another origin, so any request header it sends must
         // be listed here or the browser's preflight fails before the request is made.
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "X-Patient-Id"));
         // Cross-origin scripts can read only a few response headers unless told otherwise.
         config.setExposedHeaders(List.of("Retry-After", "Idempotent-Replayed"));
         config.setMaxAge(3600L);

@@ -47,6 +47,7 @@ import java.util.UUID;
 public class PatientPortalController {
 
     private final PatientRepository patientRepository;
+    private final ActingPatient acting;
     private final AppointmentRepository appointmentRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final DispensationRepository dispensationRepository;
@@ -56,9 +57,7 @@ public class PatientPortalController {
     @GetMapping
     @Operation(summary = "The caller's patient profile")
     public ProfileResponse profile(@AuthenticationPrincipal AppUserPrincipal principal) {
-        Patient patient = patientRepository.findWithUserByUserId(principal.getId())
-                .orElseThrow(() -> new NotFoundException("Patient profile for user", principal.getId()));
-        return ProfileResponse.from(patient);
+        return ProfileResponse.from(acting.resolve(principal.getId()), acting.self(principal.getId()));
     }
 
     @GetMapping("/summary")
@@ -114,9 +113,7 @@ public class PatientPortalController {
     }
 
     private UUID patientId(AppUserPrincipal principal) {
-        return patientRepository.findByUserId(principal.getId())
-                .orElseThrow(() -> new NotFoundException("Patient profile for user", principal.getId()))
-                .getId();
+        return acting.resolve(principal.getId()).getId();
     }
 
     public enum Scope {
@@ -138,6 +135,9 @@ public class PatientPortalController {
     }
 
     public record ProfileResponse(
+            UUID patientId,
+            /** For a family member, their relationship to the account holder; null for the holder. */
+            String relationship,
             String fullName,
             String email,
             String phone,
@@ -149,13 +149,15 @@ public class PatientPortalController {
             String emergencyContact,
             Instant memberSince
     ) {
-        static ProfileResponse from(Patient p) {
-            User u = p.getUser();
+        /** A family member's contact details are the account holder's: they share the sign-in. */
+        static ProfileResponse from(Patient p, Patient holder) {
+            User u = holder.getUser();
             return new ProfileResponse(
-                    u.getFullName(), u.getEmail(), u.getPhone(),
+                    p.getId(), p.getRelationship() == null ? null : p.getRelationship().name(),
+                    p.displayName(), u.getEmail(), u.getPhone(),
                     p.getDateOfBirth(), p.getGender().name(), p.getBloodGroup(),
                     p.getAddressLine(), p.getCity(), p.getEmergencyContact(),
-                    u.getCreatedAt());
+                    p.isFamilyMember() ? p.getCreatedAt() : u.getCreatedAt());
         }
     }
 
