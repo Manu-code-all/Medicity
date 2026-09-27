@@ -16,6 +16,7 @@ export interface AuthContextValue {
   loginWithCode: (phone: string, code: string) => Promise<Session>;
   register: (input: Parameters<typeof authApi.register>[0]) => Promise<void>;
   registerChemist: (input: Parameters<typeof authApi.registerChemist>[0]) => Promise<void>;
+  registerDoctor: (input: Parameters<typeof authApi.registerDoctor>[0]) => Promise<void>;
   logout: () => void;
 }
 

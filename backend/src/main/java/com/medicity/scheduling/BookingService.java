@@ -125,6 +125,12 @@ public class BookingService {
                 .orElseThrow(() -> new NotFoundException("Patient", patientId));
 
         // --- Fast-path rejections. Not safety checks; see the class javadoc. ---
+        // A doctor whose registration is still being checked has hours but is
+        // not bookable: their slots are hidden, and a slot id obtained some
+        // other way is refused here.
+        if (!slot.getDoctor().isVerified()) {
+            throw new ValidationException("SLOT_NOT_OPEN", "This slot is not available for booking");
+        }
         if (slot.getStatus() != SlotStatus.OPEN) {
             throw new ValidationException("SLOT_NOT_OPEN",
                     "This slot is not available for booking");

@@ -5,6 +5,7 @@ import { admin } from "../../api/endpoints";
 import { useAuth } from "../../auth/context";
 import { formatDate } from "../../lib/format";
 import { formatStoreHours } from "../../lib/geo";
+import { AdminTabs } from "./AdminTabs";
 
 const PENDING_KEY = ["admin", "stores", "pending"];
 
@@ -29,6 +30,7 @@ export function PendingStoresPage() {
 
   return (
     <div className="stack">
+      <AdminTabs />
       <header>
         <h1>Stores to verify</h1>
         <p className="muted">

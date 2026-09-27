@@ -6,10 +6,14 @@ import type {
   Comparison,
   Course,
   Doctor,
+  DoctorProfile,
+  DoctorRegistration,
   DoctorSuggestions,
   DoctorVisitDetail,
   DoctorVisitSummary,
   FamilyMember,
+  HoursSaved,
+  HoursWindow,
   Medicine,
   NearbyStore,
   NotificationList,
@@ -60,6 +64,10 @@ export const auth = {
       method: "POST",
       body: input,
     }),
+
+  /** A doctor signs up; they are not listed or bookable until the registration number is checked. */
+  registerDoctor: (input: DoctorRegistration) =>
+    request<TokenPair>("/api/v1/auth/register/doctor", { method: "POST", body: input }),
 
   /** A chemist and their store, in one step. The store waits for a licence check. */
   registerChemist: (input: { email: string; password: string; fullName: string; store: StoreInput }) =>
@@ -194,6 +202,8 @@ export const stores = {
 export const admin = {
   pendingStores: () => request<StoreProfile[]>("/api/v1/admin/stores/pending"),
   verifyStore: (id: string) => request<StoreProfile>(`/api/v1/admin/stores/${id}/verify`, { method: "POST" }),
+  pendingDoctors: () => request<DoctorProfile[]>("/api/v1/admin/doctors/pending"),
+  verifyDoctor: (id: string) => request<DoctorProfile>(`/api/v1/admin/doctors/${id}/verify`, { method: "POST" }),
 };
 
 /** The patient's questions to nearby chemists. */
@@ -258,4 +268,15 @@ export const family = {
     gender: string;
     bloodGroup?: string | undefined;
   }) => request<FamilyMember>("/api/v1/patients/me/family", { method: "POST", body: input }),
+};
+
+/** The signed-in doctor's own account: profile and weekly hours. */
+export const doctorAccount = {
+  profile: () => request<DoctorProfile>("/api/v1/doctors/me/profile"),
+
+  hours: () => request<HoursWindow[]>("/api/v1/doctors/me/hours"),
+
+  /** Replaces the week; unbooked future slots are replaced, booked ones kept. */
+  saveHours: (days: HoursWindow[]) =>
+    request<HoursSaved>("/api/v1/doctors/me/hours", { method: "PUT", body: { days } }),
 };

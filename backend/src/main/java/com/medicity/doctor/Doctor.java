@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -45,4 +46,24 @@ public class Doctor extends BaseEntity {
 
     @Column(name = "bio", columnDefinition = "text")
     private String bio;
+
+    /** Set for doctors who registered themselves; the clinic's own doctors have none. */
+    @Column(name = "medical_council", length = 80)
+    private String medicalCouncil;
+
+    @Column(name = "qualification", length = 120)
+    private String qualification;
+
+    /**
+     * When the registration number was checked. Null only for a doctor who
+     * signed up and is waiting: not listed, not bookable. A doctor created
+     * any other way is one the clinic vouches for, so the default is now.
+     */
+    @Builder.Default
+    @Column(name = "verified_at")
+    private Instant verifiedAt = Instant.now();
+
+    public boolean isVerified() {
+        return verifiedAt != null;
+    }
 }

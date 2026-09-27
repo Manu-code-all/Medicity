@@ -440,11 +440,16 @@ function Lines() {
         <ul className="lm-line__stops">
           <li>Mark where a cheaper brand is fine, per medicine</li>
           <li>Corrections replace the old prescription</li>
-          <li>Missed visits close themselves</li>
+          <li>Registration number checked before patients can book</li>
         </ul>
-        <Link to="/login/doctor" className="lm-text-link">
-          Doctor sign in <ArrowRight size={16} weight="bold" aria-hidden="true" />
-        </Link>
+        <div className="lm-line__links">
+          <Link to="/login/doctor" className="lm-text-link">
+            Doctor sign in <ArrowRight size={16} weight="bold" aria-hidden="true" />
+          </Link>
+          <Link to="/register/doctor" className="lm-text-link">
+            Join as a doctor <ArrowRight size={16} weight="bold" aria-hidden="true" />
+          </Link>
+        </div>
       </div>
       <div className="lm-line" data-role="chemist">
         <div className="lm-line__band" aria-hidden="true" />

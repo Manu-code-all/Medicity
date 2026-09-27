@@ -613,3 +613,12 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 
 /* Landing: the chemist network */
 .network-extras { margin-top: 24px; }
+
+/* ---------- Doctor sign-up and hours ---------- */
+
+.form__row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form__row > div { display: flex; flex-direction: column; gap: 6px; }
+.hours input[type="time"], .hours select { width: auto; }
+.hours tr.is-off td:not(:first-child) { opacity: 0.45; }
+a.tab { text-decoration: none; border-radius: 7px; }
+a.tab.is-active { background: var(--accent-soft); color: var(--text); }

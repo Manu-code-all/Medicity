@@ -83,6 +83,19 @@ public class NotificationConsumer implements OutboxConsumer {
                     p.path("storeName").asText() + " will now receive questions from patients nearby.",
                     "/store", null);
 
+            case Outbox.DOCTOR_REGISTERED -> {
+                for (UUID admin : activeAdmins()) {
+                    notify(event, admin, "Doctor awaiting verification",
+                            p.path("doctorName").asText() + ", " + p.path("specialization").asText() + ". Check "
+                                    + p.path("registrationNumber").asText() + " with the "
+                                    + p.path("medicalCouncil").asText() + " before patients can book.",
+                            "/admin/doctors", null);
+                }
+            }
+
+            case Outbox.DOCTOR_VERIFIED -> notify(event, uuid(p, "doctorUserId"), "You are verified",
+                    "Patients can now find and book you in the hours you have set.", "/doctor/hours", null);
+
             case Outbox.MEDICINE_REQUEST_CREATED -> {
                 int medicines = p.path("medicines").asInt();
                 for (JsonNode owner : p.path("storeOwnerUserIds")) {

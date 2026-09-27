@@ -577,3 +577,48 @@ export interface CodeSent {
   demoCode: string | null;
   expiresInSeconds: number;
 }
+
+// --- Doctors who sign up themselves -----------------------------------------------
+
+export interface DoctorRegistration {
+  email: string;
+  password: string;
+  fullName: string;
+  phone: string;
+  specialization: string;
+  medicalCouncil: string;
+  registrationNumber: string;
+  qualification: string;
+  yearsExperience: number;
+  consultationFee: number;
+  bio?: string | undefined;
+}
+
+export interface DoctorProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  specialization: string;
+  medicalCouncil: string | null;
+  registrationNumber: string;
+  qualification: string | null;
+  yearsExperience: number;
+  consultationFee: number;
+  verified: boolean;
+  verifiedAt: string | null;
+  registeredAt: string;
+}
+
+/** One working window: ISO weekday (1 is Monday), "HH:mm" or "HH:mm:ss" times. */
+export interface HoursWindow {
+  weekday: number;
+  startsAt: string;
+  endsAt: string;
+  slotMinutes: number;
+}
+
+export interface HoursSaved {
+  hours: HoursWindow[];
+  slotsOpened: number;
+}
+

@@ -6,6 +6,7 @@ import { homeFor, useAuth } from "./auth/context";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BookingPage } from "./pages/BookingPage";
 import { DoctorLayout } from "./pages/doctor/DoctorLayout";
+import { HoursPage } from "./pages/doctor/HoursPage";
 import { PatientHistoryPage } from "./pages/doctor/PatientHistoryPage";
 import { SchedulePage } from "./pages/doctor/SchedulePage";
 import { VisitPage } from "./pages/doctor/VisitPage";
@@ -13,6 +14,7 @@ import { DoctorsPage } from "./pages/DoctorsPage";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NOTIFICATIONS_KEY, NotificationsPage } from "./pages/NotificationsPage";
+import { PendingDoctorsPage } from "./pages/admin/PendingDoctorsPage";
 import { PendingStoresPage } from "./pages/admin/PendingStoresPage";
 import { ChemistsPage } from "./pages/portal/ChemistsPage";
 import { FamilyPage } from "./pages/portal/FamilyPage";
@@ -27,6 +29,7 @@ import { ReservationsPage } from "./pages/store/ReservationsPage";
 import { StoreLayout } from "./pages/store/StoreLayout";
 import { StoreProfilePage } from "./pages/store/StoreProfilePage";
 import { StoreRegisterPage } from "./pages/store/StoreRegisterPage";
+import { RegisterDoctorPage } from "./pages/RegisterDoctorPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { OverviewPage } from "./pages/portal/OverviewPage";
 import { PortalLayout } from "./pages/portal/PortalLayout";
@@ -111,6 +114,7 @@ export function App() {
               <Route index element={<SchedulePage />} />
               <Route path="visits/:visitId" element={<VisitPage />} />
               <Route path="patients/:patientId" element={<PatientHistoryPage />} />
+              <Route path="hours" element={<HoursPage />} />
             </Route>
             <Route path="/store" element={<StoreLayout />}>
               <Route index element={<StoreProfilePage />} />
@@ -127,8 +131,10 @@ export function App() {
             <Route path="/doctors" element={<DoctorsPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/register/store" element={<StoreRegisterPage />} />
+            <Route path="/register/doctor" element={<RegisterDoctorPage />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/admin/stores" element={<PendingStoresPage />} />
+              <Route path="/admin/doctors" element={<PendingDoctorsPage />} />
               <Route path="/doctors/:doctorId/book" element={<BookingPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
             </Route>
