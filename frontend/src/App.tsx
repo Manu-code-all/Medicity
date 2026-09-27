@@ -19,6 +19,7 @@ import { RequestPage } from "./pages/portal/RequestPage";
 import { RequestsPage } from "./pages/portal/RequestsPage";
 import { QuestionPage } from "./pages/store/QuestionPage";
 import { QueuePage } from "./pages/store/QueuePage";
+import { ReservationsPage } from "./pages/store/ReservationsPage";
 import { StoreLayout } from "./pages/store/StoreLayout";
 import { StoreProfilePage } from "./pages/store/StoreProfilePage";
 import { StoreRegisterPage } from "./pages/store/StoreRegisterPage";
@@ -99,6 +100,7 @@ export function App() {
               <Route index element={<StoreProfilePage />} />
               <Route path="requests" element={<QueuePage />} />
               <Route path="requests/:requestId" element={<QuestionPage />} />
+              <Route path="reservations" element={<ReservationsPage />} />
             </Route>
           </Route>
 

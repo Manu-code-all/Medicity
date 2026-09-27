@@ -4,6 +4,7 @@ import { initials } from "../../lib/format";
 
 const SECTIONS = [
   { to: "/store/requests", label: "Questions", end: false },
+  { to: "/store/reservations", label: "Pick-ups", end: false },
   { to: "/store", label: "My store", end: true },
 ];
 

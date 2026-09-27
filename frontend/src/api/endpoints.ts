@@ -16,6 +16,7 @@ import type {
   PortalSummary,
   QueueEntry,
   RequestSummary,
+  StoreReservation,
   StoreView,
   Prescription,
   Slot,
@@ -171,6 +172,13 @@ export const medicineRequests = {
   get: (id: string) => request<Comparison>(`/api/v1/patients/me/medicine-requests/${id}`),
 
   close: (id: string) => request<Comparison>(`/api/v1/patients/me/medicine-requests/${id}/close`, { method: "POST" }),
+
+  /** Holds what one store said it has; the response carries the pick-up code. */
+  reserve: (id: string, storeId: string) =>
+    request<Comparison>(`/api/v1/patients/me/medicine-requests/${id}/reserve`, { method: "POST", body: { storeId } }),
+
+  cancelReservation: (reservationId: string) =>
+    request<void>(`/api/v1/patients/me/reservations/${reservationId}/cancel`, { method: "POST" }),
 };
 
 /** Questions sent to the signed-in chemist's store. */
@@ -181,4 +189,12 @@ export const storeQueue = {
 
   answer: (id: string, input: { note: string; lines: AnswerLineInput[] }) =>
     request<StoreView>(`/api/v1/stores/me/requests/${id}/answer`, { method: "POST", body: input }),
+};
+
+/** What the signed-in chemist's store must keep aside, and hand over against the patient's code. */
+export const storeReservations = {
+  list: (show: "held" | "done") => request<StoreReservation[]>(`/api/v1/stores/me/reservations?show=${show}`),
+
+  collect: (id: string, code: string) =>
+    request<void>(`/api/v1/stores/me/reservations/${id}/collect`, { method: "POST", body: { code } }),
 };

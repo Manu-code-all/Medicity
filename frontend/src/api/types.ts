@@ -116,6 +116,9 @@ export interface Prescription {
   revised: boolean;
   /** When the pharmacy filled it; null until then. */
   dispensedAt: string | null;
+  /** When it was last collected from a neighbourhood store, and which; null if never. */
+  collectedAt: string | null;
+  collectedFrom: string | null;
   items: PrescriptionItem[];
 }
 
@@ -314,6 +317,48 @@ export interface Comparison {
   items: RequestItem[];
   /** Best first: everything, then more medicines, then cheaper, then nearer. */
   stores: StoreAnswer[];
+  /** The latest reservation on this question; null if none. */
+  reservation: PatientReservation | null;
+}
+
+export type ReservationStatus = "HELD" | "COLLECTED" | "EXPIRED" | "CANCELLED";
+
+export interface PatientReservation {
+  id: string;
+  storeId: string;
+  storeName: string;
+  storePhone: string;
+  storeAddress: string;
+  /** Only while held. Show it at the counter. */
+  pickupCode: string | null;
+  status: ReservationStatus;
+  total: number;
+  complete: boolean;
+  expiresAt: string;
+  collectedAt: string | null;
+}
+
+export interface HandOver {
+  name: string;
+  strength: string | null;
+  prescribedAs: string;
+  quantity: number;
+  asked: number;
+  unitPrice: number;
+}
+
+export interface StoreReservation {
+  id: string;
+  requestId: string;
+  status: ReservationStatus;
+  patientName: string;
+  total: number;
+  complete: boolean;
+  createdAt: string;
+  expiresAt: string;
+  collectedAt: string | null;
+  codeLocked: boolean;
+  lines: HandOver[];
 }
 
 export interface RequestSummary {
