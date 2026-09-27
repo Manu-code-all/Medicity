@@ -7,6 +7,7 @@ import type { AnswerLineInput, Availability, StoreItem, StoreView } from "../../
 import { formatDate } from "../../lib/format";
 import { formatDistance } from "../../lib/geo";
 import { formatRupees } from "../../lib/requests";
+import { PhotoViewer } from "../../components/PhotoViewer";
 
 /** One question, with the prescription behind it, and the store's answer. */
 export function QuestionPage() {
@@ -49,6 +50,7 @@ function Question({ view }: { view: StoreView }) {
           {rx.revised && " · this is the doctor's corrected version"}
           {rx.hospitalDispensedAt && ` · already dispensed once at the hospital pharmacy on ${formatDate(rx.hospitalDispensedAt)}`}
         </p>
+        {rx.hasPhoto && <PhotoViewer path={`/api/v1/stores/me/requests/${view.id}/scan`} />}
       </section>
 
       {canAnswer ? (

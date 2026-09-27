@@ -112,6 +112,7 @@ export function revokeSession(): void {
 
 interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  /** JSON-serialised, unless it is FormData (an upload), which is sent as it is. */
   body?: unknown;
   headers?: Record<string, string>;
   /** Internal: prevents an infinite refresh loop on a retried request. */
@@ -122,7 +123,9 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const { method = "GET", body, retrying = false } = options;
 
   const headers: Record<string, string> = { ...options.headers };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  // A FormData body sets its own multipart Content-Type, boundary included.
+  const isForm = body instanceof FormData;
+  if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
 
   const accessToken = tokenStore.access();
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -133,7 +136,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const response = await fetch(`${BASE_URL}${path}`, {
     method,
     headers,
-    body: body === undefined ? null : JSON.stringify(body),
+    body: body === undefined ? null : isForm ? body : JSON.stringify(body),
   });
 
   // Refresh once, then replay the original request. `retrying` stops a server
@@ -162,4 +165,33 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   return (await response.json()) as T;
+}
+
+/**
+ * An authenticated image, as an object URL for an <img>. An <img src> cannot
+ * carry the bearer token, so the bytes are fetched here. The caller revokes
+ * the URL when done with it.
+ */
+export async function requestImageUrl(path: string, retrying = false): Promise<string> {
+  const headers: Record<string, string> = {};
+  const accessToken = tokenStore.access();
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  const member = actingFor.get();
+  if (member && actsAsPatient(path)) headers["X-Patient-Id"] = member;
+
+  const response = await fetch(`${BASE_URL}${path}`, { headers });
+  if (response.status === 401 && !retrying && tokenStore.refresh() && (await refreshTokens())) {
+    return requestImageUrl(path, true);
+  }
+  if (!response.ok) {
+    throw new ApiError(response.status, {
+      type: "about:blank",
+      title: "Error",
+      status: response.status,
+      detail: "Could not load the photo.",
+      code: "PHOTO_UNAVAILABLE",
+      path,
+    });
+  }
+  return URL.createObjectURL(await response.blob());
 }

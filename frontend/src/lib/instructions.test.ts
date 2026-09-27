@@ -71,6 +71,7 @@ describe("shareText", () => {
     dispensedAt: null,
     collectedAt: null,
     collectedFrom: null,
+    hasPhoto: false,
     items: [
       {
         medicineId: "m1",

@@ -4,9 +4,16 @@ import { pharmacy } from "../../api/endpoints";
 import type { Medicine, Prescription, PrescriptionDraft, PrescriptionDraftItem } from "../../api/types";
 import { FREQUENCY_SUGGESTIONS, parseFrequency } from "../../lib/instructions";
 
+/** A line of a draft read from a photo: what the doctor wrote, for checking. */
+export type StartingItem = PrescriptionDraftItem & { readAs?: string | undefined };
+
 interface Props {
   /** When correcting, the prescription being replaced; its content pre-fills the form. */
   replacing?: Prescription | undefined;
+  /** A draft read from the doctor's photo; pre-fills the form for checking. */
+  starting?: { diagnosis: string; items: StartingItem[] } | undefined;
+  /** The photo the prescription is being typed from. */
+  scanId?: string | undefined;
   submitLabel: string;
   busy: boolean;
   error: string | null;
@@ -37,6 +44,8 @@ export function PrescriptionForm(props: Props) {
 
 function DraftForm({
   replacing,
+  starting,
+  scanId,
   submitLabel,
   busy,
   error,
@@ -45,10 +54,12 @@ function DraftForm({
   onCancel,
   medicines,
 }: Props & { medicines: Medicine[] }) {
-  const [diagnosis, setDiagnosis] = useState(replacing?.diagnosis ?? "");
+  const [diagnosis, setDiagnosis] = useState(replacing?.diagnosis ?? starting?.diagnosis ?? "");
   const [notes, setNotes] = useState(replacing?.notes ?? "");
-  const [items, setItems] = useState<PrescriptionDraftItem[]>(() =>
-    replacing
+  const [items, setItems] = useState<StartingItem[]>(() =>
+    starting && starting.items.length > 0
+      ? starting.items
+      : replacing
       ? replacing.items.map((item) => ({
           medicineId: medicines.find((m) => m.name === item.medicine && m.strength === item.strength)?.id ?? "",
           dosage: item.dosage,
@@ -69,7 +80,8 @@ function DraftForm({
       className="rx-form"
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ diagnosis, notes, items });
+        // readAs is only for the doctor's eyes; the API gets the checked values.
+        onSubmit({ diagnosis, notes, items: items.map(({ readAs: _readAs, ...item }) => item), scanId });
       }}
     >
       {error && (
@@ -95,6 +107,11 @@ function DraftForm({
           <div className="rx-item" key={index}>
             <div className="rx-item__medicine">
               <label htmlFor={`rx-med-${index}`}>Medicine</label>
+              {item.readAs && (
+                <small className={item.medicineId ? "muted" : "error"}>
+                  Read from your slip as “{item.readAs}”{item.medicineId ? "" : ": choose the medicine"}
+                </small>
+              )}
               <select
                 id={`rx-med-${index}`}
                 required

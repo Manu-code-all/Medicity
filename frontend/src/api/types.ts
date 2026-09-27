@@ -122,6 +122,8 @@ export interface Prescription {
   /** When it was last collected from a neighbourhood store, and which; null if never. */
   collectedAt: string | null;
   collectedFrom: string | null;
+  /** The doctor's handwritten original is attached. */
+  hasPhoto: boolean;
   items: PrescriptionItem[];
 }
 
@@ -180,6 +182,8 @@ export interface PrescriptionDraft {
   diagnosis: string;
   notes: string;
   items: PrescriptionDraftItem[];
+  /** The photographed slip this was typed from, when the doctor started from one. */
+  scanId?: string | undefined;
 }
 
 export interface Medicine {
@@ -427,6 +431,7 @@ export interface StoreView {
     issuedAt: string;
     revised: boolean;
     hospitalDispensedAt: string | null;
+    hasPhoto: boolean;
   };
   items: StoreItem[];
   myStatus: "PENDING" | "ANSWERED";
@@ -528,4 +533,27 @@ export interface FamilyMember {
   age: number;
   gender: PatientProfile["gender"];
   bloodGroup: string | null;
+}
+
+// --- Handwritten prescription photos -------------------------------------------
+
+export interface ScanReadLine {
+  writtenAs: string | null;
+  medicine: string | null;
+  strength: string | null;
+  dosage: string | null;
+  frequency: string | null;
+  durationDays: number | null;
+  quantity: number | null;
+  confidence: number | null;
+}
+
+export interface ScanDraft {
+  scanId: string;
+  status: "DRAFTED" | "FAILED" | "UNAVAILABLE";
+  /** Why there is no draft, when there is none. */
+  problem: string | null;
+  diagnosis: string | null;
+  lines: { read: ScanReadLine; match: { medicineId: string; name: string; strength: string | null } | null }[];
+  unreadable: string[];
 }

@@ -5,7 +5,9 @@ import { ApiError } from "../../api/client";
 import { workspace } from "../../api/endpoints";
 import type { DoctorVisitDetail, PrescriptionDraft } from "../../api/types";
 import { formatDate, formatDayLong, formatTime } from "../../lib/format";
-import { PrescriptionForm } from "./PrescriptionForm";
+import { PhotoViewer } from "../../components/PhotoViewer";
+import { PhotoStart } from "./PhotoStart";
+import { PrescriptionForm, type StartingItem } from "./PrescriptionForm";
 
 type Mode = "view" | "prescribe" | "correct";
 
@@ -14,6 +16,12 @@ export function VisitPage() {
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<Mode>("view");
   const [actionError, setActionError] = useState<string | null>(null);
+  // A draft read from the doctor's photo, waiting to be checked in the form.
+  const [fromPhoto, setFromPhoto] = useState<{
+    scanId: string;
+    starting: { diagnosis: string; items: StartingItem[] };
+    note: string | null;
+  } | null>(null);
 
   const visit = useQuery({ queryKey: ["workspace", "visit", visitId], queryFn: () => workspace.visit(visitId) });
 
@@ -23,6 +31,7 @@ export function VisitPage() {
     queryClient.setQueryData(["workspace", "visit", visitId], updated);
     void queryClient.invalidateQueries({ queryKey: ["workspace", "visits"] });
     setActionError(null);
+    setFromPhoto(null);
     setMode("view");
   }
   function onFailed(error: unknown) {
@@ -182,18 +191,35 @@ export function VisitPage() {
                 ))}
               </ul>
               {rx.notes && <p className="rx__notes">{rx.notes}</p>}
+              {rx.hasPhoto && (
+                <PhotoViewer path={`/api/v1/doctors/me/prescriptions/${rx.id}/scan`} label="View your handwritten slip" />
+              )}
             </div>
+          )}
+
+          {mode === "prescribe" && !fromPhoto && (
+            <PhotoStart visitId={visitId} onDraft={(scanId, starting, note) => setFromPhoto({ scanId, starting, note })} />
+          )}
+          {mode === "prescribe" && fromPhoto && (
+            <p className="notice">
+              {fromPhoto.note ??
+                "Read from your photo. Check every line against your slip: nothing reaches the patient or a chemist until you confirm."}
+            </p>
           )}
 
           {mode === "prescribe" && (
             <PrescriptionForm
-              submitLabel="Issue prescription"
+              key={fromPhoto?.scanId ?? "typed"}
+              starting={fromPhoto?.starting}
+              scanId={fromPhoto?.scanId}
+              submitLabel={fromPhoto ? "Confirm and issue" : "Issue prescription"}
               busy={prescribe.isPending}
               error={formError}
               fieldErrors={fieldErrors}
               onSubmit={(draft) => prescribe.mutate(draft)}
               onCancel={() => {
                 setMode("view");
+                setFromPhoto(null);
                 setActionError(null);
               }}
             />

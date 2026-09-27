@@ -57,6 +57,10 @@ public class Prescription {
     @Column(name = "issued_at", nullable = false, updatable = false)
     private Instant issuedAt;
 
+    /** The photographed handwritten slip this was typed from, if any (V19). */
+    @Column(name = "scan_id", updatable = false)
+    private UUID scanId;
+
     @Builder.Default
     @OneToMany(mappedBy = "prescription", cascade = CascadeType.PERSIST)
     @OrderBy("id")

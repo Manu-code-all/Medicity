@@ -18,6 +18,7 @@ import type {
   PortalSummary,
   QueueEntry,
   RequestSummary,
+  ScanDraft,
   StockView,
   StoreInsights,
   StoreReservation,
@@ -138,6 +139,16 @@ export const workspace = {
       method: "POST",
       body: draft,
     }),
+
+  /** A photo of the handwritten slip, for a completed visit. */
+  uploadScan: (visitId: string, photo: File) => {
+    const form = new FormData();
+    form.append("photo", photo);
+    return request<{ scanId: string }>(`/api/v1/doctors/me/visits/${visitId}/scans`, { method: "POST", body: form });
+  },
+
+  /** A draft read from the photo, to correct and confirm. Issues nothing. */
+  readScan: (scanId: string) => request<ScanDraft>(`/api/v1/doctors/me/scans/${scanId}/read`, { method: "POST" }),
 
   patientHistory: (patientId: string) =>
     request<PatientHistory>(`/api/v1/doctors/me/patients/${patientId}/history`),
