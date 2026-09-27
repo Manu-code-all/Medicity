@@ -1,356 +1,489 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { doctors } from "../api/endpoints";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { ArrowRight, CalendarCheck, Clock, Package, Prescription, Storefront } from "@phosphor-icons/react";
 import { useAuth } from "../auth/context";
-import { initials } from "../lib/format";
+import { IslandNav } from "../components/IslandNav";
+import { LineMap } from "../components/LineMap";
+import { DEMO_PASSWORD } from "../lib/demo";
+import { useInView } from "../lib/reveal";
+import "../landing.css";
 
 const API_DOCS_URL = `${import.meta.env.VITE_API_BASE_URL ?? ""}/swagger-ui/index.html`;
 
 export function LandingPage() {
   const { session } = useAuth();
-  const isPatient = session?.role === "PATIENT";
+  const location = useLocation();
+
+  // React Router does not scroll to #fragments by itself.
+  useEffect(() => {
+    if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: "smooth" });
+  }, [location.hash]);
 
   return (
-    <div className="landing">
-      <section className="hero">
-        <div className="hero__inner">
-          <div className="hero__copy">
-            <p className="eyebrow">Multi-speciality care · Online booking</p>
-            <h1>
-              Healthcare that <span className="accent">remembers you</span>.
+    <div className="lm">
+      <a className="lm-skip" href="#main">
+        Skip to content
+      </a>
+      <IslandNav />
+
+      <main id="main">
+        <section className="lm-hero" aria-labelledby="hero-title">
+          <div className="lm-hero__copy">
+            <h1 id="hero-title" className="lm-hero__title">
+              From prescription
+              <br /> to medicines
+              <br /> in hand, near you.
             </h1>
-            <p className="hero__lede">
-              Book a specialist in under a minute. Every visit, prescription and follow-up
-              afterwards lives in one private portal — so you never have to dig for an old
-              slip of paper again.
+            <p className="lm-hero__lede">
+              Book a specialist, keep every prescription in one place, then ask every verified chemist within 3&nbsp;km who
+              has your medicines and at what price. Pick up with a code.
             </p>
-            <div className="hero__actions">
-              <Link className="button button--lg" to="/doctors">
-                Find a doctor
+            <div className="lm-hero__actions">
+              <Link to="/doctors" className="lm-button">
+                Book a visit
               </Link>
-              {isPatient ? (
-                <Link className="button button--lg button--ghost" to="/portal">
-                  Open my portal
-                </Link>
-              ) : (
-                <Link className="button button--lg button--ghost" to="/login">
-                  Patient sign in
-                </Link>
-              )}
+              <Link to={session ? "/portal" : "/login"} className="lm-text-link">
+                {session ? "Open my account" : "Try the demo"}
+                <ArrowRight size={16} weight="bold" aria-hidden="true" />
+              </Link>
             </div>
-            {!session && (
-              <p className="hero__demo muted">
-                Trying it out? Sign in as <code>patient@medicity.demo</code> (the patient, who also manages her
-                mother and son), <code>dr.rao@medicity.demo</code> (a doctor) or <code>chemist@medicity.demo</code>{" "}
-                (a neighbourhood chemist). Password for all: <code>demo-password-2026</code>. The demo resets every
-                night, so feel free to change things.
-              </p>
-            )}
+            <p className="lm-hero__proof">Free for doctors and chemists. No stock list to keep, no fee per prescription.</p>
           </div>
+          <LineMap />
+        </section>
 
-          <PortalPreview />
-        </div>
-      </section>
+        <Journey />
 
-      <section className="trust" aria-label="Why Medicity">
-        <div className="trust__inner">
-          <Feature icon={<IconCalendar />} title="Live availability">
-            See real open times and book instantly — no calls, no waiting on hold.
-          </Feature>
-          <Feature icon={<IconLock />} title="Your slot is yours">
-            Once you book a time, no one else can take it, even if they click at the same moment.
-          </Feature>
-          <Feature icon={<IconFile />} title="Prescriptions kept current">
-            When a doctor revises a prescription, the old one is replaced — never two conflicting sets.
-          </Feature>
-          <Feature icon={<IconShield />} title="Private by design">
-            Your records are visible only to you and the doctors who treat you.
-          </Feature>
-        </div>
-      </section>
+        <TaglineReveal
+          lines={["Your prescription already knows the way.", "Every verified chemist within 3 km hears it at once."]}
+        />
 
-      <section className="section section--tinted" aria-labelledby="network-title">
-        <div className="section__inner">
-          <h2 className="section__title" id="network-title">
-            One prescription, every chemist nearby
+        <Lines />
+
+        <Faq />
+
+        <section className="lm-close" aria-labelledby="close-title">
+          <h2 id="close-title" className="lm-close__title">
+            Your next prescription
+            <br /> can find its own chemist.
           </h2>
-          <ol className="steps">
-            <li className="step">
-              <span className="step__num">1</span>
-              <h3>Ask them all at once</h3>
-              <p className="muted">
-                One tap sends your doctor's prescription to every verified chemist within 1, 3 or 5 km. No calling
-                round.
-              </p>
-            </li>
-            <li className="step">
-              <span className="step__num">2</span>
-              <h3>Compare the answers</h3>
-              <p className="muted">
-                Who has everything, who is cheapest, who is nearest, and who offers the same medicine in a cheaper
-                brand your doctor allowed.
-              </p>
-            </li>
-            <li className="step">
-              <span className="step__num">3</span>
-              <h3>Reserve and pick up</h3>
-              <p className="muted">
-                The store keeps it aside for 2 to 4 hours. Show your six-digit code at the counter and pay there.
-              </p>
-            </li>
-          </ol>
-          <ul className="checklist network-extras">
-            <li>
-              <strong>Refill reminders.</strong> "Your tablets run out in 3 days. Ask the stores again?"
-            </li>
-            <li>
-              <strong>Your whole family.</strong> Parents and children under one sign-in.
-            </li>
-            <li>
-              <strong>In your language.</strong> How to take each medicine in Hindi, Tamil, Kannada, Telugu or
-              Bengali, and shareable on WhatsApp.
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <section className="section" aria-labelledby="free-title">
-        <div className="section__inner split">
-          <div>
-            <h2 className="section__title" id="free-title">
-              Free for doctors and chemists
-            </h2>
-            <p className="muted">
-              No subscription and no per-prescription fee. A doctor can keep writing by hand: photograph the slip
-              and Medicity reads it into a list for the doctor to confirm. A chemist answers questions from nearby
-              patients without keeping a stock list up to date.
-            </p>
+          <div className="lm-hero__actions">
+            <Link to="/doctors" className="lm-button">
+              Book a visit
+            </Link>
+            <Link to="/login" className="lm-text-link">
+              Try the demo
+              <ArrowRight size={16} weight="bold" aria-hidden="true" />
+            </Link>
           </div>
-          <ul className="checklist">
-            <li>
-              <strong>Doctors:</strong> the schedule, closing visits, typed or photographed prescriptions, and
-              "cheaper brand with the same medicine is OK" per line.
-            </li>
-            <li>
-              <strong>Chemists:</strong> prescriptions that come straight from the doctor's account, never a
-              patient's upload, and what people nearby asked for this week.
-            </li>
-            <li>
-              <Link to="/register/store">Register your store</Link>, checked by a person before it goes live.
-            </li>
-          </ul>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      <FeaturedDoctors />
-
-      <section className="section">
-        <div className="section__inner">
-          <h2 className="section__title">How it works</h2>
-          <ol className="steps">
-            <li className="step">
-              <span className="step__num">1</span>
-              <h3>Choose a specialist</h3>
-              <p className="muted">Filter by speciality or search by name. Fees and experience up front.</p>
-            </li>
-            <li className="step">
-              <span className="step__num">2</span>
-              <h3>Pick a time</h3>
-              <p className="muted">Open slots for the next two weeks, confirmed the moment you book.</p>
-            </li>
-            <li className="step">
-              <span className="step__num">3</span>
-              <h3>Keep everything in one place</h3>
-              <p className="muted">Visits, prescriptions and your profile — all in your patient portal.</p>
-            </li>
-          </ol>
-        </div>
-      </section>
-
-      <section className="section section--tinted">
-        <div className="section__inner split">
-          <div>
-            <h2 className="section__title">Your health history, in one place</h2>
-            <p className="muted">
-              The patient portal is where you land after signing in. It is built around the
-              questions patients actually ask.
-            </p>
-          </div>
-          <ul className="checklist">
-            <li><strong>What's next?</strong> Your upcoming visit, front and centre, with a countdown.</li>
-            <li><strong>What happened last time?</strong> A full visit history, including cancellations and missed visits.</li>
-            <li><strong>What should I be taking?</strong> Every current prescription with dose, frequency and duration.</li>
-            <li><strong>Can I change plans?</strong> Cancel an upcoming visit in one tap; the slot is freed for someone else.</li>
-          </ul>
-        </div>
-      </section>
-
-      <section className="cta">
-        <div className="cta__inner">
-          <h2>{isPatient ? "Welcome back." : "Create your account — it takes a minute."}</h2>
-          <Link className="button button--lg button--light" to={isPatient ? "/portal" : "/register"}>
-            {isPatient ? "Go to my portal" : "Get started"}
+      <footer className="lm-footer">
+        <div className="lm-footer__inner">
+          <Link to="/" className="lm-brand">
+            <span className="lm-brand__mark" aria-hidden="true" />
+            Medicity
           </Link>
-        </div>
-      </section>
-
-      <footer className="footer">
-        <div className="footer__inner">
-          <span>© {new Date().getFullYear()} Medicity</span>
-          <nav>
-            <Link to="/doctors">Find a doctor</Link>
-            <Link to="/register/store">For chemists</Link>
-            <a href={API_DOCS_URL} target="_blank" rel="noreferrer">
-              API docs
-            </a>
-            <a href="https://github.com/Manu-code-all/Medicity" target="_blank" rel="noreferrer">
-              Source
-            </a>
+          <nav aria-label="Footer">
+            <ul>
+              <li><Link to="/doctors">Find a doctor</Link></li>
+              <li><Link to="/login">Patient sign in</Link></li>
+              <li><Link to="/login/doctor">Doctor sign in</Link></li>
+              <li><Link to="/login/chemist">Chemist sign in</Link></li>
+              <li><Link to="/register/store">Register your store</Link></li>
+              <li><a href={API_DOCS_URL} target="_blank" rel="noreferrer">API docs</a></li>
+              <li><a href="https://github.com/Manu-code-all/Medicity" target="_blank" rel="noreferrer">Source on GitHub</a></li>
+            </ul>
           </nav>
+          <p className="lm-footer__note">
+            A public demo. Every account uses the password <code className="lm-num">{DEMO_PASSWORD}</code>, and all
+            data resets every night.
+          </p>
         </div>
       </footer>
     </div>
   );
 }
 
-function FeaturedDoctors() {
-  const query = useQuery({
-    queryKey: ["doctors", "", ""],
-    queryFn: () => doctors.search(),
-    staleTime: 5 * 60_000,
-  });
+/* ---------- The line: five stations, each a real piece of the app ---------- */
 
-  const featured = query.data?.content.slice(0, 3) ?? [];
+interface StationProps {
+  icon: ReactNode;
+  name: string;
+  hindi: string;
+  title: string;
+  children: ReactNode;
+  panel: ReactNode;
+  last?: boolean;
+}
 
-  // The section is a bonus, not the page: if the API is slow or down, the
-  // landing page still renders fully without it.
-  if (featured.length === 0) return null;
-
+function Station({ icon, name, hindi, title, children, panel, last }: StationProps) {
+  const [ref, seen] = useInView<HTMLLIElement>("0px 0px -35% 0px");
   return (
-    <section className="section">
-      <div className="section__inner">
-        <div className="section__head">
-          <h2 className="section__title">Meet our specialists</h2>
-          <Link to="/doctors">See all doctors →</Link>
+    <li ref={ref} className="lm-station" data-reached={seen} data-last={last || undefined}>
+      <span className="lm-station__track" aria-hidden="true">
+        <span className="lm-station__fill" />
+      </span>
+      <span className="lm-roundel lm-roundel--station" aria-hidden="true" />
+      <div className="lm-station__sign">
+        <h3 className="lm-station__name">
+          <span className="lm-station__icon" aria-hidden="true">{icon}</span>
+          {name}
+        </h3>
+        <p className="lm-station__hindi" lang="hi">{hindi}</p>
+        <p className="lm-station__title">{title}</p>
+        <p className="lm-station__text">{children}</p>
+      </div>
+      <div className="lm-station__panel" aria-hidden="true">{panel}</div>
+    </li>
+  );
+}
+
+function Journey() {
+  return (
+    <section className="lm-journey" id="line" aria-labelledby="line-title">
+      <h2 id="line-title" className="lm-h2">
+        One line from the clinic
+        <br /> to the chemist's counter
+      </h2>
+      <ol className="lm-stations">
+        <Station
+          icon={<CalendarCheck size={28} weight="bold" />}
+          name="Book"
+          hindi="बुकिंग"
+          title="A slot that is yours the moment you take it"
+          panel={<SlotPanel />}
+        >
+          Real open times for the next two weeks. If two people press the same slot in the same second, one gets
+          it and the other is told at once.
+        </Station>
+        <Station
+          icon={<Clock size={28} weight="bold" />}
+          name="Visit"
+          hindi="मुलाक़ात"
+          title="Counted down in your portal, free to cancel"
+          panel={<VisitPanel />}
+        >
+          Your next visit waits at the top of your portal. Cancelling frees the slot for someone else straight away,
+          and your parents' and children's visits sit beside yours.
+        </Station>
+        <Station
+          icon={<Prescription size={28} weight="bold" />}
+          name="Prescription"
+          hindi="पर्चा"
+          title="Written by your doctor, kept current"
+          panel={<RxPanel />}
+        >
+          When a doctor corrects a prescription the old one is replaced, never two versions. How to take each
+          medicine, in Hindi, Tamil, Kannada, Telugu or Bengali.
+        </Station>
+        <Station
+          icon={<Storefront size={28} weight="bold" />}
+          name="Chemists nearby"
+          hindi="पास के केमिस्ट"
+          title="Ask them all at once, compare the answers"
+          panel={<ComparePanel />}
+        >
+          One tap sends the prescription to every verified chemist within 1, 3 or 5 km. See who has it, the price,
+          the distance, and a cheaper brand your doctor allowed.
+        </Station>
+        <Station
+          icon={<Package size={28} weight="bold" />}
+          name="Pick up"
+          hindi="दवा लें"
+          title="Kept aside, handed over against your code"
+          panel={<CodePanel />}
+          last
+        >
+          The store holds it for 2 to 4 hours. Show your six digit code and pay at the counter. Before you run
+          out, Medicity reminds you to ask again.
+        </Station>
+      </ol>
+    </section>
+  );
+}
+
+function SlotPanel() {
+  return (
+    <div className="lm-panel">
+      <p className="lm-panel__head">
+        <strong>Dr. Suresh Iyer</strong> · Neurology
+      </p>
+      <p className="lm-panel__sub">Wednesday, 14 October</p>
+      <div className="lm-slots">
+        <span>10:00</span>
+        <span>10:30</span>
+        <span className="is-picked">11:00</span>
+        <span className="is-gone">11:30</span>
+        <span>12:00</span>
+        <span>12:30</span>
+      </div>
+    </div>
+  );
+}
+
+function VisitPanel() {
+  return (
+    <div className="lm-panel">
+      <p className="lm-panel__sub">Tomorrow</p>
+      <div className="lm-visit">
+        <span className="lm-visit__time lm-num">11:00</span>
+        <div>
+          <p className="lm-panel__head"><strong>Dr. Suresh Iyer</strong></p>
+          <p className="lm-panel__sub">Neurology · for Lalitha Nair, mother</p>
         </div>
-        <ul className="doctor-grid">
-          {featured.map((doctor) => (
-            <li key={doctor.id} className="card doctor-card">
-              <div className="avatar" aria-hidden="true">
-                {initials(doctor.fullName)}
-              </div>
-              <h3>{doctor.fullName}</h3>
-              <p className="muted">
-                {doctor.specialization} · {doctor.yearsExperience} yrs experience
-              </p>
-              {doctor.bio && <p className="doctor-card__bio">{doctor.bio}</p>}
-              <div className="doctor-card__foot">
-                <span className="fee">₹{doctor.consultationFee}</span>
-                <Link className="button" to={`/doctors/${doctor.id}/book`}>
-                  Book
-                </Link>
-              </div>
-            </li>
-          ))}
+      </div>
+      <span className="lm-panel__action">Cancel visit</span>
+    </div>
+  );
+}
+
+function RxPanel() {
+  return (
+    <div className="lm-panel">
+      <p className="lm-panel__head">
+        <strong>Omeprazole 20mg</strong> · capsule
+      </p>
+      <p className="lm-panel__sub">1 capsule before breakfast · 14 days · by Dr. Anjali Rao</p>
+      <p className="lm-panel__hindi" lang="hi">नाश्ते से पहले एक कैप्सूल, 14 दिन तक</p>
+      <span className="lm-chip">Cheaper brand allowed</span>
+    </div>
+  );
+}
+
+function ComparePanel() {
+  const rows = [
+    { store: "Lakshmi Medical Stores", what: "Omez, same medicine", price: "₹58.80", far: "990 m", best: true },
+    { store: "Green Cross Pharmacy", what: "All 14", price: "₹77.00", far: "740 m" },
+    { store: "Nightingale 24x7", what: "10 of 14", price: "₹58.00", far: "1.5 km" },
+  ];
+  return (
+    <div className="lm-panel lm-panel--flush">
+      <ul className="lm-compare">
+        {rows.map((r) => (
+          <li key={r.store}>
+            <span>
+              <strong>{r.store}</strong>
+              <span className="lm-panel__sub">{r.what}</span>
+            </span>
+            <span className="lm-compare__side">
+              <span className="lm-num lm-compare__price">{r.price}</span>
+              <span className="lm-panel__sub lm-num">{r.far}</span>
+              {r.best && <span className="lm-chip lm-chip--solid">Cheapest</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** The pick-up code drawn with ghost cells: every unlit cell still shows its frame. */
+function CodePanel() {
+  return (
+    <div className="lm-panel">
+      <p className="lm-panel__sub">Show this at Lakshmi Medical Stores</p>
+      <div className="lm-code" aria-label="Pick up code 482913">
+        {"482913".split("").map((d, i) => (
+          <SegmentDigit key={i} digit={Number(d)} />
+        ))}
+      </div>
+      <p className="lm-panel__sub">Kept aside until 3:40 pm · pay at the counter</p>
+    </div>
+  );
+}
+
+/** Which of the seven segments (a to g, clockwise from the top, g in the middle) each digit lights. */
+const SEGMENTS = ["abcdef", "bc", "abdeg", "abcdg", "bcfg", "acdfg", "acdefg", "abc", "abcdefg", "abcdfg"];
+const SEGMENT_SHAPES: Record<string, string> = {
+  a: "M6 2h12l-2 4H8z",
+  b: "M20 4l2 2v12l-2 2-2-2V8z",
+  c: "M20 22l2 2v12l-2 2-2-2V26z",
+  d: "M6 40h12l-2-4H8z",
+  e: "M4 22l2 2v10l-2 4-2-2V24z",
+  f: "M4 4l2 4v10l-2 2-2-2V6z",
+  g: "M6 21l2-2h8l2 2-2 2H8z",
+};
+
+/** One cell of the code: every segment is drawn, and only the digit's segments are lit. */
+function SegmentDigit({ digit }: { digit: number }) {
+  const lit = SEGMENTS[digit] ?? "";
+  return (
+    <span className="lm-code__cell">
+      <svg viewBox="0 0 24 42" aria-hidden="true">
+        {Object.entries(SEGMENT_SHAPES).map(([id, d]) => (
+          <path key={id} d={d} className={lit.includes(id) ? "is-lit" : undefined} />
+        ))}
+      </svg>
+    </span>
+  );
+}
+
+/* ---------- The tagline, lit word by word as it crosses the middle of the screen ---------- */
+
+function TaglineReveal({ lines }: { lines: string[] }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  // Words below `count` are lit; `from` is where the latest batch started, so
+  // words crossing the line together still light one after another.
+  const [lit, setLit] = useState(() => ({ count: typeof IntersectionObserver === "undefined" ? Infinity : 0, from: 0 }));
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const words = Array.from(el.querySelectorAll<HTMLElement>("[data-word]"));
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const reached = Math.max(
+          0,
+          ...entries.filter((e) => e.isIntersecting).map((e) => Number((e.target as HTMLElement).dataset.word) + 1),
+        );
+        setLit((prev) => (reached > prev.count ? { count: reached, from: prev.count } : prev));
+      },
+      // The trigger line sits just below the middle of the viewport.
+      { rootMargin: "0px 0px -45% 0px", threshold: 1 },
+    );
+    words.forEach((w) => observer.observe(w));
+    return () => observer.disconnect();
+  }, []);
+
+  let index = 0;
+  return (
+    <section className="lm-tagline" aria-label="What Medicity does">
+      <p ref={ref} className="lm-tagline__text">
+        {lines.map((line, li) => (
+          <span key={li} className="lm-tagline__line">
+            {line.split(" ").map((word) => {
+              const i = index++;
+              const on = i < lit.count;
+              return (
+                <span
+                  key={i}
+                  data-word={i}
+                  className={on ? "is-lit" : undefined}
+                  style={on && i >= lit.from ? { transitionDelay: `${(i - lit.from) * 80}ms` } : undefined}
+                >
+                  {word}{" "}
+                </span>
+              );
+            })}
+          </span>
+        ))}
+      </p>
+    </section>
+  );
+}
+
+/* ---------- Three lines for three people ---------- */
+
+function Lines() {
+  return (
+    <section className="lm-lines" aria-labelledby="lines-title">
+      <h2 id="lines-title" className="lm-h2">
+        Three lines,
+        <br /> one prescription
+      </h2>
+      <div className="lm-line" data-role="patient">
+        <div className="lm-line__band" aria-hidden="true" />
+        <div className="lm-line__head">
+          <h3>For patients and their families</h3>
+          <p>Book, keep every prescription, and find your medicines nearby, for you, your parents and your children.</p>
+        </div>
+        <ul className="lm-line__stops">
+          <li>Up to 8 family members under your account</li>
+          <li>A reminder a few days before tablets run out</li>
+          <li>Instructions you can share on WhatsApp</li>
         </ul>
+        <Link to="/login" className="lm-text-link">
+          Patient sign in <ArrowRight size={16} weight="bold" aria-hidden="true" />
+        </Link>
+      </div>
+      <div className="lm-line" data-role="doctor">
+        <div className="lm-line__band" aria-hidden="true" />
+        <div className="lm-line__head">
+          <h3>For doctors, free</h3>
+          <p>Your day's schedule and each patient's history. Type a prescription, or photograph your handwritten slip and confirm the draft.</p>
+        </div>
+        <ul className="lm-line__stops">
+          <li>Mark where a cheaper brand is fine, per medicine</li>
+          <li>Corrections replace the old prescription</li>
+          <li>Missed visits close themselves</li>
+        </ul>
+        <Link to="/login/doctor" className="lm-text-link">
+          Doctor sign in <ArrowRight size={16} weight="bold" aria-hidden="true" />
+        </Link>
+      </div>
+      <div className="lm-line" data-role="chemist">
+        <div className="lm-line__band" aria-hidden="true" />
+        <div className="lm-line__head">
+          <h3>For chemists, free</h3>
+          <p>Answer yes, partly or no to patients nearby. No stock list to keep up to date, and every question comes from a doctor's prescription.</p>
+        </div>
+        <ul className="lm-line__stops">
+          <li>Hold medicines, hand over against a code</li>
+          <li>See what people nearby asked for this week</li>
+          <li>Licence checked by a person before you go live</li>
+        </ul>
+        <div className="lm-line__links">
+          <Link to="/login/chemist" className="lm-text-link">
+            Chemist sign in <ArrowRight size={16} weight="bold" aria-hidden="true" />
+          </Link>
+          <Link to="/register/store" className="lm-text-link">
+            Register your store <ArrowRight size={16} weight="bold" aria-hidden="true" />
+          </Link>
+        </div>
       </div>
     </section>
   );
 }
 
-/** A static illustration of the portal, so visitors see what they get. */
-function PortalPreview() {
+/* ---------- Questions ---------- */
+
+const FAQ: { q: string; a: string }[] = [
+  {
+    q: "Is Medicity a real service?",
+    a: "It is a working product running as a public demo. The doctors, chemists and patients are demo accounts, and everything resets every night at 8:00 India time, so change anything you like.",
+  },
+  {
+    q: "Who can see my prescription?",
+    a: "You, the doctors who treat you, and the chemists you choose to ask. A chemist sees your prescription only after you ask it.",
+  },
+  {
+    q: "How do you know a chemist is genuine?",
+    a: "Every store registers with its drug licence number, and a person checks the licence before the store can receive any prescription.",
+  },
+  {
+    q: "What if I do not collect in time?",
+    a: "Each store holds medicines for 2 to 4 hours. If the time passes, the reservation lapses and your question opens again, so you can reserve somewhere else.",
+  },
+  {
+    q: "Can I look after my parents' medicines?",
+    a: "Yes. Add up to 8 family members, then book visits, ask chemists and keep prescriptions for them from your own account.",
+  },
+  {
+    q: "What does it cost?",
+    a: "Nothing for doctors and chemists. You pay the doctor's consultation fee and the chemist for your medicines, as you do today.",
+  },
+  {
+    q: "Which languages does it speak?",
+    a: "How to take each medicine is available in English, Hindi, Tamil, Kannada, Telugu and Bengali. The rest of the app is in English for now.",
+  },
+];
+
+function Faq() {
   return (
-    <div className="preview" aria-hidden="true">
-      <div className="preview__bar">
-        <span />
-        <span />
-        <span />
+    <section className="lm-faq" aria-labelledby="faq-title">
+      <h2 id="faq-title" className="lm-h2">
+        Questions people ask first
+      </h2>
+      <div className="lm-faq__list">
+        {FAQ.map((item) => (
+          <details key={item.q} className="lm-faq__item">
+            <summary>{item.q}</summary>
+            <p>{item.a}</p>
+          </details>
+        ))}
       </div>
-      <div className="preview__body">
-        <p className="preview__label">Next visit · in 3 days</p>
-        <div className="preview__visit">
-          <div className="date-tile">
-            <span className="date-tile__day">14</span>
-            <span className="date-tile__month">OCT</span>
-          </div>
-          <div>
-            <strong>Dr. Suresh Iyer</strong>
-            <p className="muted">Neurology · 11:00</p>
-          </div>
-        </div>
-        <div className="preview__stats">
-          <div><strong>4</strong><span>Visits</span></div>
-          <div><strong>3</strong><span>Prescriptions</span></div>
-          <div><strong>1</strong><span>Upcoming</span></div>
-        </div>
-        <p className="preview__label">Current prescription</p>
-        <div className="preview__rx">
-          <span>Paracetamol 500mg</span>
-          <span className="muted">As needed</span>
-        </div>
-        <div className="preview__rx">
-          <span>Omeprazole 20mg</span>
-          <span className="muted">Before breakfast</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Feature({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
-  return (
-    <div className="feature">
-      <span className="feature__icon">{icon}</span>
-      <h3>{title}</h3>
-      <p className="muted">{children}</p>
-    </div>
-  );
-}
-
-const svgProps = {
-  width: 22,
-  height: 22,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 2,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-  "aria-hidden": true,
-};
-
-function IconCalendar() {
-  return (
-    <svg {...svgProps}>
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
-    </svg>
-  );
-}
-
-function IconLock() {
-  return (
-    <svg {...svgProps}>
-      <rect x="4" y="11" width="16" height="10" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-    </svg>
-  );
-}
-
-function IconFile() {
-  return (
-    <svg {...svgProps}>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <path d="M14 2v6h6M9 13h6M9 17h6" />
-    </svg>
-  );
-}
-
-function IconShield() {
-  return (
-    <svg {...svgProps}>
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
+    </section>
   );
 }

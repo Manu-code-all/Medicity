@@ -26,3 +26,8 @@ Thumbs.db
 # Logs
 *.log
 *.tsbuildinfo
+
+# Design-review captures and decision pages (local only)
+.impeccable/review/
+.impeccable/questions/
+.impeccable/config.local.json

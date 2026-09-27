@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-27T00:00:00Z",
+  "title": "Design System: Medicity",
+  "extensions": {
+    "scope": "Public surfaces only: / and /login, /login/doctor, /login/chemist. Tokens in frontend/src/landing.css under .lm. Signed in workspaces keep frontend/src/styles.css.",
+    "colorMeta": {
+      "patient-teal": { "role": "primary", "displayName": "Patient Line Teal", "canonical": "#0e8a78", "tonalRamp": ["oklch(15% 0.04 179)", "oklch(27% 0.07 179)", "oklch(39% 0.09 179)", "oklch(51% 0.1 179)", "oklch(63% 0.1 179)", "oklch(75% 0.09 179)", "oklch(85% 0.06 179)", "oklch(95% 0.025 179)"] },
+      "patient-band": { "role": "primary", "displayName": "Patient Band Teal", "canonical": "#0b6f62", "tonalRamp": ["oklch(15% 0.035 181)", "oklch(27% 0.06 181)", "oklch(39% 0.075 181)", "oklch(51% 0.085 181)", "oklch(63% 0.085 181)", "oklch(75% 0.075 181)", "oklch(85% 0.05 181)", "oklch(95% 0.02 181)"] },
+      "patient-text": { "role": "primary", "displayName": "Patient Text Teal", "canonical": "#0a6f61", "tonalRamp": ["oklch(15% 0.035 180)", "oklch(27% 0.06 180)", "oklch(39% 0.075 180)", "oklch(51% 0.086 180)", "oklch(63% 0.086 180)", "oklch(75% 0.075 180)", "oklch(85% 0.05 180)", "oklch(95% 0.02 180)"] },
+      "doctor-indigo": { "role": "secondary", "displayName": "Doctor Line Indigo", "canonical": "#3b3fb6", "tonalRamp": ["oklch(15% 0.07 274.5)", "oklch(27% 0.13 274.5)", "oklch(39% 0.17 274.5)", "oklch(51% 0.184 274.5)", "oklch(63% 0.15 274.5)", "oklch(75% 0.1 274.5)", "oklch(85% 0.06 274.5)", "oklch(95% 0.025 274.5)"] },
+      "chemist-marigold": { "role": "tertiary", "displayName": "Chemist Line Marigold", "canonical": "#f0a202", "tonalRamp": ["oklch(15% 0.04 74)", "oklch(27% 0.07 74)", "oklch(39% 0.1 74)", "oklch(51% 0.12 74)", "oklch(63% 0.14 74)", "oklch(75% 0.16 74)", "oklch(85% 0.12 74)", "oklch(95% 0.05 74)"] },
+      "chemist-text": { "role": "tertiary", "displayName": "Chemist Text Ochre", "canonical": "#8a5a00", "tonalRamp": ["oklch(15% 0.04 73)", "oklch(27% 0.07 73)", "oklch(39% 0.09 73)", "oklch(51% 0.108 73)", "oklch(63% 0.11 73)", "oklch(75% 0.1 73)", "oklch(85% 0.07 73)", "oklch(95% 0.03 73)"] },
+      "enamel-ground": { "role": "neutral", "displayName": "Enamel Ground", "canonical": "#f7f7f2", "tonalRamp": ["oklch(15% 0.007 106)", "oklch(27% 0.007 106)", "oklch(39% 0.007 106)", "oklch(51% 0.007 106)", "oklch(63% 0.007 106)", "oklch(75% 0.007 106)", "oklch(85% 0.007 106)", "oklch(97.5% 0.007 106)"] },
+      "enamel-surface": { "role": "neutral", "displayName": "Enamel Surface", "canonical": "#ffffff", "tonalRamp": ["oklch(15% 0 0)", "oklch(27% 0 0)", "oklch(39% 0 0)", "oklch(51% 0 0)", "oklch(63% 0 0)", "oklch(75% 0 0)", "oklch(85% 0 0)", "oklch(100% 0 0)"] },
+      "enamel-raised": { "role": "neutral", "displayName": "Enamel Raised", "canonical": "#efefe8", "tonalRamp": ["oklch(15% 0.009 107)", "oklch(27% 0.009 107)", "oklch(39% 0.009 107)", "oklch(51% 0.009 107)", "oklch(63% 0.009 107)", "oklch(75% 0.009 107)", "oklch(85% 0.009 107)", "oklch(95% 0.009 107)"] },
+      "hairline-rule": { "role": "neutral", "displayName": "Hairline Rule", "canonical": "#d9dbd3", "tonalRamp": ["oklch(15% 0.011 118)", "oklch(27% 0.011 118)", "oklch(39% 0.011 118)", "oklch(51% 0.011 118)", "oklch(63% 0.011 118)", "oklch(75% 0.011 118)", "oklch(88.8% 0.011 118)", "oklch(95% 0.011 118)"] },
+      "signage-ink": { "role": "neutral", "displayName": "Signage Ink", "canonical": "#10202b", "tonalRamp": ["oklch(15% 0.03 240)", "oklch(23.5% 0.03 240)", "oklch(39% 0.03 240)", "oklch(51% 0.03 240)", "oklch(63% 0.03 240)", "oklch(75% 0.025 240)", "oklch(85% 0.02 240)", "oklch(95% 0.01 240)"] },
+      "signage-ink-muted": { "role": "neutral", "displayName": "Signage Ink Muted", "canonical": "#4a5a66", "tonalRamp": ["oklch(15% 0.028 241)", "oklch(27% 0.028 241)", "oklch(39% 0.028 241)", "oklch(45.9% 0.028 241)", "oklch(63% 0.028 241)", "oklch(75% 0.022 241)", "oklch(85% 0.015 241)", "oklch(95% 0.008 241)"] },
+      "alert-red": { "role": "neutral", "displayName": "Alert Red", "canonical": "#b3261e", "tonalRamp": ["oklch(15% 0.06 29)", "oklch(27% 0.11 29)", "oklch(39% 0.15 29)", "oklch(50% 0.178 29)", "oklch(63% 0.16 29)", "oklch(75% 0.11 29)", "oklch(85% 0.06 29)", "oklch(95% 0.02 29)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero heading only; carries the brief pinned ink gradient. 48px under 1024px, 36px/40px under 640px." },
+      "headline": { "displayName": "Headline", "purpose": "Section headings, tagline, closing call. 30px/36px on phones." },
+      "title": { "displayName": "Title", "purpose": "Station names, role line names, sign-in titles and pitch, phone menu links." },
+      "subtitle": { "displayName": "Subtitle", "purpose": "Station step titles, FAQ questions, wordmark, sign-in stop list." },
+      "lede": { "displayName": "Lede", "purpose": "Hero sentence under the display heading." },
+      "body": { "displayName": "Body", "purpose": "Running text, 60 to 65ch." },
+      "label": { "displayName": "Label", "purpose": "Compact buttons, nav links, form labels, role tabs, map captions." },
+      "caption": { "displayName": "Caption", "purpose": "Chips, map tags, ring labels, footer note." },
+      "mono": { "displayName": "Mono", "purpose": "Times, prices, distances. Geist Mono, tabular numerals." },
+      "mono-display": { "displayName": "Mono Display", "purpose": "Pick up code cells only." }
+    },
+    "shadows": [
+      { "name": "float", "value": "0 2px 4px rgba(16, 32, 43, 0.04), 0 12px 32px rgba(16, 32, 43, 0.08)", "purpose": "Nav island, screen fragments, hovered demo card. Dark: 0 2px 4px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.35)." },
+      { "name": "band-lift", "value": "0 1px 2px rgba(16, 32, 43, 0.12), 0 4px 12px color-mix(in srgb, var(--lm-band) 24%, transparent)", "purpose": "Primary button at rest." },
+      { "name": "band-lift-hover", "value": "0 2px 4px rgba(16, 32, 43, 0.12), 0 8px 24px color-mix(in srgb, var(--lm-band) 32%, transparent)", "purpose": "Primary button on hover, with a 2px rise." },
+      { "name": "focus-halo", "value": "0 0 0 4px color-mix(in srgb, var(--lm-line) 24%, transparent)", "purpose": "Focused input." },
+      { "name": "home-halo", "value": "0 0 0 6px color-mix(in srgb, var(--lm-patient) 18%, transparent)", "purpose": "The patient's home roundel on the map." }
+    ],
+    "motion": [
+      { "name": "ease-line", "value": "cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "The only easing curve in this world." },
+      { "name": "duration-standard", "value": "700ms", "purpose": "Every hover, state change, role slide and sheet transition." },
+      { "name": "reduced-motion", "value": "animation: none; transition-duration: 1ms", "purpose": "Applied to everything under prefers-reduced-motion; journey panels and track shown filled." }
+    ],
+    "backdrop": [
+      { "name": "island-frost", "value": "background: color-mix(in srgb, var(--lm-surface) 80%, transparent); backdrop-filter: blur(16px) saturate(1.4)", "purpose": "Floating nav pill only." },
+      { "name": "sheet-frost", "value": "background: color-mix(in srgb, var(--lm-ground) 80%, transparent); backdrop-filter: blur(64px)", "purpose": "Phone menu sheet only." }
+    ],
+    "breakpoints": [
+      { "name": "stack", "value": "1023px" },
+      { "name": "compact-nav", "value": "860px" },
+      { "name": "phone", "value": "640px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action per screen; takes the active role's band colour.",
+      "html": "<button class=\"ds-btn-primary\">Book a visit</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; min-height: 40px; border: 0; border-radius: 8px; background: #0b6f62; color: #ffffff; font-family: Manrope, system-ui, sans-serif; font-size: 16px; line-height: 24px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(16,32,43,0.12), 0 4px 12px rgba(11,111,98,0.24); transition: transform 700ms cubic-bezier(0.32,0.72,0,1), box-shadow 700ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(16,32,43,0.12), 0 8px 24px rgba(11,111,98,0.32); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid #0e8a78; outline-offset: 2px; }"
+    },
+    {
+      "name": "Primary Button, chemist line",
+      "kind": "button",
+      "refersTo": "button-primary-chemist",
+      "description": "The same button under data-role=chemist: marigold band with ink text.",
+      "html": "<button class=\"ds-btn-chemist\">Sign in</button>",
+      "css": ".ds-btn-chemist { display: inline-flex; align-items: center; justify-content: center; padding: 8px 12px; min-height: 40px; border: 0; border-radius: 8px; background: #f0a202; color: #10202b; font-family: Manrope, system-ui, sans-serif; font-size: 16px; line-height: 24px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(16,32,43,0.12), 0 4px 12px rgba(240,162,2,0.24); transition: transform 700ms cubic-bezier(0.32,0.72,0,1), box-shadow 700ms cubic-bezier(0.32,0.72,0,1); } .ds-btn-chemist:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(16,32,43,0.12), 0 8px 24px rgba(240,162,2,0.32); } .ds-btn-chemist:focus-visible { outline: 2px solid #f0a202; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Link",
+      "kind": "button",
+      "refersTo": "text-link",
+      "description": "Quiet secondary action with an arrow that slides on hover.",
+      "html": "<a class=\"ds-text-link\" href=\"#\">Try the demo <svg width=\"16\" height=\"16\" viewBox=\"0 0 256 256\" fill=\"currentColor\"><path d=\"M224.49,136.49l-72,72a12,12,0,0,1-17-17L187,140H40a12,12,0,0,1,0-24H187L135.51,64.48a12,12,0,0,1,17-17l72,72A12,12,0,0,1,224.49,136.49Z\"/></svg></a>",
+      "css": ".ds-text-link { display: inline-flex; align-items: center; gap: 8px; font-family: Manrope, system-ui, sans-serif; font-size: 16px; line-height: 24px; font-weight: 600; color: #0a6f61; text-decoration: none; text-underline-offset: 4px; } .ds-text-link svg { transition: transform 700ms cubic-bezier(0.32,0.72,0,1); } .ds-text-link:hover { text-decoration: underline; } .ds-text-link:hover svg { transform: translateX(4px); } .ds-text-link:focus-visible { outline: 2px solid #0e8a78; outline-offset: 2px; border-radius: 4px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Sign-in field with a label above; focus takes the line colour and a soft halo.",
+      "html": "<label class=\"ds-field\"><span>Email</span><input type=\"email\" placeholder=\"\" /></label>",
+      "css": ".ds-field { display: grid; gap: 8px; font-family: Manrope, system-ui, sans-serif; color: #10202b; } .ds-field span { font-size: 14px; line-height: 20px; font-weight: 600; } .ds-field input { height: 40px; padding: 8px 12px; border-radius: 8px; border: 1px solid #d9dbd3; background: #ffffff; color: #10202b; font: inherit; font-size: 16px; transition: border-color 700ms cubic-bezier(0.32,0.72,0,1), box-shadow 700ms cubic-bezier(0.32,0.72,0,1); } .ds-field input:hover { border-color: #4a5a66; } .ds-field input:focus { outline: none; border-color: #0e8a78; box-shadow: 0 0 0 4px rgba(14,138,120,0.24); }"
+    },
+    {
+      "name": "Island Navigation",
+      "kind": "nav",
+      "refersTo": "nav-pill",
+      "description": "Floating frosted pill with roundel wordmark, quiet links and a compact primary button.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-brand\" href=\"#\"><span class=\"ds-nav-mark\"></span>Medicity</a><a class=\"ds-nav-link\" href=\"#\">How it works</a><a class=\"ds-nav-link\" href=\"#\">Find a doctor</a><a class=\"ds-nav-cta\" href=\"#\">Book a visit</a></nav>",
+      "css": ".ds-nav { display: inline-flex; align-items: center; gap: 4px; padding: 8px 8px 8px 16px; border-radius: 9999px; background: rgba(255,255,255,0.8); border: 1px solid #d9dbd3; backdrop-filter: blur(16px) saturate(1.4); box-shadow: 0 2px 4px rgba(16,32,43,0.04), 0 12px 32px rgba(16,32,43,0.08); font-family: Manrope, system-ui, sans-serif; } .ds-nav-brand { display: inline-flex; align-items: center; gap: 8px; margin-right: 20px; font-size: 18px; line-height: 28px; font-weight: 700; color: #10202b; text-decoration: none; } .ds-nav-mark { width: 24px; height: 24px; border-radius: 9999px; background: #ffffff; border: 4px solid #0e8a78; box-sizing: border-box; } .ds-nav-link { padding: 4px 12px; border-radius: 9999px; font-size: 14px; line-height: 20px; font-weight: 500; color: #4a5a66; text-decoration: none; transition: color 700ms cubic-bezier(0.32,0.72,0,1), background-color 700ms cubic-bezier(0.32,0.72,0,1); } .ds-nav-link:hover { color: #10202b; background: #efefe8; } .ds-nav-cta { margin-left: 20px; padding: 4px 12px; min-height: 32px; display: inline-flex; align-items: center; border-radius: 8px; background: #0b6f62; color: #ffffff; font-size: 14px; line-height: 20px; font-weight: 600; text-decoration: none; } .ds-nav a:focus-visible { outline: 2px solid #0e8a78; outline-offset: 2px; }"
+    },
+    {
+      "name": "Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Status labels inside screen fragments: outline and solid.",
+      "html": "<span class=\"ds-chip\">Cheaper brand allowed</span> <span class=\"ds-chip ds-chip-solid\">Cheapest</span>",
+      "css": ".ds-chip { display: inline-block; padding: 2px 8px; border-radius: 9999px; border: 1px solid #0e8a78; color: #0a6f61; font-family: Manrope, system-ui, sans-serif; font-size: 12px; line-height: 16px; font-weight: 600; } .ds-chip-solid { background: #0b6f62; border-color: #0b6f62; color: #ffffff; }"
+    },
+    {
+      "name": "Screen Fragment",
+      "kind": "card",
+      "refersTo": "screen-fragment",
+      "description": "The only card: a real piece of the product with real demo data beside a station.",
+      "html": "<div class=\"ds-panel\"><p class=\"ds-panel-sub\">Tomorrow</p><p class=\"ds-panel-head\">Dr. Suresh Iyer</p><p class=\"ds-panel-sub\">Neurology · for Lalitha Nair, mother</p><span class=\"ds-panel-time\">10:30 am</span></div>",
+      "css": ".ds-panel { display: grid; gap: 8px; padding: 24px; border-radius: 16px; background: #ffffff; border: 1px solid #d9dbd3; box-shadow: 0 2px 4px rgba(16,32,43,0.04), 0 12px 32px rgba(16,32,43,0.08); font-family: Manrope, system-ui, sans-serif; color: #10202b; max-width: 360px; } .ds-panel p { margin: 0; } .ds-panel-head { font-size: 16px; line-height: 24px; font-weight: 600; } .ds-panel-sub { font-size: 14px; line-height: 20px; color: #4a5a66; } .ds-panel-time { justify-self: start; padding: 8px 12px; border-radius: 8px; background: #efefe8; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 20px; line-height: 28px; font-weight: 500; }"
+    },
+    {
+      "name": "Role Switch",
+      "kind": "custom",
+      "refersTo": "role-switch",
+      "description": "Signature segmented pill on the sign-in pages; the band slides between roles and repaints the page.",
+      "html": "<div class=\"ds-roles\"><span class=\"ds-roles-slider\"></span><a class=\"ds-roles-tab is-current\" href=\"#\">Patient</a><a class=\"ds-roles-tab\" href=\"#\">Doctor</a><a class=\"ds-roles-tab\" href=\"#\">Chemist</a></div>",
+      "css": ".ds-roles { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); width: 360px; padding: 4px; border-radius: 9999px; background: #efefe8; font-family: Manrope, system-ui, sans-serif; } .ds-roles-slider { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 9999px; background: #0b6f62; transition: transform 700ms cubic-bezier(0.32,0.72,0,1), background-color 700ms cubic-bezier(0.32,0.72,0,1); } .ds-roles:has(.ds-roles-tab:nth-of-type(2):hover) .ds-roles-slider { transform: translateX(100%); background: #3b3fb6; } .ds-roles:has(.ds-roles-tab:nth-of-type(3):hover) .ds-roles-slider { transform: translateX(200%); background: #f0a202; } .ds-roles-tab { position: relative; padding: 8px 12px; border-radius: 9999px; text-align: center; font-size: 14px; line-height: 20px; font-weight: 600; color: #4a5a66; text-decoration: none; transition: color 700ms cubic-bezier(0.32,0.72,0,1); } .ds-roles-tab.is-current { color: #ffffff; } .ds-roles-tab:hover { color: #10202b; } .ds-roles-tab:focus-visible { outline: 2px solid #0e8a78; outline-offset: 2px; }"
+    },
+    {
+      "name": "Station Roundels on a Line",
+      "kind": "custom",
+      "refersTo": "roundel",
+      "description": "Signature form: white roundels with heavy rings on a thick pill band; ink until reached, line colour after, filled when available.",
+      "html": "<div class=\"ds-line\"><span class=\"ds-roundel is-reached\"></span><span class=\"ds-roundel is-has\"></span><span class=\"ds-roundel is-partly\"></span><span class=\"ds-roundel\"></span></div>",
+      "css": ".ds-line { position: relative; display: flex; justify-content: space-between; align-items: center; width: 320px; padding: 0 8px; } .ds-line::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 8px; margin-top: -4px; border-radius: 9999px; background: #0e8a78; } .ds-roundel { position: relative; width: 28px; height: 28px; box-sizing: border-box; border-radius: 9999px; background: #ffffff; border: 6px solid #10202b; transition: border-color 700ms cubic-bezier(0.32,0.72,0,1), background-color 700ms cubic-bezier(0.32,0.72,0,1), transform 700ms cubic-bezier(0.32,0.72,0,1); } .ds-roundel:hover { transform: scale(1.1); } .ds-roundel.is-reached { border-color: #0e8a78; } .ds-roundel.is-has { border-color: #0e8a78; background: #0e8a78; } .ds-roundel.is-partly { border-color: #f0a202; background: #f0a202; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Enamel Signage",
+    "overview": "The public face of Medicity is a transit line. Care is one line with five stations (book, visit, prescription, chemists nearby, pick up), and every public surface is drawn the way a well kept metro system signs its platforms: a flat off white ground, deep ink navy lettering, thick solid line bands in one colour, and round station markers with a white fill and a heavy ring. Labels sit flush beside their stations like platform signs, and key station names carry a small Hindi line underneath. The mood is calm, plain and exact; the journey itself is the illustration, and real screen fragments with real demo data stand in for decoration.\n\nColour is wayfinding, not ornament. Each role owns one line colour (patient teal, doctor indigo, chemist marigold), and a surface switches its whole accent by switching role, so the sign-in page for a chemist is literally painted in the chemist line. Everything else stays neutral ink on enamel. Depth is reserved for the few things that float above the map: the navigation island, the screen fragments at each station, and a hovered button.\n\nScope. This world governs the public surfaces only: the landing page (/) and the three sign-in pages (/login, /login/doctor, /login/chemist). Its tokens live in frontend/src/landing.css, scoped under the .lm class, in light and dark. The signed in workspaces (patient portal, doctor workspace, chemist store, admin) are out of scope and keep the older incumbent tokens in frontend/src/styles.css. Do not mix the two token sets on one surface, and do not apply .lm tokens inside the workspaces without a deliberate redesign of them.",
+    "keyCharacteristics": [
+      "One line colour per role, carried by a single data-role switch.",
+      "Round station markers (white fill, heavy ring) on thick rounded line bands.",
+      "Manrope for every word; Geist Mono only for codes, prices, times and distances.",
+      "Fixed type scale and fixed spacing scale; nothing in between.",
+      "One motion curve, cubic-bezier(0.32, 0.72, 0, 1), at 700ms.",
+      "Flat enamel ground; soft ambient shadow only on things that float."
+    ],
+    "rules": [
+      { "name": "The One Line Per Role Rule", "body": "Teal is the patient, indigo is the doctor, marigold is the chemist. A surface gets exactly one active line colour, chosen by data-role on the .lm root or a descendant. Never use a role's colour to decorate content that does not belong to that role.", "section": "colors" },
+      { "name": "The Band, Line, Text Rule", "body": "Each role has three tones: a band tone for fills under text, a line tone for strokes and rings, and a text tone for type on enamel. Use the variable for the job (--lm-band, --lm-line, --lm-line-text), never the raw line colour as text. Marigold is never text on enamel and never carries white text.", "section": "colors" },
+      { "name": "The Enamel Ground Rule", "body": "Backgrounds are flat solid colour. No background gradients anywhere.", "section": "colors" },
+      { "name": "The Fixed Scale Rule", "body": "Type sizes come only from 12, 14, 16, 18, 20, 24, 30, 36, 48 and 60px, each with its paired line height (16, 20, 24, 28, 28, 32, 36, 40, 48, 60). No sizes in between, no fluid clamps.", "section": "typography" },
+      { "name": "The Two Families Rule", "body": "Manrope sets every word. Geist Mono sets only values a person must read or type exactly. Nothing else enters.", "section": "typography" },
+      { "name": "The Hero Gradient Exception", "body": "The hero heading alone is filled with a horizontal ink gradient (heading-from to heading-to), because the landing page brief pins it. This is not a general device: no other heading, text or surface may use gradient fill.", "section": "typography" },
+      { "name": "The Plain Voice Rule", "body": "Copy is sentence case, plain and direct, with no hyphens.", "section": "typography" },
+      { "name": "The Fixed Rhythm Rule", "body": "Every margin, padding and gap is a step on the spacing scale. If a value is not on the scale, pick the nearest step.", "section": "layout" },
+      { "name": "The Float Only Rule", "body": "Shadows mark something floating over the map or responding to a pointer. Sections, bands and the ground never cast shadows; structure is made with rules and space, not cards.", "section": "elevation" },
+      { "name": "The One Frosted Island Rule", "body": "Background blur is for the floating navigation and its phone sheet only.", "section": "elevation" },
+      { "name": "The Roundel Rule", "body": "A circle always means a station or a status on the line. Do not use circles as generic decoration or avatar frames in this world.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do scope every rule and token under .lm and use it only on the landing and sign-in pages.",
+      "Do set the active role with data-role and read colour through --lm-line, --lm-band and --lm-line-text.",
+      "Do take type sizes only from 12/14/16/18/20/24/30/36/48/60px with their paired line heights.",
+      "Do take spacing only from 2/4/8/12/16/24/32/40/48/64/80/96px.",
+      "Do pad buttons 8px 12px with 16px semibold labels.",
+      "Do animate with cubic-bezier(0.32, 0.72, 0, 1) at 700ms, and collapse all motion under prefers-reduced-motion.",
+      "Do use Phosphor icons.",
+      "Do write sentence case, plain copy with no hyphens.",
+      "Do show real demo data in screen fragments; set prices, times, distances and codes in Geist Mono."
+    ],
+    "donts": [
+      "Don't use background gradients, or gradient text anywhere but the hero heading.",
+      "Don't give a surface more than one active role colour, or use marigold as text on enamel.",
+      "Don't build structure from cards; the screen fragment is the only card.",
+      "Don't cast shadows from sections, bands or the ground.",
+      "Don't use background blur outside the floating navigation and its sheet.",
+      "Don't bring the workspace tokens from styles.css into these pages, or these tokens into the workspaces.",
+      "Don't use circles for anything but stations and statuses."
+    ]
+  }
+}

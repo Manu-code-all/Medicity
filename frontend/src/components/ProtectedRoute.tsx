@@ -14,7 +14,13 @@ export function ProtectedRoute() {
 
   if (!session) {
     // Remember where they were headed so sign-in can return them there.
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    // Send doctors and chemists to their own sign-in page.
+    const signIn = location.pathname.startsWith("/doctor/") || location.pathname === "/doctor"
+      ? "/login/doctor"
+      : location.pathname.startsWith("/store")
+        ? "/login/chemist"
+        : "/login";
+    return <Navigate to={signIn} replace state={{ from: location.pathname }} />;
   }
   return <Outlet />;
 }
