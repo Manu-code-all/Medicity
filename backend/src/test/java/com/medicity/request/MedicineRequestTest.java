@@ -277,7 +277,7 @@ class MedicineRequestTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.stores[0].name").value("Sri Sai Medicals"))
                 .andExpect(jsonPath("$.stores[0].total").value(68.8))
                 .andExpect(jsonPath("$.stores[0].cheapestComplete").value(true))
-                .andExpect(jsonPath("$.stores[0].lines[?(@.substituteName)].substituteName").value(omez.getName()))
+                .andExpect(jsonPath("$.stores[0].lines[?(@.substituteName != null)].substituteName").value(omez.getName()))
                 .andExpect(jsonPath("$.stores[1].name").value("Green Cross"))
                 .andExpect(jsonPath("$.stores[1].nearestComplete").value(true))
                 .andExpect(jsonPath("$.stores[2].name").value("CityCare"))

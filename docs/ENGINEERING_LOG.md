@@ -996,6 +996,14 @@ cheaper total; nearer. "Cheapest" and "Nearest" labels go on stores that have
 everything. A unit test pins that a complete, dearer store ranks above a
 cheap partial one.
 
+**Found by CI: constraint names from plain JDBC.** The first run returned
+500 instead of 409 for a second question on the same prescription.
+`Constraints.nameOf` looked for the constraint name only on Hibernate's
+exception, and these writes go through `JdbcTemplate`, where there is none. It
+now also reads the name from the driver's `PSQLException`, which needed the
+driver at compile scope. Every earlier constraint-to-status translation went
+through Hibernate, which is why this had not come up before.
+
 **Demo.** Meera has an open question about her omeprazole. Three stores have
 answered: one in full, one with the cheaper Omez brand the doctor allowed,
 one partly. Sri Sai Medicals (`chemist@medicity.demo`) and one other store

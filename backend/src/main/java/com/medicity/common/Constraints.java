@@ -1,6 +1,7 @@
 package com.medicity.common;
 
 import org.hibernate.exception.ConstraintViolationException;
+import org.postgresql.util.PSQLException;
 import org.springframework.dao.DataIntegrityViolationException;
 
 /**
@@ -28,6 +29,11 @@ public final class Constraints {
         while (cause != null) {
             if (cause instanceof ConstraintViolationException cve) {
                 return cve.getConstraintName();
+            }
+            // A write through JdbcTemplate never passes through Hibernate: the
+            // driver's own exception is the only place the name is.
+            if (cause instanceof PSQLException pe && pe.getServerErrorMessage() != null) {
+                return pe.getServerErrorMessage().getConstraint();
             }
             cause = cause.getCause();
         }
