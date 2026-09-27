@@ -22,6 +22,9 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    // Form tests type every character through user-event; with files running
+    // in parallel, the longest ones need more than the 5 s default.
+    testTimeout: 15_000,
     // Each test file gets fresh module state: client.ts keeps the in-flight
     // refresh in a module variable, and it must not leak between files.
     isolate: true,

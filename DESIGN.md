@@ -206,6 +206,8 @@ Colour is wayfinding, not ornament. Each role owns one line colour (patient teal
 
 **Scope.** This world governs the public surfaces only: the landing page (`/`) and the three sign-in pages (`/login`, `/login/doctor`, `/login/chemist`). Its tokens live in `frontend/src/landing.css`, scoped under the `.lm` class, in light and dark. The signed in workspaces (patient portal, doctor workspace, chemist store, admin) are out of scope and keep the older incumbent tokens in `frontend/src/styles.css`. Do not mix the two token sets on one surface, and do not apply `.lm` tokens inside the workspaces without a deliberate redesign of them.
 
+The landing page opens with **two doors** before the line: a body guide for visitors who only know where it hurts, and a search box for those who know whom they want. Both are panels on the enamel ground in the same system; the line and its map follow directly below.
+
 **Key Characteristics:**
 - One line colour per role, carried by a single `data-role` switch.
 - Round station markers (white fill, heavy ring) on thick rounded line bands.
@@ -324,7 +326,8 @@ Every component takes its accent from the active line through `--lm-line`, `--lm
 - **State:** chips are status labels, not controls.
 
 ### Cards / Containers
-- **Screen fragment:** the only card. A 16px rounded surface panel with a 1px rule border, 24px padding (16px on phones) and the Float shadow, showing a real piece of the product with real demo data beside each station. A flush variant holds divided lists (8px vertical, rows 12px 24px).
+- **Door:** the landing page's first-screen panels. 24px radius (16px on phones), surface fill, 1px rule border, Float shadow, 32px padding (16px on phones), a 24px / 32px title and a muted lede. Exactly two, side by side above 1023px, stacked below; they rise in with a 120ms stagger. No other surface uses this container.
+- **Screen fragment:** the only card inside a section. A 16px rounded surface panel with a 1px rule border, 24px padding (16px on phones) and the Float shadow, showing a real piece of the product with real demo data beside each station. A flush variant holds divided lists (8px vertical, rows 12px 24px).
 - **Demo card:** on the sign-in page, a 12px rounded button tinted 10% with the line colour over surface, 1px line colour border, 12px 16px padding; lifts 2px with the Float shadow on hover.
 - **Border:** 1px hairline rule; rows inside a panel divide with the same rule.
 
@@ -343,6 +346,12 @@ A three position segmented pill on the raised well: a band coloured slider glide
 
 ### Line and station (signature)
 The journey is a vertical 8px track with 28px roundels. As the visitor scrolls, the line fills with teal station by station and each screen fragment rises into place. On the map, the patient's home roundel sits inside dashed 1 and 3 km rings; chemist roundels pulse while asked, fill teal when they have it, fill marigold when partly, and their flush labels gain a 2px underline in the matching colour.
+
+### Body guide (signature)
+A front or back silhouette (viewBox 200 by 440, at most 200px wide) whose areas are the drawing: each is one path filled at 12% ink over surface with a 3px surface stroke separating it from its neighbours. Hover and keyboard focus tint an area 22% patient teal; the chosen area fills with the patient band and carries a white pulsing pin. A Front | Back pill on the raised well switches the view. Choosing an area opens a sheet below the figure (16px radius, ground fill, 1px rule): chip controls for symptoms and duration (full pill, 1px rule, band fill when pressed; warning signs have a dashed border), then the answer in the same sheet: a muted lead line, a 20px / 28px "See a …" title, the rationale, a block primary button and a quiet alternative. Warning signs replace the answer with an alert sheet in alert red on an 8% red tint, with red call buttons for 112 and 108. A plain list of areas as chips is always one quiet link away.
+
+### Search box
+A combobox inside a 12px rounded field (surface, 1px rule; teal border and 4px halo on focus) with a magnifier, the input, and a compact primary Search button. Suggestions open in a floating list (12px radius, Float shadow, 8px padding) grouped by 12px caption headings: "For what you described", "Specialities", "Doctors"; the active option takes the raised fill. Beneath it, six speciality shortcuts in a three column grid (two on phones): 44px minimum height, 12px radius, 1px rule, a teal Phosphor icon and a label; they lift 2px on hover.
 
 ### Pick up code
 Six Geist Mono cells on raised enamel, 48 by 64px (36 by 48px on phones), 8px radius, drawn as a segment display: unlit segments at 12% ink, lit segments full ink.
@@ -363,7 +372,7 @@ Six Geist Mono cells on raised enamel, 48 by 64px (36 by 48px on phones), 8px ra
 ### Don't:
 - **Don't** use background gradients, or gradient text anywhere but the hero heading.
 - **Don't** give a surface more than one active role colour, or use marigold as text on enamel.
-- **Don't** build structure from cards; the screen fragment is the only card.
+- **Don't** build structure from cards: the two doors and the screen fragments are the only card-like containers.
 - **Don't** cast shadows from sections, bands or the ground.
 - **Don't** use background blur outside the floating navigation and its sheet.
 - **Don't** bring the workspace tokens from `styles.css` into these pages, or these tokens into the workspaces.

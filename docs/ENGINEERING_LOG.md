@@ -1560,8 +1560,37 @@ weekends, the nightly top-up adds nothing when nothing is missing, changing
 hours keeps the booked slot, and the refusals); frontend tests for sign-up,
 the hours page and the admin queue.
 
+## 35. Before the write-up, again: docs, tests for the doctor's flows
+
+A second check before Week 6. The README described neither the body guide
+nor code sign-in, and did not list the demo mobile numbers; DESIGN.md was
+written before the two doors and did not record them; the administrator's
+header link still said "Stores to verify" though there are now two queues.
+
+Frontend tests were missing on the flows an evaluator is most likely to try:
+
+- `VisitPage`: closing a visit, writing a prescription line by line with
+  "cheaper brand is OK", a correction starting from the issued prescription
+  and posting to the corrections endpoint, and a 409 when the patient
+  cancelled meanwhile (the page says so and shows the cancelled visit);
+- `VisitsPage`: cancelling only after the patient confirms, no cancel
+  button in history, the link to a visit's prescription, and the server's
+  reason when a cancellation is refused;
+- `SchedulePage`: the "waiting to be closed" flag and the exact
+  midnight-to-midnight range asked for when moving a day.
+
+Frontend tests: 78 to 85. Their per-test limit is now 15 s: three long form tests passed alone but crossed the 5 s default when the whole suite ran in parallel. Known gaps gained the doctor sign-up shortcuts.
+
 ## Known gaps (tracked, not hidden)
 
+- **Doctor verification is a manual look-up.** The administrator checks the
+  registration number against the council's register by hand; there is no
+  certificate upload and no automatic check (the National Medical
+  Commission's register has no public API).
+- **Hours are one window a day.** A doctor with a lunch break or two clinics
+  a day cannot say so, and there is no way to mark leave or a holiday apart
+  from removing that weekday. Doctors also cannot edit their fee or bio after
+  signing up.
 - **The body guide has not been reviewed by a clinician.** Which doctor each
   area and symptom points to, and which symptoms count as emergencies, were
   written from general medical knowledge. It errs towards emergency care and

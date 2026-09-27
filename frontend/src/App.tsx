@@ -41,7 +41,7 @@ const HOME_LABEL: Record<Role, string> = {
   PATIENT: "My portal",
   DOCTOR: "My workspace",
   CHEMIST: "My store",
-  ADMIN: "Stores to verify",
+  ADMIN: "Verification",
 };
 
 export function App() {

@@ -229,9 +229,23 @@ SPRING_PROFILES_ACTIVE=demo docker compose up --build
 | `arjun@medicity.demo`, `kavya@medicity.demo` | PATIENT — on Dr. Rao's calendar today |
 | `dr.rao@medicity.demo` | DOCTOR — one visit waiting to be closed, one later today |
 | `dr.iyer@medicity.demo` | DOCTOR — useful for checking that doctors cannot reach each other's patients |
-| `admin@medicity.demo` | ADMIN — pharmacy and audit trail |
+| `admin@medicity.demo` | ADMIN — pharmacy, audit trail, and the store and doctor verification queues |
+| `chemist@medicity.demo` | CHEMIST — Sri Sai Medicals, with a patient's question waiting |
+| `dr.menon@`, `dr.kulkarni@`, `dr.shetty@`, … `@medicity.demo` | DOCTOR — one per speciality (14 in all), so every body-guide answer is bookable |
 
 Password for all of them: `demo-password-2026`
+
+Every demo account can also sign in with its mobile number and a one-time
+code. No SMS is sent for these public numbers: the sign-in page shows the code.
+
+| Try it as | Mobile number |
+|---|---|
+| Meera (patient) | 98765 00101 |
+| Dr. Anjali Rao (doctor) | 98765 00001 |
+| Ravi Kumar (chemist) | 98765 00301 |
+
+Real numbers need an SMS provider: set `MSG91_AUTH_KEY` and
+`MSG91_OTP_TEMPLATE_ID`, and codes are texted with no code change.
 
 The seed lives in `db/seed/`, which is added to the Flyway path *only* by the
 `demo` profile — a deployed environment has no path by which these accounts
@@ -484,10 +498,22 @@ subdirectory means `vercel.json` is never read.
   Indiranagar chemists answering the demo patient's question in turn, drawn
   from the same stores, distances and prices the seed creates. It makes no API
   calls, so it renders fully even when the API is down.
+- **Two doors to a doctor** (the landing page's first screen):
+  - *Body guide*: tap where it hurts on a front or back drawing (11 areas),
+    say what it is like and since when, and get the kind of specialist to see
+    with a link to them. Warning signs (crushing chest pain, the worst-ever
+    headache, a drooping face…) switch the answer to emergency care with
+    112 and 108. The mapping is a static table, so the same taps always give
+    the same answer, instantly; it is a guide, not a diagnosis, and a plain
+    list works without the drawing.
+  - *Search*: a combobox suggesting specialities and doctors as you type,
+    and turning everyday words ("knee", "skin", "tooth") into the right
+    speciality; six speciality shortcuts beneath it.
 - **Sign-in pages** (`/login`, `/login/doctor`, `/login/chemist`) — one frame,
   one coloured line per role (teal, indigo, marigold), each with a one-click
-  sign-in as that role's demo account. Protected pages send a signed-out doctor
-  or chemist to their own sign-in page.
+  sign-in as that role's demo account. Mobile number and a one-time code, or
+  email and password. Protected pages send a signed-out doctor or chemist to
+  their own sign-in page.
 - **Patient portal** (`/portal`) — where a patient lands after signing in:
   - *Overview*: the next visit with a countdown, totals, recent visits and the
     latest prescription.
@@ -516,6 +542,14 @@ missed visit, a corrected prescription and an upcoming appointment.
   every view, and every refused attempt, is written to the audit trail.
 
 Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
+
+- **Joining** (`/register/doctor`) — a doctor signs up with their medical
+  council and registration number, as on Practo. They can sign in and set
+  hours at once, but are not listed or bookable until an administrator has
+  checked the number (`/admin/doctors`).
+- **Your hours** (`/doctor/hours`) — days, times and visit length. Saving
+  opens bookable slots four weeks ahead; a nightly job adds each new day, and
+  a slot someone booked is never removed.
 
 - **Handwritten prescriptions** — photograph the slip; Claude reads it into a
   draft the doctor checks line by line and confirms. The model's output is never
