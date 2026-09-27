@@ -304,7 +304,7 @@ public class ReservationService {
         jdbc.update("""
                 UPDATE medicine_requests
                 SET status = CASE WHEN expires_at > ? THEN 'OPEN' ELSE 'EXPIRED' END,
-                    closed_at = CASE WHEN expires_at > ? THEN NULL ELSE ? END
+                    closed_at = CASE WHEN expires_at > ? THEN NULL ELSE CAST(? AS timestamptz) END
                 WHERE id = ? AND status = 'RESERVED'
                 """, Timestamp.from(now), Timestamp.from(now), Timestamp.from(now), requestId);
     }
