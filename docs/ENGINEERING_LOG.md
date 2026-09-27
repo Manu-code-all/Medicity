@@ -1457,8 +1457,69 @@ in demo, code stored as a hash, one account per number) and
 `Msg91OtpSenderTest`; three new frontend tests for the demo code, the
 "not switched on" path and a wrong code.
 
+## 33. Two doors to a doctor: the body guide and the search box
+
+Patients arrive in one of two states. Some know what they want ("Dr. Menon",
+"a dermatologist"); some only know where it hurts. The landing page now opens
+with a door for each, and the chemist map that used to be the first screen is
+the section right after it.
+
+**Door 1, the body guide.** A front and back drawing of the body, eleven
+tappable areas. Choosing one opens its symptoms and "since when"; the answer
+is the kind of doctor to see, why, and a link straight into the filtered
+directory (`/doctors?specialty=Gastroenterology&zone=abdomen_upper`).
+
+- **Deterministic and offline.** `bodymap/taxonomy.ts` is a static table: the
+  same taps always give the same answer, instantly, and nothing is generated.
+  A symptom can name a more specific speciality than its area (toothache sends
+  the head to a dentist), and the area's default becomes the alternative.
+- **Warning signs win.** Every area has at least one (crushing chest pressure,
+  sudden worst headache, face drooping, black stools, a numb groin…). Ticking
+  one replaces the recommendation with "get emergency care now" and tap-to-call
+  links for 112 and the 108 ambulance.
+- **Specialities are spelt as the data spells them,** so every answer is a
+  working filter; a test fails if the table names a speciality no seeded
+  doctor practises, or if the drawing and the table disagree about areas.
+- **Accessible:** each area is one `role="button"` path (both arms are one
+  path, so one tab stop), named, keyboard-operable, with a plain list of
+  areas as the alternative to the drawing. Sheet, not modal: the body stays
+  in view and choosing another area replaces the sheet.
+
+**Door 2, the search box.** A combobox over the new
+`GET /api/v1/doctors/suggest` (matching specialisations with doctor counts,
+then up to five doctors by name or specialisation; fewer than two characters
+answers nothing rather than everyone). Requests wait 300 ms after typing
+stops and are cached, so retyping is instant; arrow keys, Enter and Escape
+work as a listbox should. Six speciality shortcuts sit below it. `q` on the
+directory now matches specialisations as well as names, and
+`GET /api/v1/doctors/specialties` replaces the page's hard-coded list, so it
+only offers specialities someone can be booked in.
+
+**The directory reads its filters from the URL,** so both doors link into it
+and a filtered list can be shared. Arriving from the guide shows which area
+it was for, and an empty result offers the area's alternative speciality.
+
+**Eleven more demo doctors** (general medicine, gastroenterology,
+orthopaedics, ENT, dermatology, pulmonology, urology, gynaecology,
+nephrology, general surgery, dentistry) so every answer finds someone to
+book; the nightly reset clears their bookings too.
+
+**Not built from the brief, and why:** clinics and hospitals as search
+results (Medicity is one clinic; there is no facility table to search), and
+distance for doctors (doctors have no location; the location bar belongs to
+the chemist search).
+
+Also: the frontend tests' async timeout is 3 s instead of 1 s. A test that
+waits for a heading failed once when the whole suite ran on a busy machine
+and passed alone; shared CI runners are busier still.
+
 ## Known gaps (tracked, not hidden)
 
+- **The body guide has not been reviewed by a clinician.** Which doctor each
+  area and symptom points to, and which symptoms count as emergencies, were
+  written from general medical knowledge. It errs towards emergency care and
+  says it is not a diagnosis, but it needs a doctor's review before real
+  patients rely on it.
 - **Codes are not texted yet.** No SMS provider is configured, so only the
   demo accounts can sign in with a code (shown on screen); real numbers are
   told to use email. The MSG91 sender has only been tested against a mock.

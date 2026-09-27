@@ -294,6 +294,8 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/auth/refresh` | — | Rotate: spend a refresh token for a new pair (reuse ends the session) |
 | `POST` | `/api/v1/auth/logout` | — | End the session the refresh token belongs to |
 | `GET` | `/api/v1/doctors` | — | Search doctors |
+| `GET` | `/api/v1/doctors/specialties` | — | Specialisations someone can be booked in, with doctor counts |
+| `GET` | `/api/v1/doctors/suggest?q=` | — | Search-box suggestions: specialisations, then up to five doctors |
 | `GET` | `/api/v1/doctors/{id}/slots` | — | Available slots |
 | `POST` | `/api/v1/appointments` | PATIENT | **Book a slot** (optional `Idempotency-Key`) |
 | `POST` | `/api/v1/appointments/{id}/cancel` | owner | Cancel, releasing the slot |

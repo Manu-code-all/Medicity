@@ -46,6 +46,84 @@ INSERT INTO doctors (id, user_id, specialization, license_number, consultation_f
 ON CONFLICT (license_number) DO NOTHING;
 
 
+-- ---------------------------------------------------------------------
+-- More specialists, so every area of the body guide on the landing page
+-- and every speciality shortcut finds someone to book. Demo accounts like
+-- the rest; their bookings are removed by the nightly reset.
+-- ---------------------------------------------------------------------
+INSERT INTO users (id, email, password_hash, full_name, phone, role) VALUES
+  ('11111111-1111-4111-8111-111111111104', 'dr.menon@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Dr. Kavitha Menon', '+919876500004', 'DOCTOR'),
+  ('11111111-1111-4111-8111-111111111105', 'dr.kulkarni@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Dr. Arvind Kulkarni', '+919876500005', 'DOCTOR'),
+  ('11111111-1111-4111-8111-111111111106', 'dr.shetty@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Dr. Rohan Shetty', '+919876500006', 'DOCTOR'),
+  ('11111111-1111-4111-8111-111111111107', 'dr.bhat@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Dr. Neha Bhat', '+919876500007', 'DOCTOR'),
+  ('11111111-1111-4111-8111-111111111108', 'dr.qureshi@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Dr. Sana Qureshi', '+919876500008', 'DOCTOR'),
+  ('11111111-1111-4111-8111-111111111109', 'dr.reddy@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Dr. Vikram Reddy', '+919876500009', 'DOCTOR'),
+  ('11111111-1111-4111-8111-111111111110', 'dr.gowda@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Dr. Prakash Gowda', '+919876500010', 'DOCTOR'),
+  ('11111111-1111-4111-8111-111111111111', 'dr.hegde@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Dr. Deepa Hegde', '+919876500011', 'DOCTOR'),
+  ('11111111-1111-4111-8111-111111111112', 'dr.pasha@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Dr. Imran Pasha', '+919876500012', 'DOCTOR'),
+  ('11111111-1111-4111-8111-111111111113', 'dr.sundaram@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Dr. Meenakshi Sundaram', '+919876500013', 'DOCTOR'),
+  ('11111111-1111-4111-8111-111111111114', 'dr.joshi@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Dr. Aditi Joshi', '+919876500014', 'DOCTOR')
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO doctors (id, user_id, specialization, license_number, consultation_fee, years_experience, bio) VALUES
+  ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa04', '11111111-1111-4111-8111-111111111104',
+   'General Medicine', 'KA-GMED-40211', 700.00, 12,
+   'Family physician for everyday illness, fevers, diabetes and blood pressure; the first stop when you are not sure.'),
+  ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa05', '11111111-1111-4111-8111-111111111105',
+   'Gastroenterology', 'KA-GAST-40318', 1300.00, 16,
+   'Gastroenterologist treating acidity, reflux, liver and bowel conditions; performs endoscopy.'),
+  ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa06', '11111111-1111-4111-8111-111111111106',
+   'Orthopaedics', 'KA-ORTH-40427', 1100.00, 11,
+   'Orthopaedic surgeon for joint pain, sports injuries, back and spine problems.'),
+  ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa07', '11111111-1111-4111-8111-111111111107',
+   'ENT', 'KA-ENT-40536', 900.00, 8,
+   'Ear, nose and throat specialist: sinusitis, tonsils, hearing and voice.'),
+  ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa08', '11111111-1111-4111-8111-111111111108',
+   'Dermatology', 'KA-DERM-40645', 1000.00, 10,
+   'Dermatologist for acne, eczema, hair loss and skin infections.'),
+  ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa09', '11111111-1111-4111-8111-111111111109',
+   'Pulmonology', 'KA-PULM-40754', 1200.00, 15,
+   'Chest physician for asthma, persistent cough, breathlessness and sleep apnoea.'),
+  ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa10', '11111111-1111-4111-8111-111111111110',
+   'Urology', 'KA-UROL-40863', 1200.00, 13,
+   'Urologist treating kidney stones, urinary infections and prostate conditions.'),
+  ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa11', '11111111-1111-4111-8111-111111111111',
+   'Gynaecology', 'KA-GYNE-40972', 1100.00, 14,
+   'Obstetrician and gynaecologist: periods, pregnancy care and women''s health.'),
+  ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa12', '11111111-1111-4111-8111-111111111112',
+   'Nephrology', 'KA-NEPH-41081', 1400.00, 17,
+   'Nephrologist caring for kidney disease, swelling and high blood pressure linked to the kidneys.'),
+  ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa13', '11111111-1111-4111-8111-111111111113',
+   'General Surgery', 'KA-GSUR-41190', 1000.00, 19,
+   'General surgeon for hernia, appendix, gallbladder and lumps.'),
+  ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa14', '11111111-1111-4111-8111-111111111114',
+   'Dentistry', 'KA-DENT-41209', 600.00, 7,
+   'Dentist for toothache, fillings, root canals and gum care.')
+ON CONFLICT (license_number) DO NOTHING;
+
+
 INSERT INTO patients (id, user_id, date_of_birth, gender, blood_group, city) VALUES
   ('bbbbbbbb-2222-4222-8222-bbbbbbbbbb01', '22222222-2222-4222-8222-222222222201',
    '1994-08-12', 'FEMALE', 'O+', 'Bengaluru')
