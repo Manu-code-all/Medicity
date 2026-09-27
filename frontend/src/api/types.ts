@@ -294,6 +294,8 @@ export interface StoreAnswer {
   openNow: boolean;
   holdHours: number;
   answered: boolean;
+  /** Answered from the store's live stock, not by the chemist. */
+  automatic: boolean;
   note: string | null;
   answeredAt: string | null;
   lines: AnswerLine[];
@@ -436,4 +438,52 @@ export interface AnswerLineInput {
   quantity: number | null;
   unitPrice: number | null;
   substituteMedicineId: string | null;
+}
+
+// --- Store insights and live stock -----------------------------------------
+
+export interface MedicineDemand {
+  medicineId: string;
+  name: string;
+  strength: string | null;
+  form: string;
+  asked: number;
+  patients: number;
+  units: number;
+  had: number;
+  partly: number;
+  saidNo: number;
+  unanswered: number;
+  wentElsewhere: number;
+  considerStocking: boolean;
+}
+
+export interface StoreInsights {
+  from: string;
+  to: string;
+  summary: {
+    questionsReceived: number;
+    answered: number;
+    answeredAutomatically: number;
+    reservations: number;
+    collected: number;
+    medianMinutesToAnswer: number | null;
+  };
+  medicines: MedicineDemand[];
+}
+
+export interface StockLine {
+  medicineId: string;
+  name: string;
+  strength: string | null;
+  form: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface StockView {
+  autoAnswer: boolean;
+  updatedAt: string | null;
+  fresh: boolean;
+  items: StockLine[];
 }

@@ -345,3 +345,152 @@ INSERT INTO request_answer_lines (request_id, store_id, medicine_id, availabilit
   ('abababab-7777-4777-8777-abababab0001', '55555555-5555-4555-8555-555555555504',
    'cccccccc-3333-4333-8333-cccccccccc06', 'PARTIAL', 10, 5.80, NULL)
 ON CONFLICT DO NOTHING;
+
+
+-- ---------------------------------------------------------------------
+-- A week of questions behind the store insights. Arjun and Kavya each had
+-- a visit last week that ended with azithromycin; they and Meera asked the
+-- stores, and each collected somewhere. Sri Sai Medicals had no
+-- azithromycin either time, which is what its insights page points out.
+-- ---------------------------------------------------------------------
+INSERT INTO appointment_slots (id, doctor_id, starts_at, ends_at, status) VALUES
+  ('dddddddd-4444-4444-8444-dddddddddd08', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa02',
+   date_trunc('day', now()) - INTERVAL '4 days' + INTERVAL '5 hours',
+   date_trunc('day', now()) - INTERVAL '4 days' + INTERVAL '5 hours 30 minutes', 'OPEN'),
+  ('dddddddd-4444-4444-8444-dddddddddd09', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa03',
+   date_trunc('day', now()) - INTERVAL '3 days' + INTERVAL '5 hours',
+   date_trunc('day', now()) - INTERVAL '3 days' + INTERVAL '5 hours 30 minutes', 'OPEN')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO appointments (id, slot_id, patient_id, status, reason, scheduled_at)
+SELECT v.id::uuid, s.id, v.patient_id::uuid, 'COMPLETED', v.reason, s.starts_at
+FROM (VALUES
+  ('eeeeeeee-5555-4555-8555-eeeeeeeeee09', 'dddddddd-4444-4444-8444-dddddddddd08',
+   'bbbbbbbb-2222-4222-8222-bbbbbbbbbb02', 'Sore throat and fever, 3 days'),
+  ('eeeeeeee-5555-4555-8555-eeeeeeeeee10', 'dddddddd-4444-4444-8444-dddddddddd09',
+   'bbbbbbbb-2222-4222-8222-bbbbbbbbbb03', 'Cough and fever')
+) AS v (id, slot_id, patient_id, reason)
+JOIN appointment_slots s ON s.id = v.slot_id::uuid
+ON CONFLICT DO NOTHING;
+
+INSERT INTO prescriptions (id, appointment_id, doctor_id, patient_id, diagnosis, notes, issued_at)
+SELECT v.id::uuid, a.id, s.doctor_id, a.patient_id, v.diagnosis, v.notes, a.scheduled_at + INTERVAL '20 minutes'
+FROM (VALUES
+  ('ffffffff-6666-4666-8666-ffffffffff05', 'eeeeeeee-5555-4555-8555-eeeeeeeeee09',
+   'Acute pharyngitis', 'Warm salt-water gargles. Come back if the fever lasts beyond 3 days.'),
+  ('ffffffff-6666-4666-8666-ffffffffff06', 'eeeeeeee-5555-4555-8555-eeeeeeeeee10',
+   'Acute bronchitis', 'Plenty of fluids.')
+) AS v (id, appointment_id, diagnosis, notes)
+JOIN appointments a ON a.id = v.appointment_id::uuid
+JOIN appointment_slots s ON s.id = a.slot_id
+ON CONFLICT DO NOTHING;
+
+INSERT INTO prescription_items (prescription_id, medicine_id, dosage, frequency, duration_days, quantity,
+                                substitution_allowed) VALUES
+  ('ffffffff-6666-4666-8666-ffffffffff05', 'cccccccc-3333-4333-8333-cccccccccc02',
+   '250mg', 'Once daily', 5, 5, TRUE),
+  ('ffffffff-6666-4666-8666-ffffffffff05', 'cccccccc-3333-4333-8333-cccccccccc03',
+   '10mg', 'At night', 5, 5, FALSE),
+  ('ffffffff-6666-4666-8666-ffffffffff06', 'cccccccc-3333-4333-8333-cccccccccc02',
+   '250mg', 'Once daily', 3, 3, FALSE),
+  ('ffffffff-6666-4666-8666-ffffffffff06', 'cccccccc-3333-4333-8333-cccccccccc01',
+   '500mg', 'As needed for fever, at most 3 a day', 5, 10, TRUE)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO medicine_requests (id, patient_id, prescription_id, latitude, longitude, radius_m, status,
+                               stores_asked, created_at, expires_at, closed_at)
+SELECT v.id::uuid, v.patient_id::uuid, v.prescription_id::uuid, 12.971900, 77.641200, 3000, 'CLOSED', 5,
+       now() - v.ago::interval, now() - v.ago::interval + INTERVAL '6 hours',
+       now() - v.ago::interval + INTERVAL '2 hours'
+FROM (VALUES
+  ('abababab-7777-4777-8777-abababab0002', 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb01',
+   'ffffffff-6666-4666-8666-ffffffffff01', '5 days'),
+  ('abababab-7777-4777-8777-abababab0003', 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb02',
+   'ffffffff-6666-4666-8666-ffffffffff05', '4 days'),
+  ('abababab-7777-4777-8777-abababab0004', 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb03',
+   'ffffffff-6666-4666-8666-ffffffffff06', '3 days')
+) AS v (id, patient_id, prescription_id, ago)
+JOIN prescriptions rx ON rx.id = v.prescription_id::uuid
+ON CONFLICT DO NOTHING;
+
+INSERT INTO medicine_request_items (request_id, medicine_id, quantity, substitution_allowed)
+SELECT r.id, pi.medicine_id, pi.quantity, pi.substitution_allowed
+FROM medicine_requests r JOIN prescription_items pi ON pi.prescription_id = r.prescription_id
+WHERE r.id IN ('abababab-7777-4777-8777-abababab0002', 'abababab-7777-4777-8777-abababab0003',
+               'abababab-7777-4777-8777-abababab0004')
+ON CONFLICT DO NOTHING;
+
+-- Every store was asked; the first three answered within minutes.
+INSERT INTO request_recipients (request_id, store_id, distance_m, status, answered_at)
+SELECT r.id, s.id, round(store_distance_m(12.9719, 77.6412, s.latitude, s.longitude)),
+       CASE WHEN s.id::text ~ '0[123]$' THEN 'ANSWERED' ELSE 'PENDING' END,
+       CASE WHEN s.id::text ~ '0[123]$' THEN r.created_at + INTERVAL '6 minutes' END
+FROM medicine_requests r CROSS JOIN stores s
+WHERE r.id IN ('abababab-7777-4777-8777-abababab0002', 'abababab-7777-4777-8777-abababab0003',
+               'abababab-7777-4777-8777-abababab0004')
+  AND s.id::text LIKE '55555555-5555-4555-8555-%'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO request_answer_lines (request_id, store_id, medicine_id, availability, quantity_available,
+                                  unit_price, substitute_medicine_id)
+SELECT v.request_id::uuid, v.store_id::uuid, v.medicine_id::uuid, v.availability, v.qty, v.price,
+       v.substitute::uuid
+FROM (VALUES
+  -- Meera, omeprazole x28
+  ('abababab-7777-4777-8777-abababab0002', '55555555-5555-4555-8555-555555555501', 'cccccccc-3333-4333-8333-cccccccccc06', 'YES', 28, 5.20, NULL),
+  ('abababab-7777-4777-8777-abababab0002', '55555555-5555-4555-8555-555555555502', 'cccccccc-3333-4333-8333-cccccccccc06', 'YES', 28, 5.50, NULL),
+  ('abababab-7777-4777-8777-abababab0002', '55555555-5555-4555-8555-555555555503', 'cccccccc-3333-4333-8333-cccccccccc06', 'YES', 28, 5.40, NULL),
+  -- Arjun, azithromycin x5 and cetirizine x5
+  ('abababab-7777-4777-8777-abababab0003', '55555555-5555-4555-8555-555555555501', 'cccccccc-3333-4333-8333-cccccccccc02', 'NO', 0, NULL, NULL),
+  ('abababab-7777-4777-8777-abababab0003', '55555555-5555-4555-8555-555555555501', 'cccccccc-3333-4333-8333-cccccccccc03', 'YES', 5, 2.50, NULL),
+  ('abababab-7777-4777-8777-abababab0003', '55555555-5555-4555-8555-555555555502', 'cccccccc-3333-4333-8333-cccccccccc02', 'YES', 5, 7.20, NULL),
+  ('abababab-7777-4777-8777-abababab0003', '55555555-5555-4555-8555-555555555502', 'cccccccc-3333-4333-8333-cccccccccc03', 'YES', 5, 2.80, NULL),
+  ('abababab-7777-4777-8777-abababab0003', '55555555-5555-4555-8555-555555555503', 'cccccccc-3333-4333-8333-cccccccccc02', 'PARTIAL', 3, 7.00, NULL),
+  ('abababab-7777-4777-8777-abababab0003', '55555555-5555-4555-8555-555555555503', 'cccccccc-3333-4333-8333-cccccccccc03', 'YES', 5, 2.60, NULL),
+  -- Kavya, azithromycin x3 and paracetamol x10 (another brand allowed)
+  ('abababab-7777-4777-8777-abababab0004', '55555555-5555-4555-8555-555555555501', 'cccccccc-3333-4333-8333-cccccccccc02', 'NO', 0, NULL, NULL),
+  ('abababab-7777-4777-8777-abababab0004', '55555555-5555-4555-8555-555555555501', 'cccccccc-3333-4333-8333-cccccccccc01', 'YES', 10, 3.50, NULL),
+  ('abababab-7777-4777-8777-abababab0004', '55555555-5555-4555-8555-555555555502', 'cccccccc-3333-4333-8333-cccccccccc02', 'YES', 3, 7.20, NULL),
+  ('abababab-7777-4777-8777-abababab0004', '55555555-5555-4555-8555-555555555502', 'cccccccc-3333-4333-8333-cccccccccc01', 'YES', 10, 3.80, NULL),
+  ('abababab-7777-4777-8777-abababab0004', '55555555-5555-4555-8555-555555555503', 'cccccccc-3333-4333-8333-cccccccccc02', 'YES', 3, 6.90, NULL),
+  ('abababab-7777-4777-8777-abababab0004', '55555555-5555-4555-8555-555555555503', 'cccccccc-3333-4333-8333-cccccccccc01', 'YES', 10, 2.90, 'cccccccc-3333-4333-8333-cccccccccc07')
+) AS v (request_id, store_id, medicine_id, availability, qty, price, substitute)
+JOIN medicine_requests r ON r.id = v.request_id::uuid
+ON CONFLICT DO NOTHING;
+
+-- Each collected somewhere: Meera at Sri Sai, Arjun at Green Cross, Kavya at Lakshmi.
+INSERT INTO reservations (id, request_id, store_id, patient_id, pickup_code, status, total, complete,
+                          created_at, expires_at, collected_at, ended_at)
+SELECT v.id::uuid, r.id, v.store_id::uuid, r.patient_id, '000000', 'COLLECTED', v.total, TRUE,
+       r.created_at + INTERVAL '10 minutes', r.created_at + INTERVAL '3 hours 10 minutes',
+       r.created_at + INTERVAL '50 minutes', r.created_at + INTERVAL '50 minutes'
+FROM (VALUES
+  ('acacacac-8888-4888-8888-acacacac0002', 'abababab-7777-4777-8777-abababab0002',
+   '55555555-5555-4555-8555-555555555501', 145.60),
+  ('acacacac-8888-4888-8888-acacacac0003', 'abababab-7777-4777-8777-abababab0003',
+   '55555555-5555-4555-8555-555555555502', 50.00),
+  ('acacacac-8888-4888-8888-acacacac0004', 'abababab-7777-4777-8777-abababab0004',
+   '55555555-5555-4555-8555-555555555503', 49.70)
+) AS v (id, request_id, store_id, total)
+JOIN medicine_requests r ON r.id = v.request_id::uuid
+ON CONFLICT DO NOTHING;
+
+
+-- Nightingale keeps its stock in billing software and answers from it
+-- automatically. Fresh as of the seed; after a day without an upload it
+-- would go back to answering by hand.
+INSERT INTO store_stock (store_id, medicine_id, quantity, unit_price)
+SELECT '55555555-5555-4555-8555-555555555504', v.medicine_id::uuid, v.qty, v.price
+FROM (VALUES
+  ('cccccccc-3333-4333-8333-cccccccccc01', 120, 3.60),
+  ('cccccccc-3333-4333-8333-cccccccccc02', 18, 7.40),
+  ('cccccccc-3333-4333-8333-cccccccccc03', 60, 2.70),
+  ('cccccccc-3333-4333-8333-cccccccccc05', 200, 4.80),
+  ('cccccccc-3333-4333-8333-cccccccccc06', 10, 5.80),
+  ('cccccccc-3333-4333-8333-cccccccccc07', 80, 2.95)
+) AS v (medicine_id, qty, price)
+JOIN stores s ON s.id = '55555555-5555-4555-8555-555555555504'
+ON CONFLICT DO NOTHING;
+
+UPDATE stores SET auto_answer = TRUE, stock_updated_at = now()
+WHERE id = '55555555-5555-4555-8555-555555555504';

@@ -18,7 +18,9 @@ import { ChemistsPage } from "./pages/portal/ChemistsPage";
 import { RequestPage } from "./pages/portal/RequestPage";
 import { RequestsPage } from "./pages/portal/RequestsPage";
 import { QuestionPage } from "./pages/store/QuestionPage";
+import { InsightsPage } from "./pages/store/InsightsPage";
 import { QueuePage } from "./pages/store/QueuePage";
+import { StockPage } from "./pages/store/StockPage";
 import { ReservationsPage } from "./pages/store/ReservationsPage";
 import { StoreLayout } from "./pages/store/StoreLayout";
 import { StoreProfilePage } from "./pages/store/StoreProfilePage";
@@ -101,6 +103,8 @@ export function App() {
               <Route path="requests" element={<QueuePage />} />
               <Route path="requests/:requestId" element={<QuestionPage />} />
               <Route path="reservations" element={<ReservationsPage />} />
+              <Route path="insights" element={<InsightsPage />} />
+              <Route path="stock" element={<StockPage />} />
             </Route>
           </Route>
 

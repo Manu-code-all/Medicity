@@ -210,9 +210,9 @@ class MedicineRequestTest extends NetworkTestSupport {
     @Test
     @DisplayName("a partial store ranks below every store with everything, even a dearer one")
     void completenessBeatsPrice() {
-        var partial = Comparison.StoreAnswer.of(UUID.randomUUID(), "Cheap but short", "", "", 100, true, 3, true,
+        var partial = Comparison.StoreAnswer.of(UUID.randomUUID(), "Cheap but short", "", "", 100, true, 3, true, false,
                 null, Instant.now(), List.of(line(MedicineRequestService.Availability.PARTIAL, 5, "1.00")), 1);
-        var complete = Comparison.StoreAnswer.of(UUID.randomUUID(), "Has it all", "", "", 900, true, 3, true,
+        var complete = Comparison.StoreAnswer.of(UUID.randomUUID(), "Has it all", "", "", 900, true, 3, true, false,
                 null, Instant.now(), List.of(line(MedicineRequestService.Availability.YES, 10, "9.00")), 1);
 
         assertThat(Comparison.rank(List.of(partial, complete))).extracting(Comparison.StoreAnswer::name)

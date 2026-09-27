@@ -75,6 +75,8 @@ public record Comparison(
             boolean openNow,
             int holdHours,
             boolean answered,
+            /** Answered from the store's live stock rather than by the chemist. */
+            boolean automatic,
             String note,
             Instant answeredAt,
             List<AnswerLine> lines,
@@ -88,8 +90,8 @@ public record Comparison(
             boolean nearestComplete
     ) {
         static StoreAnswer of(UUID storeId, String name, String addressLine, String phone, int distanceM,
-                              boolean openNow, int holdHours, boolean answered, String note, Instant answeredAt,
-                              List<AnswerLine> lines, int itemsAsked) {
+                              boolean openNow, int holdHours, boolean answered, boolean automatic, String note,
+                              Instant answeredAt, List<AnswerLine> lines, int itemsAsked) {
             int available = (int) lines.stream().filter(l -> l.availability() != Availability.NO).count();
             boolean complete = answered && lines.size() == itemsAsked
                     && lines.stream().allMatch(l -> l.availability() == Availability.YES);
@@ -97,13 +99,13 @@ public record Comparison(
                     .filter(l -> l.availability() != Availability.NO)
                     .map(l -> l.unitPrice().multiply(BigDecimal.valueOf(l.quantityAvailable())))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
-            return new StoreAnswer(storeId, name, addressLine, phone, distanceM, openNow, holdHours, answered, note,
-                    answeredAt, lines, available, complete, total, false, false);
+            return new StoreAnswer(storeId, name, addressLine, phone, distanceM, openNow, holdHours, answered,
+                    automatic, note, answeredAt, lines, available, complete, total, false, false);
         }
 
         StoreAnswer labelled(boolean cheapest, boolean nearest) {
-            return new StoreAnswer(storeId, name, addressLine, phone, distanceM, openNow, holdHours, answered, note,
-                    answeredAt, lines, medicinesAvailable, complete, total, cheapest, nearest);
+            return new StoreAnswer(storeId, name, addressLine, phone, distanceM, openNow, holdHours, answered,
+                    automatic, note, answeredAt, lines, medicinesAvailable, complete, total, cheapest, nearest);
         }
     }
 }
