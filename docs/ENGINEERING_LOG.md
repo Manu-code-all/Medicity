@@ -1210,8 +1210,53 @@ removes any family members visitors add to the demo accounts.
 
 ---
 
+## 27. How to take your medicines, in your own language (PR #32)
+
+Feature 8. Each prescription in the portal has a "How to take" panel in
+English, Hindi, Tamil, Kannada, Telugu or Bengali, with a "Share on WhatsApp"
+button for the family member who looks after an elderly parent's medicines.
+
+**Not machine translation.** The doctor writes the frequency as short free
+text ("Twice daily after food"). Running free text through a translator is how
+"once" becomes "one tablet" or "before food" becomes "with food", and for
+medicines that is the dangerous failure. So nothing is translated. The
+frequency is parsed against a fixed set of recognised phrases into structured
+parts: how often, morning or night, before, after or with food, only when
+needed, a daily maximum, what for. Each part is written from a hand-made
+phrasebook. The parts are shown separately ("दिन में दो बार · खाने के बाद · 5
+दिन तक"), never joined into sentences, so no grammar has to be generated.
+
+**All or nothing.** If any word of the frequency is not recognised, none of it
+is shown translated. The patient sees the doctor's own English words and, in
+their language, "ask your pharmacist to explain these instructions". A
+partial translation that drops "reduce to once after a week" would be worse
+than none. The doctor's words are always shown underneath the translation
+anyway.
+
+**Helping doctors write recognisable phrases.** The frequency field suggests
+common phrases (a `datalist`). If the doctor types something the parser will
+not recognise, the form says quietly "Patients will see these words in English
+only". A test checks that every suggested phrase is recognised, so the
+suggestions and the parser cannot drift apart.
+
+**Sharing.** The WhatsApp message has the medicines, doses and instructions
+(with the doctor's English), and never the diagnosis: a forwarded message can
+go anywhere. A test checks the diagnosis is absent. It is a `wa.me` link the
+patient taps, and nothing is sent by the server.
+
+**Known gap.** The phrasebook was written without review by native speakers
+or a pharmacist. It covers a small, simple vocabulary on purpose, but it must
+be reviewed before real patients rely on it (listed under Known gaps).
+
+---
+
 ## Known gaps (tracked, not hidden)
 
+- **Medicine instructions in Indian languages are unreviewed.** The phrasebook
+  behind "How to take" (entry 27) was written without a native speaker or a
+  pharmacist checking it. It is deliberately small and falls back to the
+  doctor's English for anything it does not recognise, but each phrase needs
+  review before real patients rely on it.
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when
   checking the audit trail on production: consecutive requests from one
   machine were recorded as 152.233.15.120, .121, .123 and 152.233.68.97.

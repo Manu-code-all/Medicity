@@ -593,3 +593,13 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .family-member > div { flex: 1; }
 .family-member p { margin: 0; }
 .acting-banner { background: var(--warn-soft); color: var(--warn); border-radius: var(--radius); padding: 8px 12px; font-weight: 600; }
+
+/* How to take, in the patient's language */
+.how { margin-top: 14px; padding: 12px 14px; border-radius: var(--radius); background: var(--bg); }
+.how__head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.how__head h3 { margin: 0; font-size: 1rem; }
+.how__list { margin: 10px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.how__list p { margin: 2px 0 0; }
+.how__parts { font-size: 1.02rem; }
+.how__parts--unclear { color: var(--warn); }
+.whatsapp { display: inline-block; margin-top: 6px; }

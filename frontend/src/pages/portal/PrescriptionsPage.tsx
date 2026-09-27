@@ -4,6 +4,7 @@ import { useLocation, useSearchParams } from "react-router-dom";
 import { portal } from "../../api/endpoints";
 import { formatDate } from "../../lib/format";
 import { AskChemists } from "./AskChemists";
+import { HowToTake } from "./HowToTake";
 
 export function PrescriptionsPage() {
   const { hash } = useLocation();
@@ -110,6 +111,8 @@ export function PrescriptionsPage() {
           ) : (
             <p className="muted">No medicines on this prescription.</p>
           )}
+
+          {rx.items.length > 0 && <HowToTake prescription={rx} />}
 
           {rx.notes && (
             <p className="rx__notes">
