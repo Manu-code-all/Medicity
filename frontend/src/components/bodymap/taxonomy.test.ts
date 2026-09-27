@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SILHOUETTES } from "./silhouettes";
-import { BODY_TAXONOMY, SPECIALIST, recommend, regionsIn, specialistPhrase } from "./taxonomy";
+import { BODY_TAXONOMY, SPECIALIST, recommend, regionsIn, specialistPhrase, wordMatches } from "./taxonomy";
 
 /** The specialities the demo seeds a doctor for; every recommendation must be bookable. */
 const SEEDED = [
@@ -43,4 +43,14 @@ describe("body guide taxonomy", () => {
     expect(specialistPhrase("ENT")).toBe("an ENT specialist");
     expect(specialistPhrase("Gastroenterology")).toBe("a gastroenterologist");
   });
+
+  it("turns everyday words into specialities, never into an emergency symptom", () => {
+    expect(wordMatches("knee")[0]).toMatchObject({ specialty: "Orthopaedics", zone: "joints_lower" });
+    expect(wordMatches("skin")[0]).toMatchObject({ specialty: "Dermatology" });
+    expect(wordMatches("tooth").map((m) => m.specialty)).toContain("Dentistry");
+    expect(wordMatches("crushing")).toEqual([]);
+    expect(wordMatches("ab")).toEqual([]);
+    for (const m of wordMatches("pain", 10)) expect(SPECIALIST[m.specialty]).toBeDefined();
+  });
 });
+

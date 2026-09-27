@@ -58,4 +58,18 @@ describe("DoctorOmnibar", () => {
 
     expect(await screen.findByText("At /doctors?q=knee+pain")).toBeInTheDocument();
   });
+
+  it("everyday words find the speciality: 'knee' suggests an orthopaedic doctor for that area", async () => {
+    mockFetch(() => json(200, { specialties: [], doctors: [] }));
+    renderBox();
+
+    await userEvent.type(screen.getByRole("combobox"), "knee");
+
+    const option = await screen.findByRole("option", { name: /Knee pain or swelling/ });
+    expect(option).toHaveTextContent("See an orthopaedic doctor");
+    await userEvent.click(option);
+
+    expect(await screen.findByText("At /doctors?specialty=Orthopaedics&zone=joints_lower")).toBeInTheDocument();
+  });
 });
+

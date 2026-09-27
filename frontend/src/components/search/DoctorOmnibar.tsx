@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { doctors } from "../../api/endpoints";
+import { specialistPhrase, wordMatches } from "../bodymap/taxonomy";
 
 const DEBOUNCE_MS = 300;
 
@@ -40,7 +41,15 @@ export function DoctorOmnibar() {
     staleTime: 5 * 60_000,
   });
 
+  // Worked out here, instantly, from the body guide's words: no request needed.
+  const words = wordMatches(term).map((w) => ({
+    key: `w:${w.specialty}`,
+    label: w.label,
+    detail: `See ${specialistPhrase(w.specialty)}`,
+    to: `/doctors?${new URLSearchParams(w.zone ? { specialty: w.specialty, zone: w.zone } : { specialty: w.specialty })}`,
+  }));
   const options: Option[] = [
+    ...words,
     ...(suggestions.data?.specialties ?? []).map((s) => ({
       key: `s:${s.name}`,
       label: s.name,
@@ -54,8 +63,17 @@ export function DoctorOmnibar() {
       to: `/doctors?${new URLSearchParams({ q: d.fullName })}`,
     })),
   ];
-  const specialtyCount = suggestions.data?.specialties.length ?? 0;
-  const showList = open && term.length >= 2 && suggestions.isSuccess;
+  const specialtyStart = words.length;
+  const doctorStart = specialtyStart + (suggestions.data?.specialties.length ?? 0);
+  const groupAt = (i: number) =>
+    i === 0 && words.length > 0
+      ? "For what you described"
+      : i === specialtyStart && i < doctorStart
+        ? "Specialities"
+        : i === doctorStart
+          ? "Doctors"
+          : undefined;
+  const showList = open && term.length >= 2 && (suggestions.isSuccess || words.length > 0);
 
   function go(to: string) {
     setOpen(false);
@@ -132,7 +150,7 @@ export function DoctorOmnibar() {
               role="option"
               aria-selected={i === active}
               className="omni__option"
-              data-group-start={i === 0 || i === specialtyCount ? (i < specialtyCount ? "Specialities" : "Doctors") : undefined}
+              data-group-start={groupAt(i)}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => go(o.to)}
             >
