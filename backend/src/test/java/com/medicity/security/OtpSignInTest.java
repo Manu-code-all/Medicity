@@ -140,6 +140,7 @@ class OtpSignInTest extends AbstractIntegrationTest {
         clock.advance(OtpService.LIFETIME.plusSeconds(1));
         assertThatThrownBy(() -> otp.verify(mobile, first)).isInstanceOf(OtpService.WrongCode.class);
 
+        // Same instant on purpose: issue order, not the timestamp, decides which is newest.
         otp.send(mobile);
         String second = sms.lastCode();
         otp.send(mobile);
@@ -192,7 +193,7 @@ class OtpSignInTest extends AbstractIntegrationTest {
 
         String stored = jdbc.queryForObject("""
                 SELECT c.code_hash FROM otp_challenges c JOIN users u ON u.id = c.user_id
-                WHERE u.login_phone = ? ORDER BY c.created_at DESC LIMIT 1
+                WHERE u.login_phone = ? ORDER BY c.seq DESC LIMIT 1
                 """, String.class, mobile);
         assertThat(stored).hasSize(64).doesNotContain(sms.lastCode());
     }

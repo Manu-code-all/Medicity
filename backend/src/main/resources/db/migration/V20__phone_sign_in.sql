@@ -43,6 +43,9 @@ ALTER TABLE users ADD CONSTRAINT users_login_phone_format
 -- five guesses and one sign-in.
 CREATE TABLE otp_challenges (
     id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    -- Issue order. Two codes can share a timestamp; "the newest code" must
+    -- still be exactly one of them.
+    seq          BIGINT       GENERATED ALWAYS AS IDENTITY,
     user_id      UUID         NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     code_hash    VARCHAR(64)  NOT NULL,
     created_at   TIMESTAMPTZ  NOT NULL,
@@ -54,4 +57,4 @@ CREATE TABLE otp_challenges (
     CONSTRAINT otp_expiry_after_creation CHECK (expires_at > created_at)
 );
 
-CREATE INDEX idx_otp_challenges_user ON otp_challenges (user_id, created_at DESC);
+CREATE INDEX idx_otp_challenges_user ON otp_challenges (user_id, seq DESC);

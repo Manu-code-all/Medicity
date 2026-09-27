@@ -117,12 +117,28 @@ public class AuthService {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public User createAccount(String email, String rawPassword, String fullName, String phone, Role role) {
+        return createAccount(email, rawPassword, fullName, phone, role, true);
+    }
+
+    /**
+     * @param phoneMustSignIn true when the number was typed as the person's own
+     *        mobile, so another account already using it is an error. False for a
+     *        store's number, often a landline or shared: it becomes a sign-in
+     *        number only when no account has it yet.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public User createAccount(String email, String rawPassword, String fullName, String phone, Role role,
+                              boolean phoneMustSignIn) {
+        String loginPhone = PhoneNumbers.normalise(phone);
+        if (loginPhone != null && !phoneMustSignIn && userRepository.findByLoginPhone(loginPhone).isPresent()) {
+            loginPhone = null;
+        }
         User user = User.builder()
                 .passwordHash(passwordEncoder.encode(rawPassword))
                 .fullName(fullName.trim())
                 .phone(phone == null || phone.isBlank() ? null : phone)
                 // A mobile number registered here is also a way to sign in.
-                .loginPhone(PhoneNumbers.normalise(phone))
+                .loginPhone(loginPhone)
                 .role(role)
                 .enabled(true)
                 .build();

@@ -152,7 +152,7 @@ public class OtpService {
         List<Map<String, Object>> live = jdbc.queryForList("""
                 SELECT id, code_hash FROM otp_challenges
                 WHERE user_id = ? AND consumed_at IS NULL AND expires_at > ? AND attempts < ?
-                ORDER BY created_at DESC LIMIT 1
+                ORDER BY seq DESC LIMIT 1
                 FOR UPDATE
                 """, user.getId(), Timestamp.from(now), MAX_ATTEMPTS);
         if (live.isEmpty() || !isNewest(user.getId(), (UUID) live.get(0).get("id"))) {
@@ -178,7 +178,7 @@ public class OtpService {
     /** A newer code replaces an older one even if the older is still live. */
     private boolean isNewest(UUID userId, UUID challengeId) {
         UUID newest = jdbc.queryForObject(
-                "SELECT id FROM otp_challenges WHERE user_id = ? ORDER BY created_at DESC LIMIT 1",
+                "SELECT id FROM otp_challenges WHERE user_id = ? ORDER BY seq DESC LIMIT 1",
                 UUID.class, userId);
         return challengeId.equals(newest);
     }

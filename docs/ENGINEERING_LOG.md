@@ -1423,7 +1423,8 @@ detail and not unique, so V20 adds `login_phone`: the number normalised to
 their number normalised cleanly and no other account shared it, so the
 migration could not fail on production data it had never seen; two accounts
 on one number keep email sign-in. New sign-ups set it, and a second account
-on the same number is refused with `PHONE_TAKEN`. `PhoneNumbers.normalise`
+on the same number is refused with `PHONE_TAKEN`. A chemist's account takes the store's number only when no
+account has it yet, since a store number is often a landline or shared. `PhoneNumbers.normalise`
 applies the same rule in Java, so "98765 00101", "+91-98765-00101" and
 "919876500101" all find the same account.
 
@@ -1432,7 +1433,9 @@ guesses and one sign-in; only the newest code for an account counts. The
 row stores an HMAC of the code keyed by the server secret and bound to the
 row id, compared in constant time. A wrong guess is written before the
 refusal and survives it (`noRollbackFor`), and the challenge row is locked
-while checked, so parallel guesses are counted one by one.
+while checked, so parallel guesses are counted one by one. "Newest" is decided by an identity column,
+not the timestamp: CI found two codes issued in the same instant, where the
+older one still worked.
 
 **What the replies give away: nothing.** "Send a code" answers every valid
 number the same way, account or not. At most three codes are texted to an
