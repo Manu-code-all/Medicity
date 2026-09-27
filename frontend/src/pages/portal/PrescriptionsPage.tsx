@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { portal } from "../../api/endpoints";
 import { formatDate } from "../../lib/format";
 import { AskChemists } from "./AskChemists";
@@ -8,13 +8,18 @@ import { AskChemists } from "./AskChemists";
 export function PrescriptionsPage() {
   const { hash } = useLocation();
   const prescriptions = useQuery({ queryKey: ["portal", "prescriptions"], queryFn: portal.prescriptions });
-  const [asking, setAsking] = useState<string | null>(null);
+  // A refill reminder links here with ?ask=<prescription>, opening the ask panel for it.
+  const [params] = useSearchParams();
+  const [asking, setAsking] = useState<string | null>(() => params.get("ask"));
 
   // Links from a visit point at #rx-<id>. The target only exists once the
   // data has loaded, so the browser's own anchor jump misses it.
   useEffect(() => {
-    if (!hash || !prescriptions.data) return;
-    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const target = hash ? hash.slice(1) : asking ? `rx-${asking}` : null;
+    if (!target || !prescriptions.data) return;
+    document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Only on arrival: not every time the panel is opened by hand.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hash, prescriptions.data]);
 
   return (

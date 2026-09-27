@@ -38,6 +38,8 @@ public class Outbox {
     public static final String RESERVATION_CANCELLED = "RESERVATION_CANCELLED";
     public static final String RESERVATION_EXPIRED = "RESERVATION_EXPIRED";
     public static final String RESERVATION_COLLECTED = "RESERVATION_COLLECTED";
+    public static final String MEDICINE_RUNNING_OUT = "MEDICINE_RUNNING_OUT";
+    public static final String COURSE_ENDING = "COURSE_ENDING";
 
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
@@ -55,6 +57,27 @@ public class Outbox {
         } catch (JsonProcessingException e) {
             // Unlike an audit detail, an event cannot be written without its
             // payload; failing here rolls back the change with it.
+            throw new IllegalStateException("Could not serialise " + type + " event", e);
+        }
+    }
+
+    /**
+     * As {@link #publish}, but at most once per {@code eventId}, however often
+     * it is called. For events a job derives from state rather than from a
+     * change: the job may see the same state on every run, and the id (derived
+     * from what the event is about) makes the second run's publish a no-op.
+     *
+     * @return whether this call wrote the event
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean publishOnce(String type, UUID eventId, UUID aggregateId, Map<String, ?> payload) {
+        try {
+            return jdbc.update("""
+                    INSERT INTO outbox_events (event_id, event_type, aggregate_id, payload)
+                    VALUES (?, ?, ?, CAST(? AS jsonb))
+                    ON CONFLICT (event_id) DO NOTHING
+                    """, eventId, type, aggregateId, json.writeValueAsString(payload)) == 1;
+        } catch (JsonProcessingException e) {
             throw new IllegalStateException("Could not serialise " + type + " event", e);
         }
     }

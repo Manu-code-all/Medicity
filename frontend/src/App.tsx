@@ -15,6 +15,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { NOTIFICATIONS_KEY, NotificationsPage } from "./pages/NotificationsPage";
 import { PendingStoresPage } from "./pages/admin/PendingStoresPage";
 import { ChemistsPage } from "./pages/portal/ChemistsPage";
+import { MedicinesPage } from "./pages/portal/MedicinesPage";
 import { RequestPage } from "./pages/portal/RequestPage";
 import { RequestsPage } from "./pages/portal/RequestsPage";
 import { QuestionPage } from "./pages/store/QuestionPage";
@@ -90,6 +91,7 @@ export function App() {
               <Route path="prescriptions" element={<PrescriptionsPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="chemists" element={<ChemistsPage />} />
+              <Route path="medicines" element={<MedicinesPage />} />
               <Route path="requests" element={<RequestsPage />} />
               <Route path="requests/:requestId" element={<RequestPage />} />
             </Route>

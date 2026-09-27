@@ -1110,6 +1110,47 @@ automatic answers on, so a visitor's new question gets one answer at once.
 
 ---
 
+## 25. Refill and course reminders (PR #30)
+
+Feature 6: "Your BP tablets run out in 3 days. Ask the stores again?"
+
+**Derived, not stored.** A course starts on the day the medicines were handed
+over, whichever came last: the hospital pharmacy's dispensing, or a
+neighbourhood store's collection (entry 23). It ends `duration_days` later.
+Nothing new is stored. The course is worked out each time from facts already
+recorded, so there is no second copy of "when did she start" to fall out of
+step with the dispensing records. One query with a `LATERAL` subquery picks the
+latest fill per prescription.
+
+**Two kinds of reminder, because they ask for different things.** A medicine
+taken for 14 days or more (blood pressure, diabetes, reflux) gets "runs out in
+N days" three days before the last dose. Its link opens the prescription with
+"Ask chemists nearby" already open. A shorter course (an antibiotic) gets
+"Last day tomorrow: finish the course, even if you feel better", and no
+suggestion to buy more. Pushing refills of an antibiotic would be the wrong
+thing to automate.
+
+**Running the job twice sends nothing twice.** The morning job (09:00 India
+time, after the demo reset) finds the same state on every run. Each reminder's
+event id is derived from what it is about: a name-based UUID of the kind, the
+prescription line and its last day. The new `Outbox.publishOnce` inserts with
+`ON CONFLICT (event_id) DO NOTHING`. A second run publishes nothing, and a real
+refill (a new last day) earns a new reminder. This is the idempotent-producer
+half of the pattern; the notification consumer was already the idempotent
+consumer half (entry 18). A test runs the job twice.
+
+**Days are India days.** There is no per-patient time zone; every store and
+doctor on the platform is in India, so dates are computed in Asia/Kolkata. That
+is stated in the code rather than left to the server's zone.
+
+**Portal.** "My medicines" lists running out, taking now, not collected yet,
+and finished, with a progress bar per course.
+
+**Demo.** Meera collected her 28-day omeprazole 25 days ago, so each morning
+after the reset she gets "Omeprazole 20mg runs out in 2 days".
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when

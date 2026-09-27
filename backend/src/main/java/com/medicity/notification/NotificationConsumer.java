@@ -126,6 +126,18 @@ public class NotificationConsumer implements OutboxConsumer {
                     "Collected at " + p.path("storeName").asText(), "Your medicines were handed over.",
                     "/portal/prescriptions", null);
 
+            case Outbox.MEDICINE_RUNNING_OUT -> {
+                int left = p.path("daysLeft").asInt();
+                String when = left == 0 ? "today" : left == 1 ? "tomorrow" : "in " + left + " days";
+                notify(event, uuid(p, "patientUserId"), p.path("medicine").asText() + " runs out " + when,
+                        "Ask the chemists near you again? One tap sends your prescription to all of them.",
+                        "/portal/prescriptions?ask=" + p.path("prescriptionId").asText(), null);
+            }
+
+            case Outbox.COURSE_ENDING -> notify(event, uuid(p, "patientUserId"),
+                    "Last day of " + p.path("medicine").asText() + " tomorrow",
+                    "Finish the course, even if you feel better.", "/portal/medicines", null);
+
             default -> {
                 return false;
             }

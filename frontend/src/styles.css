@@ -573,3 +573,13 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .collect { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
 .collect label { font-weight: 600; }
 .collect input { width: 9em; letter-spacing: 0.2em; font-variant-numeric: tabular-nums; }
+
+/* Medicine courses */
+.course-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.course { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0; }
+.course h3 { margin: 0; font-size: 1.02rem; }
+.course p { margin: 2px 0 0; }
+.course--running_out { border-left: 4px solid var(--warn); }
+.course__bar { height: 6px; border-radius: 999px; background: var(--border); overflow: hidden; width: 160px; margin-top: 8px; }
+.course__bar span { display: block; height: 100%; background: var(--accent); }
+.course--running_out .course__bar span { background: var(--warn); }

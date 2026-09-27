@@ -6,6 +6,7 @@ const SECTIONS = [
   { to: "/portal", label: "Overview", end: true },
   { to: "/portal/visits", label: "Visits", end: false },
   { to: "/portal/prescriptions", label: "Prescriptions", end: false },
+  { to: "/portal/medicines", label: "My medicines", end: false },
   { to: "/portal/requests", label: "Chemist answers", end: false },
   { to: "/portal/chemists", label: "Chemists nearby", end: false },
   { to: "/portal/profile", label: "Profile", end: false },
