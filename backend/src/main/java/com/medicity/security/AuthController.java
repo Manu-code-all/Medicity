@@ -20,6 +20,7 @@ import java.time.LocalDate;
 public class AuthController {
 
     private final AuthService authService;
+    private final OtpService otpService;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -34,6 +35,19 @@ public class AuthController {
     @Operation(summary = "Exchange credentials for a token pair")
     public AuthService.TokenPair login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request.email(), request.password());
+    }
+
+    @PostMapping("/otp/send")
+    @Operation(summary = "Send a sign-in code to a mobile number",
+            description = "The reply is the same whether or not the number has an account.")
+    public OtpService.CodeSent sendCode(@Valid @RequestBody PhoneRequest request) {
+        return otpService.send(request.phone());
+    }
+
+    @PostMapping("/otp/verify")
+    @Operation(summary = "Exchange a mobile number and its code for a token pair")
+    public AuthService.TokenPair verifyCode(@Valid @RequestBody CodeRequest request) {
+        return otpService.verify(request.phone(), request.code());
     }
 
     @PostMapping("/refresh")
@@ -77,4 +91,8 @@ public class AuthController {
     ) {}
 
     public record RefreshRequest(@NotBlank String refreshToken) {}
+
+    public record PhoneRequest(@NotBlank @Size(max = 20) String phone) {}
+
+    public record CodeRequest(@NotBlank @Size(max = 20) String phone, @NotBlank @Size(max = 6) String code) {}
 }

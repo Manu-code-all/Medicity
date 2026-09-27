@@ -542,3 +542,14 @@ ON CONFLICT DO NOTHING;
 INSERT INTO prescription_dispensations (prescription_id, dispensed_at)
 SELECT id, issued_at + INTERVAL '30 minutes' FROM prescriptions WHERE id = 'ffffffff-6666-4666-8666-ffffffffff07'
 ON CONFLICT DO NOTHING;
+
+-- ---------------------------------------------------------------------
+-- Every demo account can also sign in with its mobile number and a code
+-- (shown on screen, since the demo numbers are public; see V20). Skipped
+-- for any number a real account already signs in with.
+-- ---------------------------------------------------------------------
+UPDATE users u SET login_phone = u.phone
+WHERE u.email LIKE '%@medicity.demo'
+  AND u.login_phone IS NULL
+  AND u.phone ~ '^\+91[6-9][0-9]{9}$'
+  AND NOT EXISTS (SELECT 1 FROM users o WHERE o.login_phone = u.phone);

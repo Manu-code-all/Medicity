@@ -2,7 +2,9 @@ package com.medicity.security;
 
 import com.medicity.audit.AuditLog;
 import com.medicity.common.ConflictException;
+import com.medicity.common.Constraints;
 import com.medicity.common.DomainMetrics;
+import com.medicity.common.PhoneNumbers;
 import com.medicity.common.TooManyRequestsException;
 import com.medicity.common.ValidationException;
 import com.medicity.patient.Patient;
@@ -119,6 +121,8 @@ public class AuthService {
                 .passwordHash(passwordEncoder.encode(rawPassword))
                 .fullName(fullName.trim())
                 .phone(phone == null || phone.isBlank() ? null : phone)
+                // A mobile number registered here is also a way to sign in.
+                .loginPhone(PhoneNumbers.normalise(phone))
                 .role(role)
                 .enabled(true)
                 .build();
@@ -129,6 +133,9 @@ public class AuthService {
         } catch (DataIntegrityViolationException e) {
             // Checking existsByEmail() first would leave a race between the check
             // and the insert. Let the unique index decide, then translate.
+            if (Constraints.isViolationOf(e, "uq_users_login_phone")) {
+                throw new ConflictException("PHONE_TAKEN", "An account with that mobile number already exists");
+            }
             throw new ConflictException("EMAIL_TAKEN", "An account with that email already exists");
         }
     }
@@ -240,8 +247,8 @@ public class AuthService {
         });
     }
 
-    /** A new sign-in: a new token family. */
-    private TokenPair startSession(User user) {
+    /** A new sign-in: a new token family. Also the end of a code sign-in (see OtpService). */
+    TokenPair startSession(User user) {
         return issue(user, UUID.randomUUID(), clock.instant());
     }
 
