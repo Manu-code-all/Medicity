@@ -81,7 +81,13 @@ INSERT INTO medicines (id, name, generic_name, manufacturer, form, strength, uni
   ('cccccccc-3333-4333-8333-cccccccccc03', 'Cetirizine', 'Cetirizine', 'Generic Pharma', 'TABLET', '10mg', 30.00, false),
   ('cccccccc-3333-4333-8333-cccccccccc04', 'Amoxicillin', 'Amoxicillin', 'Generic Pharma', 'CAPSULE', '500mg', 90.00, true),
   ('cccccccc-3333-4333-8333-cccccccccc05', 'Metformin', 'Metformin HCl', 'Generic Pharma', 'TABLET', '500mg', 50.00, true),
-  ('cccccccc-3333-4333-8333-cccccccccc06', 'Omeprazole', 'Omeprazole', 'Generic Pharma', 'CAPSULE', '20mg', 55.00, true)
+  ('cccccccc-3333-4333-8333-cccccccccc06', 'Omeprazole', 'Omeprazole', 'Generic Pharma', 'CAPSULE', '20mg', 55.00, true),
+  -- Other brands of the same medicines, same strength: what a chemist may
+  -- offer instead when the doctor allowed a substitution.
+  ('cccccccc-3333-4333-8333-cccccccccc07', 'Crocin', 'Acetaminophen', 'GSK', 'TABLET', '500mg', 30.00, false),
+  ('cccccccc-3333-4333-8333-cccccccccc08', 'Azee', 'Azithromycin', 'Cipla', 'TABLET', '250mg', 68.00, true),
+  ('cccccccc-3333-4333-8333-cccccccccc09', 'Glycomet', 'Metformin HCl', 'USV', 'TABLET', '500mg', 38.00, true),
+  ('cccccccc-3333-4333-8333-cccccccccc10', 'Omez', 'Omeprazole', 'Dr. Reddy''s', 'CAPSULE', '20mg', 42.00, true)
 ON CONFLICT DO NOTHING;
 
 
@@ -248,4 +254,47 @@ FROM (VALUES
    'bbbbbbbb-2222-4222-8222-bbbbbbbbbb03', 'Racing heartbeat after coffee')
 ) AS v (id, slot_id, patient_id, reason)
 JOIN appointment_slots s ON s.id = v.slot_id::uuid
+ON CONFLICT DO NOTHING;
+
+
+-- ---------------------------------------------------------------------
+-- Neighbourhood chemists around Indiranagar, Bengaluru, where the demo
+-- patient lives. All verified, so they receive patients' questions. Sign in
+-- as chemist@medicity.demo for Sri Sai Medicals' view.
+-- ---------------------------------------------------------------------
+INSERT INTO users (id, email, password_hash, full_name, phone, role) VALUES
+  ('44444444-4444-4444-8444-444444444401', 'chemist@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Ravi Kumar', '+919876500301', 'CHEMIST'),
+  ('44444444-4444-4444-8444-444444444402', 'greencross@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Fatima Sheikh', '+919876500302', 'CHEMIST'),
+  ('44444444-4444-4444-8444-444444444403', 'lakshmi@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Lakshmi Narayan', '+919876500303', 'CHEMIST'),
+  ('44444444-4444-4444-8444-444444444404', 'nightingale@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Joseph Thomas', '+919876500304', 'CHEMIST'),
+  ('44444444-4444-4444-8444-444444444405', 'citycare@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Anita Desai', '+919876500305', 'CHEMIST')
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO stores (id, owner_user_id, name, licence_number, phone, address_line, city,
+                    latitude, longitude, opens_at, closes_at, open_24h, hold_hours, verified_at) VALUES
+  ('55555555-5555-4555-8555-555555555501', '44444444-4444-4444-8444-444444444401',
+   'Sri Sai Medicals', 'KA-B1-20/21-DEMO01', '+919876500301', '12, 100 Feet Road, Indiranagar', 'Bengaluru',
+   12.974500, 77.640800, '08:00', '22:00', false, 3, now()),
+  ('55555555-5555-4555-8555-555555555502', '44444444-4444-4444-8444-444444444402',
+   'Green Cross Pharmacy', 'KA-B1-20/21-DEMO02', '+919876500302', '4th Cross, HAL 2nd Stage', 'Bengaluru',
+   12.978400, 77.640000, '09:00', '21:00', false, 2, now()),
+  ('55555555-5555-4555-8555-555555555503', '44444444-4444-4444-8444-444444444403',
+   'Lakshmi Medical Stores', 'KA-B1-20/21-DEMO03', '+919876500303', 'CMH Road, Indiranagar', 'Bengaluru',
+   12.966000, 77.648000, '07:30', '23:00', false, 4, now()),
+  ('55555555-5555-4555-8555-555555555504', '44444444-4444-4444-8444-444444444404',
+   'Nightingale 24x7 Chemists', 'KA-B1-20/21-DEMO04', '+919876500304', 'Old Airport Road, Domlur', 'Bengaluru',
+   12.959000, 77.644000, '00:00', '23:59', true, 3, now()),
+  ('55555555-5555-4555-8555-555555555505', '44444444-4444-4444-8444-444444444405',
+   'CityCare Pharmacy', 'KA-B1-20/21-DEMO05', '+919876500305', 'Old Madras Road, Baiyappanahalli', 'Bengaluru',
+   12.990000, 77.660000, '08:00', '20:00', false, 3, now())
 ON CONFLICT DO NOTHING;

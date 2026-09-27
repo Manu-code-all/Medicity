@@ -70,6 +70,19 @@ public class NotificationConsumer implements OutboxConsumer {
                     }
                 }
             }
+            case Outbox.STORE_REGISTERED -> {
+                for (UUID admin : activeAdmins()) {
+                    notify(event, admin, "Store awaiting verification",
+                            p.path("storeName").asText() + ", " + p.path("city").asText()
+                                    + ". Check the drug licence before it receives patients' questions.",
+                            "/admin/stores", null);
+                }
+            }
+
+            case Outbox.STORE_VERIFIED -> notify(event, uuid(p, "ownerUserId"), "Your store is verified",
+                    p.path("storeName").asText() + " will now receive questions from patients nearby.",
+                    "/store", null);
+
             default -> {
                 return false;
             }

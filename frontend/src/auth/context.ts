@@ -13,6 +13,7 @@ export interface AuthContextValue {
   /** Resolves with the new session, so the caller can route by role. */
   login: (email: string, password: string) => Promise<Session>;
   register: (input: Parameters<typeof authApi.register>[0]) => Promise<void>;
+  registerChemist: (input: Parameters<typeof authApi.registerChemist>[0]) => Promise<void>;
   logout: () => void;
 }
 
@@ -27,6 +28,10 @@ export function homeFor(role: Role): string {
       return "/portal";
     case "DOCTOR":
       return "/doctor";
+    case "CHEMIST":
+      return "/store";
+    case "ADMIN":
+      return "/admin/stores";
     default:
       return "/";
   }

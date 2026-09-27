@@ -5,6 +5,7 @@ import type {
   DoctorVisitDetail,
   DoctorVisitSummary,
   Medicine,
+  NearbyStore,
   NotificationList,
   PatientHistory,
   PrescriptionDraft,
@@ -13,6 +14,8 @@ import type {
   PortalSummary,
   Prescription,
   Slot,
+  StoreInput,
+  StoreProfile,
   TokenPair,
   Visit,
   VisitScope,
@@ -33,6 +36,13 @@ export const auth = {
     dateOfBirth: string;
   }) =>
     request<TokenPair>("/api/v1/auth/register", {
+      method: "POST",
+      body: input,
+    }),
+
+  /** A chemist and their store, in one step. The store waits for a licence check. */
+  registerChemist: (input: { email: string; password: string; fullName: string; store: StoreInput }) =>
+    request<TokenPair>("/api/v1/auth/register/chemist", {
       method: "POST",
       body: input,
     }),
@@ -129,4 +139,19 @@ export const notifications = {
   mine: () => request<NotificationList>("/api/v1/notifications"),
   markRead: (id: string) => request<void>(`/api/v1/notifications/${id}/read`, { method: "POST" }),
   markAllRead: () => request<void>("/api/v1/notifications/read-all", { method: "POST" }),
+};
+
+export const stores = {
+  nearby: (lat: number, lng: number, radiusM: number) =>
+    request<NearbyStore[]>(`/api/v1/stores/nearby?lat=${lat}&lng=${lng}&radiusM=${radiusM}`),
+
+  /** The signed-in chemist's own store; "me" comes from the token. */
+  mine: () => request<StoreProfile>("/api/v1/stores/me"),
+
+  update: (input: StoreInput) => request<StoreProfile>("/api/v1/stores/me", { method: "PUT", body: input }),
+};
+
+export const admin = {
+  pendingStores: () => request<StoreProfile[]>("/api/v1/admin/stores/pending"),
+  verifyStore: (id: string) => request<StoreProfile>(`/api/v1/admin/stores/${id}/verify`, { method: "POST" }),
 };

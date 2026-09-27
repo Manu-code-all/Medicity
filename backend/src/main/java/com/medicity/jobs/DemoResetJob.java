@@ -108,6 +108,10 @@ public class DemoResetJob {
         jdbc.update("DELETE FROM appointment_slots WHERE doctor_id IN " + DEMO_DOCTORS);
         jdbc.execute("DROP TABLE demo_appointments");
 
+        // The demo chemists' stores go back to their seeded profiles. Stores
+        // visitors registered are kept, like their accounts.
+        jdbc.update("DELETE FROM stores WHERE id::text LIKE '55555555-5555-4555-8555-%'");
+
         // Notifications and stored idempotent responses describe bookings that
         // no longer exist. On the demo everything is demo activity.
         jdbc.update("DELETE FROM notifications");

@@ -2,30 +2,20 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../auth/context";
 import { initials } from "../../lib/format";
 
-const SECTIONS = [
-  { to: "/portal", label: "Overview", end: true },
-  { to: "/portal/visits", label: "Visits", end: false },
-  { to: "/portal/prescriptions", label: "Prescriptions", end: false },
-  { to: "/portal/chemists", label: "Chemists nearby", end: false },
-  { to: "/portal/profile", label: "Profile", end: false },
-];
+const SECTIONS = [{ to: "/store", label: "My store", end: true }];
 
-export function PortalLayout() {
+/** The chemist's workspace. */
+export function StoreLayout() {
   const { session } = useAuth();
 
-  // Rendering the portal for a doctor or admin would only produce a screen of
-  // 403s; the API is the real gate, this just explains it.
-  if (session && session.role !== "PATIENT") {
+  // The API refuses everyone else; this only explains the empty page.
+  if (session && session.role !== "CHEMIST") {
     return (
       <div className="content">
         <div className="card empty">
-          <h1>The portal is for patients</h1>
+          <h1>This workspace is for chemists</h1>
           <p className="muted">You are signed in as {session.role.toLowerCase()}.</p>
-          {session.role === "DOCTOR" ? (
-            <Link to="/doctor">Go to your workspace</Link>
-          ) : (
-            <Link to="/doctors">Go to the doctor directory</Link>
-          )}
+          <Link to="/">Go to the home page</Link>
         </div>
       </div>
     );
@@ -41,11 +31,11 @@ export function PortalLayout() {
             </div>
             <div>
               <strong>{session.fullName}</strong>
-              <span className="muted">Patient</span>
+              <span className="muted">Chemist</span>
             </div>
           </div>
         )}
-        <nav aria-label="Patient portal">
+        <nav aria-label="Store workspace">
           {SECTIONS.map((s) => (
             <NavLink
               key={s.to}
@@ -57,11 +47,7 @@ export function PortalLayout() {
             </NavLink>
           ))}
         </nav>
-        <Link className="button portal__book" to="/doctors">
-          Book a visit
-        </Link>
       </aside>
-
       <div className="portal__main">
         <Outlet />
       </div>

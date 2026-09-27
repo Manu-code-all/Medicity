@@ -38,4 +38,8 @@ public class PrescriptionItem {
 
     @Column(name = "quantity", nullable = false, updatable = false)
     private int quantity;
+
+    /** The doctor allows a different brand with the same ingredients and strength (V14). */
+    @Column(name = "substitution_allowed", nullable = false, updatable = false)
+    private boolean substitutionAllowed;
 }

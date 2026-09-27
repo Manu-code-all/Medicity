@@ -202,7 +202,7 @@ public class DoctorWorkspaceController {
         PrescriptionDraft toDraft() {
             return new PrescriptionDraft(diagnosis, notes, items.stream()
                     .map(i -> new PrescriptionDraft.Item(i.medicineId(), i.dosage(), i.frequency(),
-                            i.durationDays(), i.quantity()))
+                            i.durationDays(), i.quantity(), i.substitutionAllowed()))
                     .toList());
         }
     }
@@ -213,7 +213,9 @@ public class DoctorWorkspaceController {
             @NotBlank @Size(max = 80) String dosage,
             @NotBlank @Size(max = 80) String frequency,
             @Min(1) @Max(365) int durationDays,
-            @Min(1) @Max(1000) int quantity
+            @Min(1) @Max(1000) int quantity,
+            /** Absent means no: a substitution is allowed only when the doctor says so. */
+            boolean substitutionAllowed
     ) {}
 
     public record PatientBrief(UUID id, String fullName, int age, String gender, String bloodGroup) {

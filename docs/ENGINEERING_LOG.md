@@ -889,6 +889,59 @@ a test that lets Spring build it.
 
 ---
 
+## 21. Neighbourhood chemists: stores, "near me", and "cheaper brand is OK" (PR #26)
+
+First of the pharmacy-network features. Chemists outside the hospital get
+accounts, and patients can find verified stores near them.
+
+**A new role, and a gate on it.** `CHEMIST` joins the role CHECK (V14). Anyone
+can sign up a store at `/api/v1/auth/register/chemist`, but the store has
+`verified_at IS NULL` until an administrator has checked its drug licence.
+Nothing that reaches patients' data (the question queue, from the next PR)
+looks at unverified stores, so signing up is not a way to see what people
+nearby are asking for. The admin is notified through the outbox; the chemist
+is notified when verified.
+
+**Account and store are one unit.** `AuthService.createAccount` is
+`MANDATORY`, called from the store sign-up's transaction. A licence that is
+already registered (unique index on `upper(licence_number)`, so case does not
+dodge it) rolls back the account as well: the test checks that no chemist
+account is left without a store. The licence cannot be edited afterwards,
+because it is what was verified.
+
+**"Near me" without PostGIS.** The hosted Postgres has no PostGIS. Distance is
+a SQL function (`store_distance_m`, haversine), and the query first cuts the
+table with a bounding box on an ordinary `(latitude, longitude)` index, then
+computes the exact distance for the few rows left. Two details:
+
+- The function takes `double precision`. Declared with `numeric`, a Java
+  `double` would not convert implicitly and the call would not resolve.
+- The box bounds are cast to `numeric`. Compared with a bound double, the
+  numeric columns would be converted row by row and the index could not be used.
+
+A test puts a store in the corner of the search square (3.5 km away on a
+3 km search) and checks it is excluded: the box is a prefilter, not the answer.
+The same `WITHIN` fragment will pick the stores a patient's question goes to,
+so the list a patient sees and the stores asked are the same by construction.
+
+**Opening hours** are local wall-clock times in the store's zone, not
+instants. A closing time before the opening time means open past midnight.
+Unit tests cover the boundaries, past-midnight and 24-hour stores, and that
+"open now" uses India time whatever the server's zone.
+
+**Cheaper brand with the same ingredients.** `prescription_items` gets
+`substitution_allowed` (default false). The doctor ticks it per medicine; the
+patient sees "Cheaper brand OK" on the prescription, and the next PR lets a
+chemist offer another brand only where it is ticked. Absent in the request
+means no: a substitution the doctor did not allow is a call back to the clinic.
+
+**Demo.** Five verified stores around Indiranagar (sign in as
+`chemist@medicity.demo`), and four more brands of existing medicines (Crocin,
+Azee, Glycomet, Omez) so substitutions have something to offer. The nightly
+reset restores the demo stores' profiles.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when
