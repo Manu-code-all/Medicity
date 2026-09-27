@@ -23,20 +23,20 @@ const COMPARISON: Comparison = {
   stores: [
     {
       storeId: "s1", name: "Lakshmi Medical Stores", addressLine: "CMH Road", phone: "+919876500303",
-      distanceM: 987, openNow: true, holdHours: 4, answered: true, note: "Omez is the same medicine, and cheaper.",
+      distanceM: 987, openNow: true, holdHours: 4, answered: true, automatic: false, note: "Omez is the same medicine, and cheaper.",
       answeredAt: "2030-01-01T10:05:00Z",
       lines: [{ medicineId: "m1", availability: "YES", quantityAvailable: 14, unitPrice: 4.2, substituteMedicineId: "m2", substituteName: "Omez", substituteStrength: "20mg" }],
       medicinesAvailable: 1, complete: true, total: 58.8, cheapestComplete: true, nearestComplete: false,
     },
     {
       storeId: "s2", name: "Nightingale 24x7 Chemists", addressLine: "Old Airport Road", phone: "+919876500304",
-      distanceM: 1466, openNow: true, holdHours: 3, answered: true, note: null, answeredAt: "2030-01-01T10:06:00Z",
+      distanceM: 1466, openNow: true, holdHours: 3, answered: true, automatic: true, note: null, answeredAt: "2030-01-01T10:06:00Z",
       lines: [{ medicineId: "m1", availability: "PARTIAL", quantityAvailable: 10, unitPrice: 5.8, substituteMedicineId: null, substituteName: null, substituteStrength: null }],
       medicinesAvailable: 1, complete: false, total: 58, cheapestComplete: false, nearestComplete: false,
     },
     {
       storeId: "s3", name: "Sri Sai Medicals", addressLine: "100 Feet Road", phone: "+919876500301",
-      distanceM: 292, openNow: false, holdHours: 3, answered: false, note: null, answeredAt: null, lines: [],
+      distanceM: 292, openNow: false, holdHours: 3, answered: false, automatic: false, note: null, answeredAt: null, lines: [],
       medicinesAvailable: 0, complete: false, total: null, cheapestComplete: false, nearestComplete: false,
     },
   ],

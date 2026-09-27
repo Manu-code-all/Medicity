@@ -16,6 +16,8 @@ import type {
   PortalSummary,
   QueueEntry,
   RequestSummary,
+  StockView,
+  StoreInsights,
   StoreReservation,
   StoreView,
   Prescription,
@@ -197,4 +199,18 @@ export const storeReservations = {
 
   collect: (id: string, code: string) =>
     request<void>(`/api/v1/stores/me/reservations/${id}/collect`, { method: "POST", body: { code } }),
+};
+
+/** The signed-in chemist's demand insights and optional live stock. */
+export const storeWorkspace = {
+  insights: () => request<StoreInsights>("/api/v1/stores/me/insights"),
+
+  stock: () => request<StockView>("/api/v1/stores/me/stock"),
+
+  /** Replaces the whole list: a medicine left out is out of stock. */
+  replaceStock: (items: { medicineId: string; quantity: number; unitPrice: number }[]) =>
+    request<StockView>("/api/v1/stores/me/stock", { method: "PUT", body: { items } }),
+
+  autoAnswer: (enabled: boolean) =>
+    request<StockView>("/api/v1/stores/me/auto-answer", { method: "PUT", body: { enabled } }),
 };

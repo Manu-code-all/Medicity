@@ -1058,6 +1058,58 @@ at Sri Sai Medicals, 27 Sep"). Refill reminders will build on that date.
 
 ---
 
+## 24. What people nearby ask for, and optional live stock (PR #29)
+
+Features 17 and 18.
+
+**Insights for stores.** "4 people near you asked for azithromycin this week;
+you said no to 2 of them, and they reserved elsewhere." Per medicine, a store
+sees: how often it was asked, by how many people, how many units; what it
+answered; how often the patient went elsewhere. It also gets a "consider
+stocking" flag when it said no or partly at least twice. The summary adds
+questions received and answered, reservations and collections, and the median
+time to answer a question by hand.
+
+Privacy decides what is counted:
+- *Only questions sent to this store.* A store learns nothing about questions
+  it was never part of.
+- *Counts only.* No patient, prescription or doctor appears.
+- *At least two different patients per medicine* (`HAVING count(DISTINCT
+  patient_id) >= 2`). A rare medicine would otherwise point at the one person
+  nearby who takes it. A test checks that a medicine only one person asked for
+  is not listed.
+
+It is one aggregate query over the question tables with `FILTER` clauses, not
+a separate analytics store. At this scale that is the right trade.
+
+**Optional live stock.** Most stores will never use it: answering by hand is
+the product. A store whose billing software knows its stock can send the whole
+list (`PUT /api/v1/stores/me/stock`) and turn on automatic answers. A question
+it receives is then answered in the same transaction that sends it, marked
+"Live stock" for the patient.
+
+- *Replaced whole, never patched.* Billing software knows its current stock,
+  not what changed since Medicity last heard. A whole list also gives one
+  freshness time for everything: a medicine missing from the latest upload is
+  out of stock, not "unknown".
+- *Only fresh stock answers.* Older than 24 hours, questions wait for the
+  chemist again. A confident "yes" from yesterday's stock is worse than a
+  slower real answer, and a test covers it.
+- *Same rules as a person.* The automatic answer goes through the same path as
+  a typed one: the same validation, the same conditional UPDATE, the same
+  notification. It offers another brand only where the doctor allowed it (the
+  cheapest other brand with enough stock), and "partly" when it has some. The
+  answering code was split into `answer` (a chemist) and `answerAs` (a store,
+  typed or automatic) for this.
+
+**Demo.** A week of history: Arjun and Kavya had visits ending in
+azithromycin, and with Meera asked the stores and collected. Sri Sai's
+insights now show azithromycin, with no from them both times, went elsewhere
+twice, and "consider stocking". Nightingale 24x7 has fresh live stock with
+automatic answers on, so a visitor's new question gets one answer at once.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when

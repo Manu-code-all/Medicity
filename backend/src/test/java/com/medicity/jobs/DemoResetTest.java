@@ -75,8 +75,11 @@ class DemoResetTest extends AbstractIntegrationTest {
         assertThat(count("SELECT quantity_on_hand FROM medicine_stock WHERE medicine_id = '" + OMEPRAZOLE + "'"))
                 .isEqualTo(250);
         assertThat(count("SELECT count(*) FROM stores WHERE verified_at IS NOT NULL")).isEqualTo(5);
-        assertThat(count("SELECT count(*) FROM request_recipients WHERE status = 'ANSWERED'")).isEqualTo(3);
-        assertThat(count("SELECT count(*) FROM request_answer_lines")).isEqualTo(3);
+        // Today's open question (3 answers) and last week's three (3 answers each).
+        assertThat(count("SELECT count(*) FROM request_recipients WHERE status = 'ANSWERED'")).isEqualTo(12);
+        assertThat(count("SELECT count(*) FROM request_answer_lines")).isEqualTo(18);
+        assertThat(count("SELECT count(*) FROM reservations WHERE status = 'COLLECTED'")).isEqualTo(3);
+        assertThat(count("SELECT count(*) FROM store_stock")).isEqualTo(6);
     }
 
     @Test

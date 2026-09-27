@@ -15,6 +15,7 @@ import com.medicity.store.Store;
 import com.medicity.store.StoreDirectory;
 import com.medicity.store.StoreDirectory.StoreInReach;
 import com.medicity.store.StoreService;
+import com.medicity.store.StoreStockService;
 import com.medicity.request.Comparison.StoreAnswer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +60,7 @@ public class MedicineRequestService {
     private final PrescriptionRepository prescriptionRepository;
     private final StoreDirectory storeDirectory;
     private final StoreService storeService;
+    private final StoreStockService stockService;
     private final AuditLog auditLog;
     private final Outbox outbox;
     private final Clock clock;
@@ -139,6 +141,15 @@ public class MedicineRequestService {
 
         auditLog.recordChange("MEDICINE_REQUEST_CREATED", "MEDICINE_REQUEST", requestId,
                 Map.of("prescriptionId", prescriptionId, "storesAsked", stores.size(), "medicines", items.size()));
+
+        // Stores that keep live stock and asked for it answer at once. The rest
+        // answer by hand from their queue.
+        List<Item> askedItems = items(requestId);
+        for (StoreInReach store : stores) {
+            stockService.answeringStock(store.storeId()).ifPresent(stock -> answerAs(store.storeId(),
+                    storeName(store.storeId()), requestId, "Answered automatically from the store's live stock.",
+                    fromStock(askedItems, stock), true));
+        }
         outbox.publish(Outbox.MEDICINE_REQUEST_CREATED, requestId, Map.of(
                 "storeOwnerUserIds", stores.stream().map(StoreInReach::ownerUserId).toList(),
                 "medicines", items.size(),
@@ -200,7 +211,7 @@ public class MedicineRequestService {
 
         Instant now = clock.instant();
         List<StoreAnswer> answers = jdbc.query("""
-                SELECT rr.store_id, rr.distance_m, rr.status, rr.note, rr.answered_at,
+                SELECT rr.store_id, rr.distance_m, rr.status, rr.note, rr.answered_at, rr.answered_automatically,
                        s.name, s.address_line, s.phone, s.opens_at, s.closes_at, s.open_24h, s.time_zone,
                        s.hold_hours
                 FROM request_recipients rr JOIN stores s ON s.id = rr.store_id
@@ -214,8 +225,8 @@ public class MedicineRequestService {
                     List<AnswerLine> storeLines = lines.getOrDefault(storeId, List.of());
                     return StoreAnswer.of(storeId, rs.getString("name"), rs.getString("address_line"),
                             rs.getString("phone"), rs.getInt("distance_m"), openNow, rs.getInt("hold_hours"),
-                            "ANSWERED".equals(rs.getString("status")), rs.getString("note"),
-                            ts(rs.getTimestamp("answered_at")), storeLines, items.size());
+                            "ANSWERED".equals(rs.getString("status")), rs.getBoolean("answered_automatically"),
+                            rs.getString("note"), ts(rs.getTimestamp("answered_at")), storeLines, items.size());
                 }, requestId);
 
         return new Comparison(header.withStatus(effectiveStatus(header.status(), header.expiresAt())),
@@ -336,9 +347,15 @@ public class MedicineRequestService {
     @Transactional
     public void answer(UUID ownerUserId, UUID requestId, String note, List<LineInput> lines) {
         Store store = storeService.requireOwn(ownerUserId);
-        Recipient recipient = recipient(requestId, store.getId()).orElseGet(() -> {
+        answerAs(store.getId(), store.getName(), requestId, note, lines, false);
+    }
+
+    /** The store's answer, typed in by the chemist or computed from its live stock. */
+    private void answerAs(UUID storeId, String storeName, UUID requestId, String note, List<LineInput> lines,
+                          boolean automatic) {
+        Recipient recipient = recipient(requestId, storeId).orElseGet(() -> {
             auditLog.recordIndependently("ACCESS_DENIED", "MEDICINE_REQUEST", requestId,
-                    AuditLog.Outcome.DENIED, Map.of("operation", "answer", "storeId", store.getId()));
+                    AuditLog.Outcome.DENIED, Map.of("operation", "answer", "storeId", storeId));
             throw new NotFoundException("Medicine request", requestId);
         });
         Map<UUID, Item> asked = items(requestId).stream()
@@ -347,13 +364,14 @@ public class MedicineRequestService {
 
         Instant now = clock.instant();
         int claimed = jdbc.update("""
-                UPDATE request_recipients rr SET status = 'ANSWERED', answered_at = ?, note = ?
+                UPDATE request_recipients rr
+                SET status = 'ANSWERED', answered_at = ?, note = ?, answered_automatically = ?
                 FROM medicine_requests r
                 WHERE rr.request_id = ? AND rr.store_id = ? AND rr.status = 'PENDING'
                   AND r.id = rr.request_id AND r.status = 'OPEN' AND r.expires_at > ?
-                """, Timestamp.from(now), blankToNull(note), requestId, store.getId(), Timestamp.from(now));
+                """, Timestamp.from(now), blankToNull(note), automatic, requestId, storeId, Timestamp.from(now));
         if (claimed == 0) {
-            if ("ANSWERED".equals(recipient.status()) || recipient(requestId, store.getId())
+            if ("ANSWERED".equals(recipient.status()) || recipient(requestId, storeId)
                     .map(r -> "ANSWERED".equals(r.status())).orElse(false)) {
                 throw new ConflictException("ALREADY_ANSWERED", "Your store has already answered this question");
             }
@@ -365,7 +383,7 @@ public class MedicineRequestService {
                 INSERT INTO request_answer_lines (request_id, store_id, medicine_id, availability,
                                                   quantity_available, unit_price, substitute_medicine_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, lines.stream().map(l -> new Object[]{requestId, store.getId(), l.medicineId(),
+                """, lines.stream().map(l -> new Object[]{requestId, storeId, l.medicineId(),
                 l.availability().name(), quantityFor(l, asked.get(l.medicineId())),
                 l.availability() == Availability.NO ? null : l.unitPrice(),
                 l.availability() == Availability.NO ? null : l.substituteMedicineId()}).toList());
@@ -373,13 +391,50 @@ public class MedicineRequestService {
         long available = lines.stream().filter(l -> l.availability() != Availability.NO).count();
         RequestHeader header = header(requestId).orElseThrow();
         auditLog.recordChange("MEDICINE_REQUEST_ANSWERED", "MEDICINE_REQUEST", requestId,
-                Map.of("storeId", store.getId(), "available", available, "asked", asked.size()));
+                Map.of("storeId", storeId, "available", available, "asked", asked.size(), "automatic", automatic));
         outbox.publish(Outbox.STORE_ANSWERED, requestId, Map.of(
                 "patientUserId", header.patientUserId(),
-                "storeName", store.getName(),
+                "storeName", storeName,
                 "available", available,
                 "asked", asked.size(),
                 "complete", lines.stream().allMatch(l -> l.availability() == Availability.YES)));
+    }
+
+    /**
+     * An answer computed from live stock: the prescribed brand if there is
+     * enough; else, where the doctor allowed it, the cheapest other brand of
+     * the same medicine with enough; else as many of the prescribed brand as
+     * there are.
+     */
+    List<LineInput> fromStock(List<Item> asked, Map<UUID, StoreStockService.StockLine> stock) {
+        List<LineInput> lines = new ArrayList<>();
+        for (Item item : asked) {
+            StoreStockService.StockLine own = stock.get(item.medicineId());
+            int have = own == null ? 0 : own.quantity();
+            if (have >= item.quantity()) {
+                lines.add(new LineInput(item.medicineId(), Availability.YES, null, own.unitPrice(), null));
+                continue;
+            }
+            Optional<StoreStockService.StockLine> other = !item.substitutionAllowed() ? Optional.empty()
+                    : equivalents(item.medicineId()).stream()
+                    .map(e -> stock.get(e.id()))
+                    .filter(Objects::nonNull)
+                    .filter(l -> l.quantity() >= item.quantity())
+                    .min(Comparator.comparing(StoreStockService.StockLine::unitPrice));
+            if (other.isPresent()) {
+                lines.add(new LineInput(item.medicineId(), Availability.YES, null, other.get().unitPrice(),
+                        other.get().medicineId()));
+            } else if (have > 0) {
+                lines.add(new LineInput(item.medicineId(), Availability.PARTIAL, have, own.unitPrice(), null));
+            } else {
+                lines.add(new LineInput(item.medicineId(), Availability.NO, null, null, null));
+            }
+        }
+        return lines;
+    }
+
+    private String storeName(UUID storeId) {
+        return jdbc.queryForObject("SELECT name FROM stores WHERE id = ?", String.class, storeId);
     }
 
     // --- validation ---------------------------------------------------------

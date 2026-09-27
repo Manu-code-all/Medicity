@@ -171,6 +171,11 @@ function StoreCard({
         </div>
         <div className="compare__badges">
           {store.complete && <span className="badge badge--completed">Has everything</span>}
+          {store.automatic && (
+            <span className="badge" title="Answered at once from the store's up-to-date stock list">
+              Live stock
+            </span>
+          )}
           {store.cheapestComplete && <span className="badge badge--booked">Cheapest</span>}
           {store.nearestComplete && <span className="badge badge--booked">Nearest</span>}
         </div>
