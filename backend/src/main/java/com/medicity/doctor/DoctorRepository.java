@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,9 +33,28 @@ public interface DoctorRepository extends JpaRepository<Doctor, UUID> {
               AND (cast(:specialization as String) IS NULL
                    OR lower(d.specialization) = lower(cast(:specialization as String)))
               AND (cast(:nameQuery as String) IS NULL
-                   OR lower(u.fullName) LIKE lower(concat('%', cast(:nameQuery as String), '%')))
+                   OR lower(u.fullName) LIKE lower(concat('%', cast(:nameQuery as String), '%'))
+                   OR lower(d.specialization) LIKE lower(concat('%', cast(:nameQuery as String), '%')))
             """)
     Page<Doctor> search(@Param("specialization") String specialization,
                         @Param("nameQuery") String nameQuery,
                         Pageable pageable);
+
+    /** Every specialisation with at least one doctor who can be booked, and how many. */
+    @Query("""
+            SELECT d.specialization AS name, count(d) AS doctors
+            FROM Doctor d JOIN d.user u
+            WHERE u.enabled = true
+              AND (cast(:contains as String) IS NULL
+                   OR lower(d.specialization) LIKE lower(concat('%', cast(:contains as String), '%')))
+            GROUP BY d.specialization
+            ORDER BY d.specialization
+            """)
+    List<SpecialtyCount> specialties(@Param("contains") String contains);
+
+    interface SpecialtyCount {
+        String getName();
+
+        long getDoctors();
+    }
 }

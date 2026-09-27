@@ -106,6 +106,59 @@ class DoctorSearchTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("q also matches the specialisation, so typing 'cardio' finds cardiologists")
+    void queryMatchesSpecialisation() throws Exception {
+        mvc.perform(get("/api/v1/doctors").param("q", "CARDIO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(2)));
+    }
+
+    @Test
+    @DisplayName("specialisations are listed once each, with how many doctors practise them")
+    void listsSpecialties() throws Exception {
+        mvc.perform(get("/api/v1/doctors/specialties"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].name").value("Cardiology"))
+                .andExpect(jsonPath("$[0].doctors").value(2))
+                .andExpect(jsonPath("$[1].name").value("Neurology"))
+                .andExpect(jsonPath("$[1].doctors").value(1));
+    }
+
+    @Test
+    @DisplayName("suggestions: matching specialisations, then doctors by name or specialisation")
+    void suggests() throws Exception {
+        mvc.perform(get("/api/v1/doctors/suggest").param("q", "neuro"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.specialties", hasSize(1)))
+                .andExpect(jsonPath("$.specialties[0].name").value("Neurology"))
+                .andExpect(jsonPath("$.doctors", hasSize(1)))
+                .andExpect(jsonPath("$.doctors[0].fullName").value("Dr. Suresh Iyer"));
+
+        mvc.perform(get("/api/v1/doctors/suggest").param("q", "rao"))
+                .andExpect(jsonPath("$.specialties", hasSize(0)))
+                .andExpect(jsonPath("$.doctors[0].fullName").value("Dr. Anjali Rao"));
+
+        // One character lists nobody, rather than everyone.
+        mvc.perform(get("/api/v1/doctors/suggest").param("q", "a"))
+                .andExpect(jsonPath("$.specialties", hasSize(0)))
+                .andExpect(jsonPath("$.doctors", hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("a disabled doctor is neither listed nor counted")
+    void disabledDoctorsHidden() throws Exception {
+        User khan = userRepository.findByEmail("dr.khan@medicity.test").orElseThrow();
+        khan.setEnabled(false);
+        userRepository.save(khan);
+
+        mvc.perform(get("/api/v1/doctors/specialties"))
+                .andExpect(jsonPath("$[0].doctors").value(1));
+        mvc.perform(get("/api/v1/doctors/suggest").param("q", "khan"))
+                .andExpect(jsonPath("$.doctors", hasSize(0)));
+    }
+
+    @Test
     @DisplayName("the directory is public — no token required")
     void directoryIsPublic() throws Exception {
         mvc.perform(get("/api/v1/doctors"))

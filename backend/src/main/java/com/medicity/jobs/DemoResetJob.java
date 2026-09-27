@@ -43,7 +43,12 @@ public class DemoResetJob {
     /** Fixed ids from the seed. */
     private static final String DEMO_DOCTORS = """
             ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa01', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa02',
-             'aaaaaaaa-1111-4111-8111-aaaaaaaaaa03')""";
+             'aaaaaaaa-1111-4111-8111-aaaaaaaaaa03', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa04',
+             'aaaaaaaa-1111-4111-8111-aaaaaaaaaa05', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa06',
+             'aaaaaaaa-1111-4111-8111-aaaaaaaaaa07', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa08',
+             'aaaaaaaa-1111-4111-8111-aaaaaaaaaa09', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa10',
+             'aaaaaaaa-1111-4111-8111-aaaaaaaaaa11', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa12',
+             'aaaaaaaa-1111-4111-8111-aaaaaaaaaa13', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa14')""";
     private static final String DEMO_PATIENTS = """
             ('bbbbbbbb-2222-4222-8222-bbbbbbbbbb01', 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb02',
              'bbbbbbbb-2222-4222-8222-bbbbbbbbbb03', 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb11',

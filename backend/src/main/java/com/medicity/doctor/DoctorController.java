@@ -40,8 +40,34 @@ public class DoctorController {
     private final DoctorRepository doctorRepository;
     private final SlotRepository slotRepository;
 
+    /** Specialisations for the filter and the quick chips: only ones someone can be booked in. */
+    @GetMapping("/specialties")
+    @Operation(summary = "Specialisations with at least one doctor, and how many")
+    public List<SpecialtyResponse> specialties() {
+        return doctorRepository.specialties(null).stream().map(SpecialtyResponse::from).toList();
+    }
+
+    /**
+     * What the search box offers while someone types: matching specialisations
+     * first, then up to five doctors by name or specialisation. Fewer than two
+     * characters answers nothing, so a single keystroke does not list everyone.
+     */
+    @GetMapping("/suggest")
+    @Operation(summary = "Suggestions for the doctor search box")
+    public Suggestions suggest(@RequestParam("q") String query) {
+        String q = blankToNull(query);
+        if (q == null || q.length() < 2) {
+            return new Suggestions(List.of(), List.of());
+        }
+        return new Suggestions(
+                doctorRepository.specialties(q).stream().map(SpecialtyResponse::from).toList(),
+                doctorRepository.search(null, q, PageRequest.of(0, 5, Sort.by("specialization")))
+                        .map(DoctorResponse::from).getContent());
+    }
+
     @GetMapping
-    @Operation(summary = "Search the doctor directory")
+    @Operation(summary = "Search the doctor directory",
+            description = "`q` matches a doctor's name or specialisation; `specialization` is an exact filter.")
     public Page<DoctorResponse> search(
             @RequestParam(required = false) String specialization,
             @RequestParam(required = false, name = "q") String nameQuery,
@@ -106,6 +132,14 @@ public class DoctorController {
                     d.getBio());
         }
     }
+
+    public record SpecialtyResponse(String name, long doctors) {
+        static SpecialtyResponse from(DoctorRepository.SpecialtyCount c) {
+            return new SpecialtyResponse(c.getName(), c.getDoctors());
+        }
+    }
+
+    public record Suggestions(List<SpecialtyResponse> specialties, List<DoctorResponse> doctors) {}
 
     public record SlotResponse(UUID id, Instant startsAt, Instant endsAt) {
         static SlotResponse from(AppointmentSlot s) {

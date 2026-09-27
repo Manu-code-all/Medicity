@@ -6,6 +6,7 @@ import type {
   Comparison,
   Course,
   Doctor,
+  DoctorSuggestions,
   DoctorVisitDetail,
   DoctorVisitSummary,
   FamilyMember,
@@ -22,6 +23,7 @@ import type {
   RequestSummary,
   ScanDraft,
   Slot,
+  Specialty,
   StockView,
   StoreInput,
   StoreInsights,
@@ -74,6 +76,12 @@ export const doctors = {
     if (nameQuery) params.set("q", nameQuery);
     return request<Page<Doctor>>(`/api/v1/doctors?${params}`);
   },
+
+  /** Specialisations someone can be booked in, with how many doctors practise each. */
+  specialties: () => request<Specialty[]>("/api/v1/doctors/specialties"),
+
+  /** For the search box: specialisations and up to five doctors matching `q`. */
+  suggest: (q: string) => request<DoctorSuggestions>(`/api/v1/doctors/suggest?q=${encodeURIComponent(q)}`),
 
   slots: (doctorId: string, from: string, to: string) =>
     request<Slot[]>(

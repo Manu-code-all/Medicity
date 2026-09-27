@@ -1,0 +1,54 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
+import { describe, expect, it } from "vitest";
+import { json, mockFetch } from "../test/fetchMock";
+import { DoctorsPage } from "./DoctorsPage";
+
+const EMPTY = { content: [], totalElements: 0, totalPages: 0, number: 0 };
+const MENON = {
+  content: [{ id: "d4", fullName: "Dr. Kavitha Menon", specialization: "General Medicine", consultationFee: 700, yearsExperience: 12, bio: null }],
+  totalElements: 1,
+  totalPages: 1,
+  number: 0,
+};
+
+function renderAt(path: string) {
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter initialEntries={[path]}>
+        <DoctorsPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+describe("DoctorsPage", () => {
+  it("takes the body guide's answer from the link, and offers the alternative when nobody matches", async () => {
+    const calls = mockFetch(({ url }) => {
+      if (url.endsWith("/specialties")) return json(200, [{ name: "General Medicine", doctors: 1 }]);
+      return json(200, url.includes("General+Medicine") || url.includes("General%20Medicine") ? MENON : EMPTY);
+    });
+    renderAt("/doctors?specialty=Gastroenterology&zone=abdomen_upper");
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Upper abdomen and stomach");
+    expect(screen.getByRole("status")).toHaveTextContent("Showing gastroenterologists");
+    expect(calls.some((c) => c.url === "/api/v1/doctors?specialization=Gastroenterology")).toBe(true);
+
+    await userEvent.click(await screen.findByRole("button", { name: "See a general physician instead" }));
+
+    expect(await screen.findByRole("heading", { name: "Dr. Kavitha Menon" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox")).toHaveValue("General Medicine");
+  });
+
+  it("lists only specialisations someone practises, with how many doctors", async () => {
+    mockFetch(({ url }) =>
+      url.endsWith("/specialties") ? json(200, [{ name: "Cardiology", doctors: 2 }]) : json(200, EMPTY),
+    );
+    renderAt("/doctors?q=rao");
+
+    expect(await screen.findByRole("option", { name: "Cardiology (2)" })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search by name or speciality")).toHaveValue("rao");
+  });
+});

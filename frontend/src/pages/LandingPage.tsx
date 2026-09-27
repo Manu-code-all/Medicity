@@ -2,8 +2,11 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, CalendarCheck, Clock, Package, Prescription, Storefront } from "@phosphor-icons/react";
 import { useAuth } from "../auth/context";
+import { BodyGuide } from "../components/bodymap/BodyGuide";
 import { IslandNav } from "../components/IslandNav";
 import { LineMap } from "../components/LineMap";
+import { DoctorOmnibar } from "../components/search/DoctorOmnibar";
+import { SpecialtyQuickGrid } from "../components/search/SpecialtyQuickGrid";
 import { DEMO_PASSWORD } from "../lib/demo";
 import { useInView } from "../lib/reveal";
 import "../landing.css";
@@ -27,13 +30,43 @@ export function LandingPage() {
       <IslandNav />
 
       <main id="main">
+        <section className="lm-doors" aria-labelledby="doors-title">
+          <h1 id="doors-title" className="lm-doors__title">
+            Find the right doctor,
+            <br /> then your medicines nearby.
+          </h1>
+          <div className="lm-doors__grid">
+            <section className="lm-door" aria-labelledby="door-guide">
+              <h2 id="door-guide" className="lm-door__title">
+                Not sure who to consult?
+              </h2>
+              <p className="lm-door__lede">
+                Tap where it hurts and say what it feels like. We suggest the kind of specialist to see.
+              </p>
+              <BodyGuide />
+            </section>
+            <section className="lm-door" aria-labelledby="door-search">
+              <h2 id="door-search" className="lm-door__title">
+                Know who you are looking for?
+              </h2>
+              <p className="lm-door__lede">Search by doctor or speciality, or pick one of the most asked for.</p>
+              <DoctorOmnibar />
+              <SpecialtyQuickGrid />
+              <Link to="/doctors" className="lm-text-link">
+                See every doctor
+                <ArrowRight size={16} weight="bold" aria-hidden="true" />
+              </Link>
+            </section>
+          </div>
+        </section>
+
         <section className="lm-hero" aria-labelledby="hero-title">
           <div className="lm-hero__copy">
-            <h1 id="hero-title" className="lm-hero__title">
+            <h2 id="hero-title" className="lm-hero__title">
               From prescription
               <br /> to medicines
               <br /> in hand, near you.
-            </h1>
+            </h2>
             <p className="lm-hero__lede">
               Book a specialist, keep every prescription in one place, then ask every verified chemist within 3&nbsp;km who
               has your medicines and at what price. Pick up with a code.

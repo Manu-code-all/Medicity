@@ -30,6 +30,16 @@ export interface Doctor {
   bio: string | null;
 }
 
+export interface Specialty {
+  name: string;
+  doctors: number;
+}
+
+export interface DoctorSuggestions {
+  specialties: Specialty[];
+  doctors: Doctor[];
+}
+
 export interface Slot {
   id: string;
   startsAt: string;
