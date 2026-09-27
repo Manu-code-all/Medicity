@@ -17,6 +17,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
@@ -164,6 +165,13 @@ public class ApiExceptionHandler {
         // fixed sentence instead.
         return clientError(HttpStatus.BAD_REQUEST, "The request body could not be read",
                 "MALFORMED_REQUEST", request);
+    }
+
+    /** An upload over the configured limit (prescription photos: 5 MB). */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ProblemDetail> onTooLarge(MaxUploadSizeExceededException e, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(clientError(HttpStatus.PAYLOAD_TOO_LARGE,
+                "The file is too large. Photos must be under 5 MB.", "FILE_TOO_LARGE", request));
     }
 
     /** A path or query value that cannot be converted, such as a malformed UUID. */

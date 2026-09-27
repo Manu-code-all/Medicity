@@ -1250,6 +1250,67 @@ be reviewed before real patients rely on it (listed under Known gaps).
 
 ---
 
+## 28. The handwritten prescription: photo, AI draft, doctor confirms (PR #33)
+
+Features 10 and 11. Most doctors in India write by hand, and asking them to
+type is how a platform loses them. So the doctor photographs the slip. Claude
+reads it into a draft, and the doctor checks and confirms that draft in the
+usual prescription form. The photo stays attached, so the patient and every
+store she asks can compare the typed list with what the doctor actually wrote.
+
+**The model's output is never a prescription.** Uploading stores the photo.
+Reading returns a draft and records what the model said on the photo row.
+Neither writes a prescription. The prescription is issued only by the
+doctor's normal "issue" request, which now names the photo it was typed from
+(`scanId`). So a misread medicine, an invented dose, or text on the slip
+saying "ignore previous instructions" can at worst produce a wrong draft that
+the doctor sees and corrects. A test reads a photo and checks that the visit
+still has no prescription.
+
+**Matching is strict on purpose.** The model returns names as written; the
+server matches them to the catalogue only when exactly one entry fits by name
+(brand or generic) and strength. When two could fit, nothing is chosen: an
+empty field that says "read as 'Pan-D 40', choose the medicine" is harder to
+overlook than a wrong one filled in. Each line in the form shows what was read
+from the slip.
+
+**Trust on upload.** The browser's declared content type is not trusted: the
+first bytes decide (JPEG, PNG and WebP signatures). The size is capped at
+5 MB twice, by Spring's multipart limit (413) and by a CHECK on the column.
+The service checks the photo is from the doctor's own completed visit, and
+that it is attached only to a prescription for that same visit. A unique index
+means one photo issues one prescription.
+
+**Who sees the original:**
+- the doctor who took it;
+- the patient, or the account acting for them;
+- a store the patient's question was sent to (other stores get 404, and each
+  view is audited).
+
+Images are served with `Cache-Control: no-store, private`, and the browser
+fetches them with the bearer token. An `<img src>` cannot carry the token, so
+the page fetches the bytes and shows them from an object URL, released when
+closed.
+
+**Without an API key.** `ClaudePrescriptionReader` calls the Messages API with
+the photo as a base64 image block and asks for JSON only. It is used only when
+`ANTHROPIC_API_KEY` is set. Without one, "read" answers "not switched on here;
+type the medicines", and the photo is still attached, which is itself the
+feature for patients and stores. The reader is unit-tested against a mock
+server: the request's headers, model and image block; a reply wrapped in a code
+fence; and a reply that is not JSON, or an API error, failing cleanly. The
+integration tests stub the reader.
+
+**The bean had two constructors**, one for tests with a mock HTTP client. It
+has `@Autowired` on the public one, because the outage in entry 20 was exactly
+this.
+
+**Storage.** Photos live in Postgres (`bytea`, capped). At this scale that
+means one backup and one access-control path. At a larger scale the bytes would
+move to object storage and this row would stay as the index.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Medicine instructions in Indian languages are unreviewed.** The phrasebook

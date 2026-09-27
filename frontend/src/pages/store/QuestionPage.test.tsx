@@ -21,6 +21,7 @@ const VIEW: StoreView = {
     issuedAt: "2029-12-20T05:20:00Z",
     revised: false,
     hospitalDispensedAt: null,
+    hasPhoto: false,
   },
   items: [
     {

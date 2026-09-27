@@ -243,6 +243,21 @@ public class MedicineRequestService {
                 """, now, now);
     }
 
+    /**
+     * The prescription behind a question, for a store it was sent to; 404 for
+     * any other store, audited, exactly as for reading the question.
+     */
+    @Transactional(readOnly = true)
+    public UUID prescriptionForStore(UUID ownerUserId, UUID requestId) {
+        Store store = storeService.requireOwn(ownerUserId);
+        if (recipient(requestId, store.getId()).isEmpty()) {
+            auditLog.recordIndependently("ACCESS_DENIED", "MEDICINE_REQUEST", requestId,
+                    AuditLog.Outcome.DENIED, Map.of("operation", "photo", "storeId", store.getId()));
+            throw new NotFoundException("Medicine request", requestId);
+        }
+        return header(requestId).orElseThrow().prescriptionId();
+    }
+
     // --- the store's side ----------------------------------------------------
 
     /** The store's queue: questions waiting for it, or ones it answered. */
@@ -314,7 +329,7 @@ public class MedicineRequestService {
 
         Verification rx = jdbc.queryForObject("""
                 SELECT du.full_name AS doctor_name, d.specialization, d.license_number, rx.issued_at,
-                       (rx.supersedes_id IS NOT NULL) AS revised,
+                       (rx.supersedes_id IS NOT NULL) AS revised, (rx.scan_id IS NOT NULL) AS has_photo,
                        (SELECT dispensed_at FROM prescription_dispensations pd WHERE pd.prescription_id = rx.id)
                            AS hospital_dispensed_at
                 FROM prescriptions rx
@@ -323,7 +338,8 @@ public class MedicineRequestService {
                 WHERE rx.id = ?
                 """, (rs, i) -> new Verification(rs.getString("doctor_name"), rs.getString("specialization"),
                         rs.getString("license_number"), rs.getTimestamp("issued_at").toInstant(),
-                        rs.getBoolean("revised"), ts(rs.getTimestamp("hospital_dispensed_at"))),
+                        rs.getBoolean("revised"), ts(rs.getTimestamp("hospital_dispensed_at")),
+                        rs.getBoolean("has_photo")),
                 header.prescriptionId());
 
         auditLog.recordIndependently("MEDICINE_REQUEST_VIEWED", "MEDICINE_REQUEST", requestId,
@@ -645,7 +661,9 @@ public class MedicineRequestService {
 
     /** How the store knows the prescription is real: who wrote it, in Medicity, and when. */
     public record Verification(String doctorName, String specialization, String doctorRegistration,
-                               Instant issuedAt, boolean revised, Instant hospitalDispensedAt) {}
+                               Instant issuedAt, boolean revised, Instant hospitalDispensedAt,
+                               /** The doctor's handwritten original can be viewed. */
+                               boolean hasPhoto) {}
 
     public record StoreItem(UUID medicineId, String name, String genericName, String strength, String form,
                             int quantity, boolean substitutionAllowed, String dosage, String frequency,

@@ -31,6 +31,12 @@ spring:
     baseline-on-migrate: false
     validate-on-migrate: true
 
+  servlet:
+    multipart:
+      # Prescription photos are capped at 5 MB (V19); a little room for the form.
+      max-file-size: 5MB
+      max-request-size: 6MB
+
 server:
   port: ${PORT:8080}
   error:
@@ -53,6 +59,12 @@ medicity:
     secret: ${JWT_SECRET:dev-only-insecure-secret-change-me-32bytes-min}
     access-ttl: ${JWT_ACCESS_TTL:PT15M}
     refresh-ttl: ${JWT_REFRESH_TTL:P7D}
+
+  ai:
+    # Reading handwritten prescriptions. Unset, the feature says so and the
+    # doctor types the medicines; the photo is still attached.
+    anthropic-api-key: ${ANTHROPIC_API_KEY:}
+    model: ${MEDICITY_AI_MODEL:claude-sonnet-5}
 
   auth:
     login-throttle:

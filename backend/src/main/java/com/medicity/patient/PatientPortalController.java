@@ -205,6 +205,8 @@ public class PatientPortalController {
             /** When it was last collected from a neighbourhood store, and which; null if never. */
             Instant collectedAt,
             String collectedFrom,
+            /** The doctor's handwritten original is attached and can be viewed. */
+            boolean hasPhoto,
             List<ItemResponse> items
     ) {
         public static PrescriptionResponse from(Prescription p, Instant dispensedAt) {
@@ -218,7 +220,7 @@ public class PatientPortalController {
                     d.getUser().getFullName(), d.getSpecialization(),
                     p.getDiagnosis(), p.getNotes(), p.getSupersedesId() != null, dispensedAt,
                     collected == null ? null : collected.at(), collected == null ? null : collected.storeName(),
-                    p.getItems().stream().map(ItemResponse::from).toList());
+                    p.getScanId() != null, p.getItems().stream().map(ItemResponse::from).toList());
         }
     }
 

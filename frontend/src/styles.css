@@ -603,3 +603,10 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .how__parts { font-size: 1.02rem; }
 .how__parts--unclear { color: var(--warn); }
 .whatsapp { display: inline-block; margin-top: 6px; }
+
+/* Prescription photos */
+.photo { margin-top: 10px; }
+.photo__img { display: block; max-width: 100%; max-height: 520px; margin-top: 8px; border-radius: var(--radius); border: 1px solid var(--border); }
+.photo__img--small { max-height: 220px; }
+.photo-start { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; align-items: flex-start; }
+.photo-start__pick { cursor: pointer; }

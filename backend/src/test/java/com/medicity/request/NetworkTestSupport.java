@@ -279,6 +279,7 @@ public abstract class NetworkTestSupport extends AbstractIntegrationTest {
         jdbc.update("DELETE FROM stores");
         jdbc.update("DELETE FROM prescription_dispensations");
         prescriptionRepository.deleteAllInBatch();
+        jdbc.update("DELETE FROM prescription_scans");
         appointmentRepository.deleteAll();
         slotRepository.deleteAll();
         patientRepository.deleteAll();

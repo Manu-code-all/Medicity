@@ -4,6 +4,7 @@ import { useLocation, useSearchParams } from "react-router-dom";
 import { portal } from "../../api/endpoints";
 import { formatDate } from "../../lib/format";
 import { AskChemists } from "./AskChemists";
+import { PhotoViewer } from "../../components/PhotoViewer";
 import { HowToTake } from "./HowToTake";
 
 export function PrescriptionsPage() {
@@ -113,6 +114,7 @@ export function PrescriptionsPage() {
           )}
 
           {rx.items.length > 0 && <HowToTake prescription={rx} />}
+          {rx.hasPhoto && <PhotoViewer path={`/api/v1/patients/me/prescriptions/${rx.id}/scan`} />}
 
           {rx.notes && (
             <p className="rx__notes">

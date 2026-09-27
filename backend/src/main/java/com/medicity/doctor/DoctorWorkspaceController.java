@@ -197,13 +197,15 @@ public class DoctorWorkspaceController {
     public record PrescriptionRequest(
             @NotBlank @Size(max = 500) String diagnosis,
             @Size(max = 2000) String notes,
-            @NotEmpty @Size(max = 20) List<@Valid ItemRequest> items
+            @NotEmpty @Size(max = 20) List<@Valid ItemRequest> items,
+            /** The photographed slip this was typed from, if the doctor started from one. */
+            UUID scanId
     ) {
         PrescriptionDraft toDraft() {
             return new PrescriptionDraft(diagnosis, notes, items.stream()
                     .map(i -> new PrescriptionDraft.Item(i.medicineId(), i.dosage(), i.frequency(),
                             i.durationDays(), i.quantity(), i.substitutionAllowed()))
-                    .toList());
+                    .toList(), scanId);
         }
     }
 

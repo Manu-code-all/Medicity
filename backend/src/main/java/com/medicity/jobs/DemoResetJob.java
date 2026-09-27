@@ -114,6 +114,8 @@ public class DemoResetJob {
         // Items cascade. Originals and their corrections go in one statement,
         // so the self-reference is satisfied when the statement ends.
         jdbc.update("DELETE FROM prescriptions WHERE appointment_id IN (SELECT id FROM demo_appointments)");
+        // Photos of handwritten slips, now that no prescription points at them.
+        jdbc.update("DELETE FROM prescription_scans WHERE appointment_id IN (SELECT id FROM demo_appointments)");
         int appointments = jdbc.update("DELETE FROM appointments WHERE id IN (SELECT id FROM demo_appointments)");
         jdbc.update("DELETE FROM appointment_slots WHERE doctor_id IN " + DEMO_DOCTORS);
         jdbc.execute("DROP TABLE demo_appointments");
