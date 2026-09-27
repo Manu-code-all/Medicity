@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { ApiError } from "../api/client";
-import { homeFor, useAuth } from "../auth/context";
+import { auth as authApi } from "../api/endpoints";
+import type { CodeSent } from "../api/types";
+import { homeFor, useAuth, type Session } from "../auth/context";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD, LOGIN_PATH, type LineRole } from "../lib/demo";
 import "../landing.css";
 
@@ -35,6 +37,8 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Mobile first, as Indian health platforms do; email stays one tap away.
+  const [method, setMethod] = useState<"mobile" | "email">("mobile");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -45,12 +49,15 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
   const copy = COPY[role];
   const demo = DEMO_ACCOUNTS[role];
 
+  function signedIn(session: Session) {
+    navigate(returnTo ?? homeFor(session.role), { replace: true });
+  }
+
   async function signIn(address: string, secret: string, how: "form" | "demo") {
     setError(null);
     setBusy(how);
     try {
-      const session = await login(address, secret);
-      navigate(returnTo ?? homeFor(session.role), { replace: true });
+      signedIn(await login(address, secret));
     } catch (err) {
       // The server returns the same message whether the account is unknown or
       // the password is wrong; the UI must not elaborate on it either.
@@ -120,40 +127,62 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
           </button>
 
           <p className="lm-auth__or">
-            <span>or with your email</span>
+            <span>or sign in with</span>
           </p>
 
-          <form
-            className="lm-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void signIn(email, password, "form");
-            }}
-          >
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+          <div className="lm-method" role="tablist" aria-label="Sign in with">
+            {(["mobile", "email"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                role="tab"
+                aria-selected={method === m}
+                className="lm-method__tab"
+                onClick={() => {
+                  setError(null);
+                  setMethod(m);
+                }}
+              >
+                {m === "mobile" ? "Mobile number" : "Email"}
+              </button>
+            ))}
+          </div>
 
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+          {method === "mobile" ? (
+            <MobileSignIn demoPhone={demo.phone} onSignedIn={signedIn} useEmail={() => setMethod("email")} />
+          ) : (
+            <form
+              className="lm-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void signIn(email, password, "form");
+              }}
+            >
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
 
-            <button type="submit" className="lm-button lm-button--block" disabled={busy !== null}>
-              {busy === "form" ? "Signing in…" : "Sign in"}
-            </button>
-          </form>
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+
+              <button type="submit" className="lm-button lm-button--block" disabled={busy !== null}>
+                {busy === "form" ? "Signing in…" : "Sign in"}
+              </button>
+            </form>
+          )}
 
           <p className="lm-auth__foot">
             {role === "patient" && (
@@ -171,5 +200,171 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
         </div>
       </main>
     </div>
+  );
+}
+
+const RESEND_AFTER_SECONDS = 30;
+
+/**
+ * Mobile number, then a six digit code. Until an SMS provider is configured,
+ * only the demo accounts can use this: their code is shown on screen.
+ */
+function MobileSignIn({
+  demoPhone,
+  onSignedIn,
+  useEmail,
+}: {
+  demoPhone: string;
+  onSignedIn: (session: Session) => void;
+  useEmail: () => void;
+}) {
+  const { loginWithCode } = useAuth();
+  const [phone, setPhone] = useState("");
+  const [sent, setSent] = useState<CodeSent | null>(null);
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [wait, setWait] = useState(0);
+
+  useEffect(() => {
+    if (wait <= 0) return;
+    const t = window.setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => window.clearTimeout(t);
+  }, [wait]);
+
+  async function send() {
+    setError(null);
+    setBusy(true);
+    try {
+      const reply = await authApi.sendCode(phone);
+      setSent(reply);
+      setCode("");
+      setWait(reply.delivery === "UNAVAILABLE" ? 0 : RESEND_AFTER_SECONDS);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not send the code. Check your connection.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verify() {
+    setError(null);
+    setBusy(true);
+    try {
+      onSignedIn(await loginWithCode(phone, code));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not sign in. Check your connection.");
+      setCode("");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (sent?.delivery === "UNAVAILABLE") {
+    return (
+      <div className="lm-form">
+        <p className="lm-note" role="status">
+          Codes by SMS are not switched on yet, so only the demo numbers can use them. Sign in with your email
+          instead, or try the demo number <span className="lm-num">{demoPhone}</span>.
+        </p>
+        <button type="button" className="lm-button lm-button--block" onClick={useEmail}>
+          Use email instead
+        </button>
+        <button type="button" className="lm-link-button" onClick={() => setSent(null)}>
+          Change number
+        </button>
+      </div>
+    );
+  }
+
+  if (!sent) {
+    return (
+      <form
+        className="lm-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void send();
+        }}
+      >
+        {error && (
+          <p className="lm-error" role="alert">
+            {error}
+          </p>
+        )}
+        <label htmlFor="phone">Mobile number</label>
+        <div className="lm-phone">
+          <span className="lm-phone__prefix" aria-hidden="true">
+            +91
+          </span>
+          <input
+            id="phone"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            required
+            placeholder="98765 43210"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value.replace(/[^0-9 ]/g, ""))}
+          />
+        </div>
+        <p className="lm-hint">
+          Demo number: <span className="lm-num">{demoPhone}</span>
+        </p>
+        <button type="submit" className="lm-button lm-button--block" disabled={busy}>
+          {busy ? "Sending…" : "Send code"}
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <form
+      className="lm-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void verify();
+      }}
+    >
+      {error && (
+        <p className="lm-error" role="alert">
+          {error}
+        </p>
+      )}
+      <p className="lm-note" role="status">
+        {sent.delivery === "DEMO" ? (
+          <>
+            Demo account, so no SMS: your code is <strong className="lm-num">{sent.demoCode}</strong>.{" "}
+            <button type="button" className="lm-link-button" onClick={() => setCode(sent.demoCode ?? "")}>
+              Fill it in
+            </button>
+          </>
+        ) : (
+          <>If {sent.sentTo} has an account, a code is on its way. It works for 5 minutes.</>
+        )}
+      </p>
+      <label htmlFor="code">6 digit code</label>
+      <input
+        id="code"
+        className="lm-num lm-code-input"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        required
+        pattern="[0-9]{6}"
+        maxLength={6}
+        value={code}
+        onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+      />
+      <button type="submit" className="lm-button lm-button--block" disabled={busy || code.length !== 6}>
+        {busy ? "Signing in…" : "Verify and sign in"}
+      </button>
+      <div className="lm-form__row">
+        <button type="button" className="lm-link-button" onClick={() => setSent(null)}>
+          Change number
+        </button>
+        <button type="button" className="lm-link-button" disabled={wait > 0 || busy} onClick={() => void send()}>
+          {wait > 0 ? `Send again in ${wait}s` : "Send again"}
+        </button>
+      </div>
+    </form>
   );
 }

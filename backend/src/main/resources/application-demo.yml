@@ -7,3 +7,10 @@ spring:
 logging:
   level:
     com.medicity: DEBUG
+
+# The demo accounts' phone numbers are public, so their sign-in codes are
+# shown on screen instead of texted. Real numbers never see this.
+medicity:
+  auth:
+    otp:
+      show-demo-codes: true

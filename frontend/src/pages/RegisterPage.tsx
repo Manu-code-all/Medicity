@@ -81,7 +81,7 @@ export function RegisterPage() {
       />
       {fieldErrors.dateOfBirth && <small className="error">{fieldErrors.dateOfBirth}</small>}
 
-      <label htmlFor="phone">Phone (optional)</label>
+      <label htmlFor="phone">Mobile number (optional, lets you sign in with a code)</label>
       <input id="phone" value={form.phone} onChange={update("phone")} />
       {fieldErrors.phone && <small className="error">{fieldErrors.phone}</small>}
 

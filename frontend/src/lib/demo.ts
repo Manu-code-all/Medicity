@@ -8,10 +8,10 @@ export type LineRole = "patient" | "doctor" | "chemist";
 
 export const DEMO_PASSWORD = "demo-password-2026";
 
-export const DEMO_ACCOUNTS: Record<LineRole, { email: string; name: string; who: string }> = {
-  patient: { email: "patient@medicity.demo", name: "Meera Nair", who: "manages her mother and son too" },
-  doctor: { email: "dr.rao@medicity.demo", name: "Dr. Anjali Rao", who: "today's schedule is waiting" },
-  chemist: { email: "chemist@medicity.demo", name: "Ravi Kumar", who: "of Sri Sai Medicals, Indiranagar" },
+export const DEMO_ACCOUNTS: Record<LineRole, { email: string; phone: string; name: string; who: string }> = {
+  patient: { email: "patient@medicity.demo", phone: "98765 00101", name: "Meera Nair", who: "manages her mother and son too" },
+  doctor: { email: "dr.rao@medicity.demo", phone: "98765 00001", name: "Dr. Anjali Rao", who: "today's schedule is waiting" },
+  chemist: { email: "chemist@medicity.demo", phone: "98765 00301", name: "Ravi Kumar", who: "of Sri Sai Medicals, Indiranagar" },
 };
 
 export const LOGIN_PATH: Record<LineRole, string> = {

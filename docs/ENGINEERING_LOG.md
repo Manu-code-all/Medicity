@@ -1410,8 +1410,61 @@ map's answers, stations, role links) and `LoginPage.test.tsx` (one-click demo
 per role, role tabs, typed sign-in and the server's error). Frontend tests: 50
 to 55.
 
+## 32. Signing in with a mobile number and a code
+
+Indian health platforms (Practo, Apollo 24|7, PharmEasy's pharmacy app) sign
+people in with a mobile number and a one-time code, because many patients do
+not use email. Medicity now does too, with email and password kept as the
+alternative on every sign-in page.
+
+**Which account a number belongs to.** `users.phone` was free-text contact
+detail and not unique, so V20 adds `login_phone`: the number normalised to
++91 and ten digits, unique across accounts. Existing accounts got one only if
+their number normalised cleanly and no other account shared it, so the
+migration could not fail on production data it had never seen; two accounts
+on one number keep email sign-in. New sign-ups set it, and a second account
+on the same number is refused with `PHONE_TAKEN`. A chemist's account takes the store's number only when no
+account has it yet, since a store number is often a landline or shared. `PhoneNumbers.normalise`
+applies the same rule in Java, so "98765 00101", "+91-98765-00101" and
+"919876500101" all find the same account.
+
+**What a code is allowed to do.** Six digits, good for five minutes, five
+guesses and one sign-in; only the newest code for an account counts. The
+row stores an HMAC of the code keyed by the server secret and bound to the
+row id, compared in constant time. A wrong guess is written before the
+refusal and survives it (`noRollbackFor`), and the challenge row is locked
+while checked, so parallel guesses are counted one by one. "Newest" is decided by an identity column,
+not the timestamp: CI found two codes issued in the same instant, where the
+older one still worked.
+
+**What the replies give away: nothing.** "Send a code" answers every valid
+number the same way, account or not. At most three codes are texted to an
+account in fifteen minutes (bounding both guessing and SMS bombing), and a
+request over the limit is answered like any other and sends nothing, so the
+limit cannot be used to find accounts either.
+
+**No SMS provider yet.** Texting Indian numbers needs a provider with DLT
+template registration; `Msg91OtpSender` is written against MSG91's OTP API
+(tested against a mock server, not yet the real service) and switches on
+when `MSG91_AUTH_KEY` and `MSG91_OTP_TEMPLATE_ID` are set. Until then every
+number is told plainly that codes are not available and offered email,
+except the public demo accounts: in the demo profile their code is shown on
+screen, so a visitor can try the flow.
+
+Tests: `OtpSignInTest` (single use, any number format, five guesses, expiry,
+newest code only, send limit, unknown numbers look the same, demo codes only
+in demo, code stored as a hash, one account per number) and
+`Msg91OtpSenderTest`; three new frontend tests for the demo code, the
+"not switched on" path and a wrong code.
+
 ## Known gaps (tracked, not hidden)
 
+- **Codes are not texted yet.** No SMS provider is configured, so only the
+  demo accounts can sign in with a code (shown on screen); real numbers are
+  told to use email. The MSG91 sender has only been tested against a mock.
+  "Send a code" also takes slightly longer for a number with an account
+  (one insert), a timing difference far smaller than network jitter but not
+  zero.
 - **The family and open-question caps are checked, not locked.** Adding a
   family member counts, then inserts; two adds at the same moment at seven
   members could make nine. The five-open-questions cap works the same way.

@@ -557,3 +557,13 @@ export interface ScanDraft {
   lines: { read: ScanReadLine; match: { medicineId: string; name: string; strength: string | null } | null }[];
   unreadable: string[];
 }
+
+// --- Signing in with a mobile number -------------------------------------------
+
+/** SMS: texted. DEMO: a public demo account, code shown here. UNAVAILABLE: no SMS provider yet. */
+export interface CodeSent {
+  delivery: "SMS" | "DEMO" | "UNAVAILABLE";
+  sentTo: string | null;
+  demoCode: string | null;
+  expiresInSeconds: number;
+}

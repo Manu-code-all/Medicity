@@ -289,6 +289,8 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 |---|---|---|---|
 | `POST` | `/api/v1/auth/register` | — | Register a patient |
 | `POST` | `/api/v1/auth/login` | — | Obtain a token pair |
+| `POST` | `/api/v1/auth/otp/send` | — | Send a sign-in code to a mobile number (same reply for every number) |
+| `POST` | `/api/v1/auth/otp/verify` | — | Mobile number and code for a token pair |
 | `POST` | `/api/v1/auth/refresh` | — | Rotate: spend a refresh token for a new pair (reuse ends the session) |
 | `POST` | `/api/v1/auth/logout` | — | End the session the refresh token belongs to |
 | `GET` | `/api/v1/doctors` | — | Search doctors |

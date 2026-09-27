@@ -2,31 +2,32 @@ import { request } from "./client";
 import type {
   AnswerLineInput,
   Appointment,
+  CodeSent,
   Comparison,
   Course,
   Doctor,
-  FamilyMember,
   DoctorVisitDetail,
   DoctorVisitSummary,
+  FamilyMember,
   Medicine,
   NearbyStore,
   NotificationList,
-  PatientHistory,
-  PrescriptionDraft,
   Page,
+  PatientHistory,
   PatientProfile,
   PortalSummary,
+  Prescription,
+  PrescriptionDraft,
   QueueEntry,
   RequestSummary,
   ScanDraft,
+  Slot,
   StockView,
+  StoreInput,
   StoreInsights,
+  StoreProfile,
   StoreReservation,
   StoreView,
-  Prescription,
-  Slot,
-  StoreInput,
-  StoreProfile,
   TokenPair,
   Visit,
   VisitScope,
@@ -38,6 +39,13 @@ export const auth = {
       method: "POST",
       body: { email, password },
     }),
+
+  /** Same reply whether or not the number has an account. */
+  sendCode: (phone: string) =>
+    request<CodeSent>("/api/v1/auth/otp/send", { method: "POST", body: { phone } }),
+
+  verifyCode: (phone: string, code: string) =>
+    request<TokenPair>("/api/v1/auth/otp/verify", { method: "POST", body: { phone, code } }),
 
   register: (input: {
     email: string;
