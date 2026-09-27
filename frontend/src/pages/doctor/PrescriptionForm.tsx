@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { pharmacy } from "../../api/endpoints";
 import type { Medicine, Prescription, PrescriptionDraft, PrescriptionDraftItem } from "../../api/types";
+import { FREQUENCY_SUGGESTIONS, parseFrequency } from "../../lib/instructions";
 
 interface Props {
   /** When correcting, the prescription being replaced; its content pre-fills the form. */
@@ -81,6 +82,13 @@ function DraftForm({
       <input id="rx-diagnosis" required maxLength={500} value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} />
       {fieldErrors.diagnosis && <span className="error field-error">{fieldErrors.diagnosis}</span>}
 
+      {/* Phrases the patient's portal can show in Hindi, Tamil and others. */}
+      <datalist id="rx-frequency-suggestions">
+        {FREQUENCY_SUGGESTIONS.map((s) => (
+          <option key={s} value={s} />
+        ))}
+      </datalist>
+
       <fieldset className="rx-items">
         <legend>Medicines</legend>
         {items.map((item, index) => (
@@ -119,9 +127,13 @@ function DraftForm({
                 required
                 maxLength={80}
                 placeholder="Twice daily after food"
+                list="rx-frequency-suggestions"
                 value={item.frequency}
                 onChange={(e) => update(index, { frequency: e.target.value })}
               />
+              {item.frequency.trim() !== "" && !parseFrequency(item.frequency).understood && (
+                <small className="muted">Patients will see these words in English only.</small>
+              )}
             </div>
             <div>
               <label htmlFor={`rx-days-${index}`}>Days</label>
