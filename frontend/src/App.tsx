@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, Navigate, NavLink, Outlet, Route, Routes, useNavigate } from "react-router-dom";
+import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { notifications } from "./api/endpoints";
 import type { Role } from "./api/types";
 import { homeFor, useAuth } from "./auth/context";
@@ -44,6 +44,11 @@ const HOME_LABEL: Record<Role, string> = {
 export function App() {
   const { session, logout } = useAuth();
   const navigate = useNavigate();
+  // The landing and sign-in pages carry their own navigation.
+  const { pathname } = useLocation();
+  const ownChrome = pathname === "/" || pathname.startsWith("/login");
+  // Those pages hold their own <main>; landmarks must not nest.
+  const Shell = ownChrome ? "div" : "main";
 
   function signOut() {
     logout();
@@ -52,38 +57,43 @@ export function App() {
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="topbar__inner">
-          <Link to="/" className="brand">
-            <span className="brand__mark" aria-hidden="true">+</span>
-            Medicity
-          </Link>
-          <nav>
-            <NavLink to="/doctors">Find a doctor</NavLink>
-            {session ? (
-              <>
-                <NavLink to={homeFor(session.role)}>{HOME_LABEL[session.role]}</NavLink>
-                <NotificationsLink />
-                <button type="button" className="link" onClick={signOut}>
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <>
-                <NavLink to="/login">Sign in</NavLink>
-                <Link className="button button--sm" to="/register">
-                  Get started
-                </Link>
-              </>
+      {!ownChrome && (
+        <header className="topbar">
+          <div className="topbar__inner">
+            <Link to="/" className="brand">
+              <span className="brand__mark" aria-hidden="true">+</span>
+              Medicity
+            </Link>
+            <nav>
+              <NavLink to="/doctors">Find a doctor</NavLink>
+              {session ? (
+                <>
+                  <NavLink to={homeFor(session.role)}>{HOME_LABEL[session.role]}</NavLink>
+                  <NotificationsLink />
+                  <button type="button" className="link" onClick={signOut}>
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <NavLink to="/login">Sign in</NavLink>
+                  <Link className="button button--sm" to="/register">
+                    Get started
+                  </Link>
+                </>
             )}
           </nav>
         </div>
       </header>
+      )}
 
-      <main>
+      <Shell>
         <Routes>
           {/* Full-bleed pages manage their own width. */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login/doctor" element={<LoginPage role="doctor" />} />
+          <Route path="/login/chemist" element={<LoginPage role="chemist" />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path="/portal" element={<PortalLayout />}>
@@ -115,7 +125,6 @@ export function App() {
           {/* Everything else sits in a centred column. */}
           <Route element={<Contained />}>
             <Route path="/doctors" element={<DoctorsPage />} />
-            <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/register/store" element={<StoreRegisterPage />} />
             <Route element={<ProtectedRoute />}>
@@ -128,7 +137,7 @@ export function App() {
             <Route path="*" element={<p className="muted">Page not found.</p>} />
           </Route>
         </Routes>
-      </main>
+      </Shell>
     </div>
   );
 }

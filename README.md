@@ -470,9 +470,15 @@ subdirectory means `vercel.json` is never read.
 
 ## Patient experience
 
-- **Landing page** (`/`) — what Medicity offers, live specialists pulled from the
-  API, and a preview of the portal. Degrades gracefully: if the API is down, the
-  page still renders without the doctors section.
+- **Landing page** (`/`) — care drawn as one metro-style line: book, visit,
+  prescription, chemists nearby, pick up. The hero is a map of the demo's
+  Indiranagar chemists answering the demo patient's question in turn, drawn
+  from the same stores, distances and prices the seed creates. It makes no API
+  calls, so it renders fully even when the API is down.
+- **Sign-in pages** (`/login`, `/login/doctor`, `/login/chemist`) — one frame,
+  one coloured line per role (teal, indigo, marigold), each with a one-click
+  sign-in as that role's demo account. Protected pages send a signed-out doctor
+  or chemist to their own sign-in page.
 - **Patient portal** (`/portal`) — where a patient lands after signing in:
   - *Overview*: the next visit with a countdown, totals, recent visits and the
     latest prescription.

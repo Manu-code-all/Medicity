@@ -1365,6 +1365,51 @@ appointments". `ApiDocsTest` fetches `/v3/api-docs` and asserts where it
 appears and that it is absent from the family and store routes, so a new route
 cannot quietly drift from the rule.
 
+## 31. The landing and sign-in pages, redesigned around the line
+
+The old landing page described features in cards. The new one shows the
+mechanism: the product is one journey (book, visit, prescription, chemists
+nearby, pick up), so the page is drawn as a metro line with five stations, and
+the sign-in pages give each role its own line colour.
+
+**What is on the page, and why it is honest.** The hero map places the five
+demo chemists by their seeded latitude and longitude around the demo patient's
+home (`lib/demo.ts`, kilometres per degree at Bengaluru's latitude), with the
+seed's real answers to her omeprazole question: Green Cross ₹77.00, Lakshmi
+₹58.80 with Omez, Nightingale 10 of 14. Every station shows a fragment of a
+real screen with demo data, and the page says it is demo data. No ratings,
+users or numbers were invented. Copy claims were checked against the code; one
+("reminded the day before your visit") was cut because no such reminder exists.
+
+**Three sign-in URLs, one component.** `/login`, `/login/doctor` and
+`/login/chemist` render the same `LoginPage` with a `role`. React keeps the
+instance between them, so switching role slides the coloured tab and the side
+panel changes colour rather than a new page loading. Each has a one-click
+sign-in as that role's demo account; the password was already public on the
+landing page. `ProtectedRoute` now sends `/doctor/*` to the doctor sign-in and
+`/store/*` to the chemist one.
+
+**Motion without hiding content.** Reveals use IntersectionObserver, never a
+scroll listener. Where it does not exist (tests, old browsers) everything is
+shown at once, and `prefers-reduced-motion` shows the map's final state and
+turns transitions off. The tagline lights word by word as it crosses a line
+just below the middle of the screen.
+
+**Scoped styles.** Everything lives under `.lm` in `landing.css` with its own
+light and dark tokens, so the portal, doctor and store workspaces are
+untouched. The app header is hidden on these routes because they carry their
+own navigation, and the app shell renders a `div` instead of `main` there so
+landmarks do not nest.
+
+**Process.** The direction came from the design skills the user chose
+(landing-page-design for structure and copy, impeccable for the visual world),
+picked by the user from rolled options, and checked by a separate reviewer
+agent against desktop and phone captures in both themes. The detector flagged
+Geist as overused, so the face is Manrope. Tests: `LandingPage.test.tsx` (the
+map's answers, stations, role links) and `LoginPage.test.tsx` (one-click demo
+per role, role tabs, typed sign-in and the server's error). Frontend tests: 50
+to 55.
+
 ## Known gaps (tracked, not hidden)
 
 - **The family and open-question caps are checked, not locked.** Adding a
