@@ -290,6 +290,11 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/auth/register` | — | Register a patient |
 | `POST` | `/api/v1/auth/login` | — | Obtain a token pair |
 | `POST` | `/api/v1/auth/otp/send` | — | Send a sign-in code to a mobile number (same reply for every number) |
+| `POST` | `/api/v1/auth/register/doctor` | — | A doctor signs up; unlisted and unbookable until verified |
+| `GET`/`PUT` | `/api/v1/doctors/me/hours` | DOCTOR | Weekly hours; saving opens slots four weeks ahead |
+| `GET` | `/api/v1/doctors/me/profile` | DOCTOR | The doctor's profile and whether it is verified |
+| `GET` | `/api/v1/admin/doctors/pending` | ADMIN | Doctors waiting for their registration check |
+| `POST` | `/api/v1/admin/doctors/{id}/verify` | ADMIN | Registration checked: the doctor becomes bookable |
 | `POST` | `/api/v1/auth/otp/verify` | — | Mobile number and code for a token pair |
 | `POST` | `/api/v1/auth/refresh` | — | Rotate: spend a refresh token for a new pair (reuse ends the session) |
 | `POST` | `/api/v1/auth/logout` | — | End the session the refresh token belongs to |

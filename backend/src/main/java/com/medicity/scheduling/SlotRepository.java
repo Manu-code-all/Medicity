@@ -22,6 +22,7 @@ public interface SlotRepository extends JpaRepository<AppointmentSlot, UUID> {
     @Query("""
             SELECT s FROM AppointmentSlot s
             WHERE s.doctor.id = :doctorId
+              AND s.doctor.verifiedAt IS NOT NULL
               AND s.status = com.medicity.scheduling.SlotStatus.OPEN
               AND s.startsAt >= :from
               AND s.startsAt <  :to

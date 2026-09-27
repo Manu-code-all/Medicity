@@ -1520,6 +1520,46 @@ Also: the frontend tests' async timeout is 3 s instead of 1 s. A test that
 waits for a heading failed once when the whole suite ran on a busy machine
 and passed alone; shared CI runners are busier still.
 
+## 34. Doctors sign up themselves, and set the hours patients book
+
+Until now the clinic created every doctor and the demo seed made their
+slots. On Practo a doctor registers, gives the medical council and
+registration number, and is listed once the number is checked. Medicity now
+works the same way, and a doctor sets their own weekly hours.
+
+**Sign-up and the check.** `POST /auth/register/doctor` takes the council,
+registration number, qualifications, speciality (from the clinic's closed
+list, so the directory and the body guide keep naming the same things), fee
+and a mobile number (so the doctor can sign in with a code). The account
+signs in at once, but `verified_at` is null: the doctor is left out of the
+directory, the specialities, the search suggestions and the slot listing,
+and `BookingService` refuses a slot of theirs even if its id was obtained
+some other way. Admins get a notification and a queue (`/admin/doctors`,
+beside the stores queue); verifying tells the doctor. The registration
+number, like a store's licence, cannot be changed afterwards.
+
+`verified_at` defaults to `now()` in V21 and in the entity: a doctor
+inserted any other way (the clinic, the seed, tests) is one the clinic
+vouches for, and sign-up is the single path that writes null, explicitly.
+
+**Hours become slots.** One window per weekday in Asia/Kolkata
+(`doctor_hours`). Saving replaces the doctor's future slots that nobody has
+ever booked, then generates slots for the next four weeks; a slot with any
+appointment row stays, and a new slot overlapping it is skipped by the
+existing no-overlap exclusion constraint through `ON CONFLICT DO NOTHING`,
+which also makes generation safe to repeat. `DoctorHoursJob` tops every
+doctor up to four weeks ahead each morning (03:45 UTC, after the demo
+reset). Slot times are computed in minutes of the day, so a window ending
+near midnight cannot wrap into an endless loop. Hours can be set before
+verification; they become bookable the moment the doctor is verified.
+
+Tests: `DoctorSignUpTest` (unverified is invisible and unbookable, the
+admin check and both notifications, exactly 80 slots for weekdays
+10:00-12:00 over four weeks, all at 10:00-11:30 India time and none at
+weekends, the nightly top-up adds nothing when nothing is missing, changing
+hours keeps the booked slot, and the refusals); frontend tests for sign-up,
+the hours page and the admin queue.
+
 ## Known gaps (tracked, not hidden)
 
 - **The body guide has not been reviewed by a clinician.** Which doctor each

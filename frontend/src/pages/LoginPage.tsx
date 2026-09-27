@@ -190,7 +190,11 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
                 New here? <Link to="/register">Create an account</Link>
               </>
             )}
-            {role === "doctor" && "Doctor accounts are set up by the clinic."}
+            {role === "doctor" && (
+              <>
+                New to Medicity? <Link to="/register/doctor">Join as a doctor</Link>
+              </>
+            )}
             {role === "chemist" && (
               <>
                 Not on Medicity yet? <Link to="/register/store">Register your store</Link>
