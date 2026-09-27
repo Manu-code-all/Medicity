@@ -91,6 +91,7 @@ export interface PortalSummary {
 }
 
 export interface PrescriptionItem {
+  medicineId: string;
   medicine: string;
   strength: string | null;
   form: string;
@@ -254,4 +255,140 @@ export interface StoreInput {
   closesAt: string;
   open24h: boolean;
   holdHours: number;
+}
+
+// --- Asking nearby chemists ---------------------------------------------
+
+export type Availability = "YES" | "PARTIAL" | "NO";
+export type RequestStatus = "OPEN" | "RESERVED" | "CLOSED" | "EXPIRED";
+
+export interface RequestItem {
+  medicineId: string;
+  name: string;
+  genericName: string;
+  strength: string | null;
+  form: string;
+  quantity: number;
+  substitutionAllowed: boolean;
+}
+
+export interface AnswerLine {
+  medicineId: string;
+  availability: Availability;
+  quantityAvailable: number;
+  unitPrice: number | null;
+  substituteMedicineId: string | null;
+  substituteName: string | null;
+  substituteStrength: string | null;
+}
+
+export interface StoreAnswer {
+  storeId: string;
+  name: string;
+  addressLine: string;
+  phone: string;
+  distanceM: number;
+  openNow: boolean;
+  holdHours: number;
+  answered: boolean;
+  note: string | null;
+  answeredAt: string | null;
+  lines: AnswerLine[];
+  medicinesAvailable: number;
+  complete: boolean;
+  total: number | null;
+  cheapestComplete: boolean;
+  nearestComplete: boolean;
+}
+
+export interface Comparison {
+  id: string;
+  status: RequestStatus;
+  createdAt: string;
+  expiresAt: string;
+  prescriptionId: string;
+  doctorName: string;
+  diagnosis: string;
+  storesAsked: number;
+  radiusM: number;
+  items: RequestItem[];
+  /** Best first: everything, then more medicines, then cheaper, then nearer. */
+  stores: StoreAnswer[];
+}
+
+export interface RequestSummary {
+  id: string;
+  status: RequestStatus;
+  createdAt: string;
+  expiresAt: string;
+  prescriptionId: string;
+  diagnosis: string;
+  doctorName: string;
+  medicines: number;
+  storesAsked: number;
+  answers: number;
+}
+
+export interface QueueEntry {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  requestStatus: RequestStatus;
+  myStatus: "PENDING" | "ANSWERED";
+  answeredAt: string | null;
+  distanceM: number;
+  patientName: string;
+  doctorName: string;
+  medicines: number;
+}
+
+export interface Equivalent {
+  id: string;
+  name: string;
+  strength: string | null;
+  listPrice: number;
+}
+
+export interface StoreItem {
+  medicineId: string;
+  name: string;
+  genericName: string;
+  strength: string | null;
+  form: string;
+  quantity: number;
+  substitutionAllowed: boolean;
+  dosage: string;
+  frequency: string;
+  durationDays: number;
+  equivalents: Equivalent[];
+}
+
+export interface StoreView {
+  id: string;
+  status: RequestStatus;
+  createdAt: string;
+  expiresAt: string;
+  patientName: string;
+  distanceM: number;
+  prescription: {
+    doctorName: string;
+    specialization: string;
+    doctorRegistration: string;
+    issuedAt: string;
+    revised: boolean;
+    hospitalDispensedAt: string | null;
+  };
+  items: StoreItem[];
+  myStatus: "PENDING" | "ANSWERED";
+  myNote: string | null;
+  answeredAt: string | null;
+  myAnswer: AnswerLine[];
+}
+
+export interface AnswerLineInput {
+  medicineId: string;
+  availability: Availability;
+  quantity: number | null;
+  unitPrice: number | null;
+  substituteMedicineId: string | null;
 }

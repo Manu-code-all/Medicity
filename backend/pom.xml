@@ -71,7 +71,9 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <scope>runtime</scope>
+      <!-- Compile scope: Constraints reads the violated constraint's name from
+           PSQLException when a write goes through JdbcTemplate, where there is
+           no Hibernate exception carrying it. -->
     </dependency>
 
     <dependency>

@@ -1,6 +1,8 @@
 import { request } from "./client";
 import type {
+  AnswerLineInput,
   Appointment,
+  Comparison,
   Doctor,
   DoctorVisitDetail,
   DoctorVisitSummary,
@@ -12,6 +14,9 @@ import type {
   Page,
   PatientProfile,
   PortalSummary,
+  QueueEntry,
+  RequestSummary,
+  StoreView,
   Prescription,
   Slot,
   StoreInput,
@@ -154,4 +159,26 @@ export const stores = {
 export const admin = {
   pendingStores: () => request<StoreProfile[]>("/api/v1/admin/stores/pending"),
   verifyStore: (id: string) => request<StoreProfile>(`/api/v1/admin/stores/${id}/verify`, { method: "POST" }),
+};
+
+/** The patient's questions to nearby chemists. */
+export const medicineRequests = {
+  ask: (input: { prescriptionId: string; latitude: number; longitude: number; radiusM: number; medicineIds?: string[] | undefined }) =>
+    request<Comparison>("/api/v1/patients/me/medicine-requests", { method: "POST", body: input }),
+
+  mine: () => request<RequestSummary[]>("/api/v1/patients/me/medicine-requests"),
+
+  get: (id: string) => request<Comparison>(`/api/v1/patients/me/medicine-requests/${id}`),
+
+  close: (id: string) => request<Comparison>(`/api/v1/patients/me/medicine-requests/${id}/close`, { method: "POST" }),
+};
+
+/** Questions sent to the signed-in chemist's store. */
+export const storeQueue = {
+  list: (show: "pending" | "answered") => request<QueueEntry[]>(`/api/v1/stores/me/requests?show=${show}`),
+
+  get: (id: string) => request<StoreView>(`/api/v1/stores/me/requests/${id}`),
+
+  answer: (id: string, input: { note: string; lines: AnswerLineInput[] }) =>
+    request<StoreView>(`/api/v1/stores/me/requests/${id}/answer`, { method: "POST", body: input }),
 };

@@ -83,6 +83,26 @@ public class NotificationConsumer implements OutboxConsumer {
                     p.path("storeName").asText() + " will now receive questions from patients nearby.",
                     "/store", null);
 
+            case Outbox.MEDICINE_REQUEST_CREATED -> {
+                int medicines = p.path("medicines").asInt();
+                for (JsonNode owner : p.path("storeOwnerUserIds")) {
+                    notify(event, UUID.fromString(owner.asText()), "A patient nearby is asking",
+                            medicines + (medicines == 1 ? " medicine" : " medicines") + " on a prescription from "
+                                    + p.path("doctorName").asText() + ". Do you have them?",
+                            "/store/requests/" + event.aggregateId(), null);
+                }
+            }
+
+            case Outbox.STORE_ANSWERED -> {
+                int available = p.path("available").asInt();
+                int asked = p.path("asked").asInt();
+                String summary = p.path("complete").asBoolean() ? "Has everything you asked for."
+                        : available == 0 ? "Has none of your medicines."
+                        : "Has " + available + " of your " + asked + " medicines.";
+                notify(event, uuid(p, "patientUserId"), p.path("storeName").asText() + " answered", summary,
+                        "/portal/requests/" + event.aggregateId(), null);
+            }
+
             default -> {
                 return false;
             }

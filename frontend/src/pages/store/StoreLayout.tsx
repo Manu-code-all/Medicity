@@ -2,7 +2,10 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../auth/context";
 import { initials } from "../../lib/format";
 
-const SECTIONS = [{ to: "/store", label: "My store", end: true }];
+const SECTIONS = [
+  { to: "/store/requests", label: "Questions", end: false },
+  { to: "/store", label: "My store", end: true },
+];
 
 /** The chemist's workspace. */
 export function StoreLayout() {
