@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { json, mockFetch } from "../test/fetchMock";
+import { actingFor } from "./acting";
 import { ApiError, request, revokeSession, tokenStore } from "./client";
 import type { TokenPair } from "./types";
 
@@ -32,6 +33,26 @@ describe("request", () => {
       "Content-Type": "application/json",
       "Idempotency-Key": "k1",
     });
+  });
+
+  it("says which family member it acts for on patient requests, and nowhere else", async () => {
+    const calls = mockFetch(() => json(200, {}));
+    actingFor.set("family-member-1");
+    try {
+      await request("/api/v1/patients/me/prescriptions");
+      await request("/api/v1/appointments", { method: "POST", body: {} });
+      await request("/api/v1/patients/me/family");
+      await request("/api/v1/notifications");
+    } finally {
+      actingFor.set(null);
+    }
+
+    expect(calls.map((c) => c.headers["X-Patient-Id"] ?? null)).toEqual([
+      "family-member-1",
+      "family-member-1",
+      null,
+      null,
+    ]);
   });
 
   it("turns an RFC 9457 body into an ApiError carrying the stable code", async () => {

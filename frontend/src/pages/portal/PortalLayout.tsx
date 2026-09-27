@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../auth/context";
-import { initials } from "../../lib/format";
+import { FamilySwitcher } from "./FamilySwitcher";
 
 const SECTIONS = [
   { to: "/portal", label: "Overview", end: true },
@@ -10,6 +10,7 @@ const SECTIONS = [
   { to: "/portal/requests", label: "Chemist answers", end: false },
   { to: "/portal/chemists", label: "Chemists nearby", end: false },
   { to: "/portal/profile", label: "Profile", end: false },
+  { to: "/portal/family", label: "Family", end: false },
 ];
 
 export function PortalLayout() {
@@ -36,17 +37,7 @@ export function PortalLayout() {
   return (
     <div className="portal">
       <aside className="portal__nav">
-        {session && (
-          <div className="portal__who">
-            <div className="avatar avatar--sm" aria-hidden="true">
-              {initials(session.fullName)}
-            </div>
-            <div>
-              <strong>{session.fullName}</strong>
-              <span className="muted">Patient</span>
-            </div>
-          </div>
-        )}
+        {session && <FamilySwitcher holderName={session.fullName} />}
         <nav aria-label="Patient portal">
           {SECTIONS.map((s) => (
             <NavLink

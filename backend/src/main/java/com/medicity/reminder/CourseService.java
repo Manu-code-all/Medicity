@@ -2,7 +2,7 @@ package com.medicity.reminder;
 
 import com.medicity.common.NotFoundException;
 import com.medicity.outbox.Outbox;
-import com.medicity.patient.PatientRepository;
+import com.medicity.patient.ActingPatient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -48,14 +48,13 @@ public class CourseService {
     static final int SHOW_FINISHED_DAYS = 30;
 
     private final JdbcTemplate jdbc;
-    private final PatientRepository patientRepository;
+    private final ActingPatient acting;
     private final Outbox outbox;
     private final Clock clock;
 
     @Transactional(readOnly = true)
     public List<Course> forPatient(UUID patientUserId) {
-        UUID patientId = patientRepository.findByUserId(patientUserId)
-                .orElseThrow(() -> new NotFoundException("Patient profile for user", patientUserId)).getId();
+        UUID patientId = acting.resolve(patientUserId).getId();
         LocalDate today = LocalDate.now(clock.withZone(ZONE));
         return courses("rx.patient_id = ?", patientId).stream()
                 .map(c -> c.on(today))
@@ -94,6 +93,7 @@ public class CourseService {
                     .getBytes(StandardCharsets.UTF_8));
             Map<String, Object> payload = new HashMap<>();
             payload.put("patientUserId", on.patientUserId());
+            payload.put("forName", on.forName());
             payload.put("medicine", on.medicine() + (on.strength() == null ? "" : " " + on.strength()));
             payload.put("prescriptionId", on.prescriptionId());
             payload.put("daysLeft", on.daysLeft());
@@ -107,13 +107,16 @@ public class CourseService {
 
     private List<Course> courses(String where, Object... args) {
         return jdbc.query("""
-                SELECT pi.id AS item_id, rx.id AS prescription_id, p.user_id AS patient_user_id,
+                SELECT pi.id AS item_id, rx.id AS prescription_id,
+                       coalesce(p.user_id, p.guardian_user_id) AS patient_user_id,
+                       CASE WHEN p.guardian_user_id IS NULL THEN '' ELSE split_part(p.full_name, ' ', 1) END AS for_name,
                        m.name, m.strength, pi.frequency, pi.duration_days, rx.issued_at,
                        fill.started_at, fill.started_where
                 FROM prescriptions rx
                 JOIN prescription_items pi ON pi.prescription_id = rx.id
                 JOIN medicines m ON m.id = pi.medicine_id
                 JOIN patients p ON p.id = rx.patient_id
+                LEFT JOIN users pu ON pu.id = p.user_id
                 LEFT JOIN LATERAL (
                     SELECT at AS started_at, place AS started_where FROM (
                         SELECT pd.dispensed_at AS at, 'the hospital pharmacy' AS place
@@ -135,7 +138,8 @@ public class CourseService {
                         rs.getObject("patient_user_id", UUID.class), rs.getString("name"), rs.getString("strength"),
                         rs.getString("frequency"), rs.getInt("duration_days"),
                         rs.getTimestamp("issued_at").toInstant(), ts(rs.getTimestamp("started_at")),
-                        rs.getString("started_where"), null, null, 0, false, Status.NOT_STARTED),
+                        rs.getString("started_where"), null, null, 0, false, Status.NOT_STARTED,
+                        rs.getString("for_name")),
                 args);
     }
 
@@ -164,13 +168,15 @@ public class CourseService {
             long daysLeft,
             /** Taken long-term, so running out means asking again. */
             boolean ongoing,
-            Status status
+            Status status,
+            /** The family member's first name when they are not the account holder; empty otherwise. */
+            String forName
     ) {
         Course on(LocalDate today) {
             boolean isOngoing = durationDays >= ONGOING_DAYS;
             if (startedAt == null) {
                 return new Course(prescriptionItemId, prescriptionId, patientUserId, medicine, strength, frequency,
-                        durationDays, issuedAt, null, null, null, null, 0, isOngoing, Status.NOT_STARTED);
+                        durationDays, issuedAt, null, null, null, null, 0, isOngoing, Status.NOT_STARTED, forName);
             }
             LocalDate first = startedAt.atZone(ZONE).toLocalDate();
             LocalDate last = first.plusDays(durationDays - 1L);
@@ -179,7 +185,7 @@ public class CourseService {
                     : isOngoing && left <= REFILL_LEAD_DAYS ? Status.RUNNING_OUT
                     : Status.TAKING;
             return new Course(prescriptionItemId, prescriptionId, patientUserId, medicine, strength, frequency,
-                    durationDays, issuedAt, startedAt, startedWhere, first, last, left, isOngoing, status);
+                    durationDays, issuedAt, startedAt, startedWhere, first, last, left, isOngoing, status, forName);
         }
     }
 }

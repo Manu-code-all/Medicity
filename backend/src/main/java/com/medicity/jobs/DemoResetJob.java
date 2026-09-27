@@ -46,7 +46,12 @@ public class DemoResetJob {
              'aaaaaaaa-1111-4111-8111-aaaaaaaaaa03')""";
     private static final String DEMO_PATIENTS = """
             ('bbbbbbbb-2222-4222-8222-bbbbbbbbbb01', 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb02',
-             'bbbbbbbb-2222-4222-8222-bbbbbbbbbb03')""";
+             'bbbbbbbb-2222-4222-8222-bbbbbbbbbb03', 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb11',
+             'bbbbbbbb-2222-4222-8222-bbbbbbbbbb12')""";
+    /** The demo patients' accounts; family members visitors add under them are removed. */
+    private static final String DEMO_PATIENT_ACCOUNTS = """
+            ('22222222-2222-4222-8222-222222222201', '22222222-2222-4222-8222-222222222202',
+             '22222222-2222-4222-8222-222222222203')""";
     private static final String DEMO_MEDICINES = "(SELECT id FROM medicines WHERE id::text LIKE 'cccccccc-3333-4333-8333-%')";
     private static final int SEED_STOCK = 250;
 
@@ -96,7 +101,8 @@ public class DemoResetJob {
                 CREATE TEMP TABLE demo_appointments ON COMMIT DROP AS
                 SELECT a.id FROM appointments a JOIN appointment_slots s ON s.id = a.slot_id
                 WHERE s.doctor_id IN %s OR a.patient_id IN %s
-                """.formatted(DEMO_DOCTORS, DEMO_PATIENTS));
+                   OR a.patient_id IN (SELECT id FROM patients WHERE guardian_user_id IN %s)
+                """.formatted(DEMO_DOCTORS, DEMO_PATIENTS, DEMO_PATIENT_ACCOUNTS));
         // Questions to chemists go first: they reference the prescriptions.
         // Their items, recipients and answers cascade. On the demo, every
         // question is demo activity.
@@ -111,6 +117,8 @@ public class DemoResetJob {
         int appointments = jdbc.update("DELETE FROM appointments WHERE id IN (SELECT id FROM demo_appointments)");
         jdbc.update("DELETE FROM appointment_slots WHERE doctor_id IN " + DEMO_DOCTORS);
         jdbc.execute("DROP TABLE demo_appointments");
+        // Family members visitors added to the demo accounts; the seed's own come back.
+        jdbc.update("DELETE FROM patients WHERE guardian_user_id IN " + DEMO_PATIENT_ACCOUNTS);
 
         // The demo chemists' stores go back to their seeded profiles. Stores
         // visitors registered are kept, like their accounts.

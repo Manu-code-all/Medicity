@@ -1,3 +1,4 @@
+import { ActingBanner } from "../components/ActingBanner";
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
@@ -101,6 +102,7 @@ export function BookingPage() {
   return (
     <section className="booking">
       <h1>Choose a time</h1>
+      <ActingBanner verb="Booking" />
 
       {notice && (
         <p className="notice" role="status" aria-live="polite">

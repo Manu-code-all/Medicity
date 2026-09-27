@@ -37,7 +37,7 @@ public class NotificationConsumer implements OutboxConsumer {
         JsonNode p = event.payload();
         switch (event.type()) {
             case Outbox.APPOINTMENT_BOOKED -> notify(event, uuid(p, "patientUserId"),
-                    "Appointment confirmed", "With " + p.path("doctorName").asText() + ".",
+                    "Appointment confirmed", forWhom(p, "With ") + p.path("doctorName").asText() + ".",
                     "/portal/visits", instant(p, "scheduledAt"));
 
             case Outbox.APPOINTMENT_CANCELLED -> notify(event, uuid(p, "doctorUserId"),
@@ -129,13 +129,13 @@ public class NotificationConsumer implements OutboxConsumer {
             case Outbox.MEDICINE_RUNNING_OUT -> {
                 int left = p.path("daysLeft").asInt();
                 String when = left == 0 ? "today" : left == 1 ? "tomorrow" : "in " + left + " days";
-                notify(event, uuid(p, "patientUserId"), p.path("medicine").asText() + " runs out " + when,
+                notify(event, uuid(p, "patientUserId"), possessive(p) + p.path("medicine").asText() + " runs out " + when,
                         "Ask the chemists near you again? One tap sends your prescription to all of them.",
                         "/portal/prescriptions?ask=" + p.path("prescriptionId").asText(), null);
             }
 
             case Outbox.COURSE_ENDING -> notify(event, uuid(p, "patientUserId"),
-                    "Last day of " + p.path("medicine").asText() + " tomorrow",
+                    "Last day of " + possessive(p) + p.path("medicine").asText() + " tomorrow",
                     "Finish the course, even if you feel better.", "/portal/medicines", null);
 
             default -> {
@@ -156,6 +156,18 @@ public class NotificationConsumer implements OutboxConsumer {
 
     private List<UUID> activeAdmins() {
         return jdbc.queryForList("SELECT id FROM users WHERE role = 'ADMIN' AND enabled", UUID.class);
+    }
+
+    /** "With Dr. Rao." for the account holder; "For Aarav, with Dr. Rao." for a family member. */
+    private static String forWhom(JsonNode payload, String ownPrefix) {
+        String name = payload.path("forName").asText("");
+        return name.isEmpty() ? ownPrefix : "For " + name + ", " + ownPrefix.toLowerCase();
+    }
+
+    /** "" for the account holder; "Lalitha's " for a family member. */
+    private static String possessive(JsonNode payload) {
+        String name = payload.path("forName").asText("");
+        return name.isEmpty() ? "" : name + "'s ";
     }
 
     private static UUID uuid(JsonNode payload, String field) {

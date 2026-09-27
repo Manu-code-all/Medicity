@@ -157,7 +157,8 @@ public class BookingService {
             auditLog.recordChange("APPOINTMENT_BOOKED", "APPOINTMENT", saved.getId(),
                     Map.of("slotId", slotId, "patientId", patientId, "scheduledAt", saved.getScheduledAt()));
             outbox.publish(Outbox.APPOINTMENT_BOOKED, saved.getId(), Map.of(
-                    "patientUserId", patient.getUser().getId(),
+                    "patientUserId", patient.accountUserId(),
+                    "forName", patient.forName(),
                     "doctorName", slot.getDoctor().getUser().getFullName(),
                     "scheduledAt", saved.getScheduledAt()));
             return saved;
@@ -224,7 +225,7 @@ public class BookingService {
         // The doctor's calendar just gained a gap; the patient knows already.
         outbox.publish(Outbox.APPOINTMENT_CANCELLED, appointmentId, Map.of(
                 "doctorUserId", saved.getSlot().getDoctor().getUser().getId(),
-                "patientName", saved.getPatient().getUser().getFullName(),
+                "patientName", saved.getPatient().displayName(),
                 "scheduledAt", saved.getScheduledAt(),
                 "late", late));
         return saved;

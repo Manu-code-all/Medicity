@@ -497,3 +497,48 @@ ON CONFLICT DO NOTHING;
 
 UPDATE stores SET auto_answer = TRUE, stock_updated_at = now()
 WHERE id = '55555555-5555-4555-8555-555555555504';
+
+
+-- ---------------------------------------------------------------------
+-- Meera manages two family members from her account: her mother Lalitha,
+-- who takes metformin long-term, and her son Aarav. Lalitha's 30 days of
+-- metformin were dispensed 27 days ago, so the morning reminder tells
+-- Meera that her mother's tablets run out in two days.
+-- ---------------------------------------------------------------------
+INSERT INTO patients (id, user_id, guardian_user_id, full_name, relationship, date_of_birth, gender,
+                      blood_group, city) VALUES
+  ('bbbbbbbb-2222-4222-8222-bbbbbbbbbb11', NULL, '22222222-2222-4222-8222-222222222201',
+   'Lalitha Nair', 'PARENT', '1961-04-10', 'FEMALE', 'B+', 'Bengaluru'),
+  ('bbbbbbbb-2222-4222-8222-bbbbbbbbbb12', NULL, '22222222-2222-4222-8222-222222222201',
+   'Aarav Nair', 'CHILD', '2019-06-02', 'MALE', 'O+', 'Bengaluru')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO appointment_slots (id, doctor_id, starts_at, ends_at, status) VALUES
+  ('dddddddd-4444-4444-8444-dddddddddd10', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa01',
+   date_trunc('day', now()) - INTERVAL '27 days' + INTERVAL '4 hours',
+   date_trunc('day', now()) - INTERVAL '27 days' + INTERVAL '4 hours 30 minutes', 'OPEN')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO appointments (id, slot_id, patient_id, status, reason, scheduled_at)
+SELECT 'eeeeeeee-5555-4555-8555-eeeeeeeeee11', s.id, 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb11', 'COMPLETED',
+       'Sugar levels review; brought by daughter', s.starts_at
+FROM appointment_slots s WHERE s.id = 'dddddddd-4444-4444-8444-dddddddddd10'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO prescriptions (id, appointment_id, doctor_id, patient_id, diagnosis, notes, issued_at)
+SELECT 'ffffffff-6666-4666-8666-ffffffffff07', a.id, s.doctor_id, a.patient_id,
+       'Type 2 diabetes, stable', 'Continue metformin. Walk 30 minutes a day. HbA1c in 3 months.',
+       a.scheduled_at + INTERVAL '20 minutes'
+FROM appointments a JOIN appointment_slots s ON s.id = a.slot_id
+WHERE a.id = 'eeeeeeee-5555-4555-8555-eeeeeeeeee11'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO prescription_items (prescription_id, medicine_id, dosage, frequency, duration_days, quantity,
+                                substitution_allowed) VALUES
+  ('ffffffff-6666-4666-8666-ffffffffff07', 'cccccccc-3333-4333-8333-cccccccccc05',
+   '500mg', 'Twice daily after food', 30, 60, TRUE)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO prescription_dispensations (prescription_id, dispensed_at)
+SELECT id, issued_at + INTERVAL '30 minutes' FROM prescriptions WHERE id = 'ffffffff-6666-4666-8666-ffffffffff07'
+ON CONFLICT DO NOTHING;

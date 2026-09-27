@@ -583,3 +583,13 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .course__bar { height: 6px; border-radius: 999px; background: var(--border); overflow: hidden; width: 160px; margin-top: 8px; }
 .course__bar span { display: block; height: 100%; background: var(--accent); }
 .course--running_out .course__bar span { background: var(--warn); }
+
+/* Family */
+.switcher { display: flex; flex-direction: column; gap: 6px; }
+.switcher select { font-weight: 600; }
+.switcher__for { font-size: 0.85rem; color: var(--warn); font-weight: 600; }
+.family-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.family-member { display: flex; align-items: center; gap: 12px; margin: 0; }
+.family-member > div { flex: 1; }
+.family-member p { margin: 0; }
+.acting-banner { background: var(--warn-soft); color: var(--warn); border-radius: var(--radius); padding: 8px 12px; font-weight: 600; }

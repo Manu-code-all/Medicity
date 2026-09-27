@@ -75,7 +75,7 @@ public class PrescribingService {
                 Map.of("appointmentId", appointmentId, "patientId", visit.getPatient().getId(),
                         "items", draft.items().size()));
         outbox.publish(Outbox.PRESCRIPTION_ISSUED, saved.getId(), Map.of(
-                "patientUserId", visit.getPatient().getUser().getId(),
+                "patientUserId", visit.getPatient().accountUserId(),
                 "doctorName", visit.getSlot().getDoctor().getUser().getFullName(),
                 "diagnosis", draft.diagnosis()));
         return saved;
@@ -106,8 +106,8 @@ public class PrescribingService {
         // If the pharmacy already handed out the original, the patient may be
         // holding medicines the correction replaces; both need to know.
         outbox.publish(Outbox.PRESCRIPTION_CORRECTED, saved.getId(), Map.of(
-                "patientUserId", visit.getPatient().getUser().getId(),
-                "patientName", visit.getPatient().getUser().getFullName(),
+                "patientUserId", visit.getPatient().accountUserId(),
+                "patientName", visit.getPatient().displayName(),
                 "doctorName", visit.getSlot().getDoctor().getUser().getFullName(),
                 "diagnosis", draft.diagnosis(),
                 "supersedes", prescriptionId,
