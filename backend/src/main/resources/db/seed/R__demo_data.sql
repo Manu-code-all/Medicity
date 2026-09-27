@@ -348,6 +348,9 @@ ON CONFLICT DO NOTHING;
 
 
 -- ---------------------------------------------------------------------
+-- Meera collected her 28-day omeprazole refill 25 days ago, so it runs out
+-- in two days: the morning reminder job tells her so.
+--
 -- A week of questions behind the store insights. Arjun and Kavya each had
 -- a visit last week that ended with azithromycin; they and Meera asked the
 -- stores, and each collected somewhere. Sri Sai Medicals had no
@@ -404,7 +407,7 @@ SELECT v.id::uuid, v.patient_id::uuid, v.prescription_id::uuid, 12.971900, 77.64
        now() - v.ago::interval + INTERVAL '2 hours'
 FROM (VALUES
   ('abababab-7777-4777-8777-abababab0002', 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb01',
-   'ffffffff-6666-4666-8666-ffffffffff01', '5 days'),
+   'ffffffff-6666-4666-8666-ffffffffff01', '25 days'),
   ('abababab-7777-4777-8777-abababab0003', 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb02',
    'ffffffff-6666-4666-8666-ffffffffff05', '4 days'),
   ('abababab-7777-4777-8777-abababab0004', 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb03',

@@ -56,7 +56,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * yet verified. Shared by the question and reservation tests.
  */
 @AutoConfigureMockMvc
-abstract class NetworkTestSupport extends AbstractIntegrationTest {
+public abstract class NetworkTestSupport extends AbstractIntegrationTest {
 
     protected static final double LAT = 12.9719;
     protected static final double LNG = 77.6412;

@@ -3,6 +3,7 @@ import type {
   AnswerLineInput,
   Appointment,
   Comparison,
+  Course,
   Doctor,
   DoctorVisitDetail,
   DoctorVisitSummary,
@@ -105,6 +106,9 @@ export const portal = {
     request<Page<Visit>>(`/api/v1/patients/me/appointments?scope=${scope}&page=${page}&size=${size}`),
 
   prescriptions: () => request<Prescription[]>("/api/v1/patients/me/prescriptions"),
+
+  /** Each prescribed medicine: started when, runs out when. Running out first. */
+  courses: () => request<Course[]>("/api/v1/patients/me/courses"),
 };
 
 /** The signed-in doctor's own calendar and patients; "me" comes from the token. */

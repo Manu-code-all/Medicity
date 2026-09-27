@@ -487,3 +487,27 @@ export interface StockView {
   fresh: boolean;
   items: StockLine[];
 }
+
+// --- Medicine courses and refills -------------------------------------------
+
+export type CourseStatus = "RUNNING_OUT" | "TAKING" | "NOT_STARTED" | "FINISHED";
+
+export interface Course {
+  prescriptionItemId: string;
+  prescriptionId: string;
+  medicine: string;
+  strength: string | null;
+  frequency: string;
+  durationDays: number;
+  issuedAt: string;
+  /** When the medicines were handed over; null if not yet. */
+  startedAt: string | null;
+  startedWhere: string | null;
+  firstDay: string | null;
+  lastDay: string | null;
+  /** 0 on the last day; negative once finished. */
+  daysLeft: number;
+  /** Taken long-term: running out means asking again. */
+  ongoing: boolean;
+  status: CourseStatus;
+}
