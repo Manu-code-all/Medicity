@@ -35,6 +35,7 @@ class DemoResetTest extends AbstractIntegrationTest {
     private static final String ARJUN_VISIT = "eeeeeeee-5555-4555-8555-eeeeeeeeee07";
     private static final String RAO = "aaaaaaaa-1111-4111-8111-aaaaaaaaaa01";
     private static final String OMEPRAZOLE = "cccccccc-3333-4333-8333-cccccccccc06";
+    private static final String SAI_MEDICALS = "55555555-5555-4555-8555-555555555501";
 
     @Autowired JdbcTemplate jdbc;
     @Autowired DataSource dataSource;
@@ -73,6 +74,7 @@ class DemoResetTest extends AbstractIntegrationTest {
                 .isEqualTo("BOOKED");
         assertThat(count("SELECT quantity_on_hand FROM medicine_stock WHERE medicine_id = '" + OMEPRAZOLE + "'"))
                 .isEqualTo(250);
+        assertThat(count("SELECT count(*) FROM stores WHERE verified_at IS NOT NULL")).isEqualTo(5);
     }
 
     @Test
@@ -99,6 +101,7 @@ class DemoResetTest extends AbstractIntegrationTest {
                 ORDER BY s.starts_at LIMIT 1
                 """.formatted(RAO));
         jdbc.update("UPDATE medicine_stock SET quantity_on_hand = 240 WHERE medicine_id = '" + OMEPRAZOLE + "'");
+        jdbc.update("UPDATE stores SET hold_hours = 4, name = 'Renamed' WHERE id = '" + SAI_MEDICALS + "'");
         jdbc.update("""
                 INSERT INTO notifications (user_id, event_id, kind, title, body)
                 VALUES ('99999999-9999-4999-8999-999999999901', gen_random_uuid(), 'X', 't', 'b')
@@ -112,6 +115,8 @@ class DemoResetTest extends AbstractIntegrationTest {
                 .isZero();
         assertThat(count("SELECT count(*) FROM users WHERE email = 'visitor@example.test'")).isEqualTo(1);
         assertThat(count("SELECT count(*) FROM notifications")).isZero();
+        assertThat(jdbc.queryForObject("SELECT name FROM stores WHERE id = '" + SAI_MEDICALS + "'", String.class))
+                .isEqualTo("Sri Sai Medicals");
         assertThat(count("SELECT quantity_on_hand FROM medicine_stock WHERE medicine_id = '" + OMEPRAZOLE + "'"))
                 .isEqualTo(250);
         assertThat(count("""
@@ -156,6 +161,7 @@ class DemoResetTest extends AbstractIntegrationTest {
         doctorRepository.deleteAll();
         userRepository.deleteAll();
         jdbc.update("DELETE FROM notifications");
+        jdbc.update("DELETE FROM stores");
         // Other test classes create medicines with the demo's names under
         // their own ids (StockLedgerConcurrencyTest's "Paracetamol 500mg").
         // The seed's ON CONFLICT DO NOTHING would then skip the demo's row and

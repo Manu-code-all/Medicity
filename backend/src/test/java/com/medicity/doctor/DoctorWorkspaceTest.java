@@ -220,6 +220,32 @@ class DoctorWorkspaceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("the doctor's per-medicine 'cheaper brand is OK' reaches the patient; absent means no")
+    void substitutionChoiceIsKept() throws Exception {
+        Appointment started = visit(rao, patient, now.minus(10, ChronoUnit.MINUTES));
+        visitService.complete(started.getId(), rao.getId());
+
+        mvc.perform(post(visitUrl(started) + "/prescriptions").header("Authorization", bearer(raoUser))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"diagnosis":"Reflux","items":[
+                                  {"medicineId":"%s","dosage":"500mg","frequency":"Twice daily","durationDays":5,
+                                   "quantity":10,"substitutionAllowed":true},
+                                  {"medicineId":"%s","dosage":"20mg","frequency":"Once daily","durationDays":5,
+                                   "quantity":5}]}
+                                """.formatted(paracetamol.getId(), omeprazole.getId())))
+                .andExpect(status().isCreated());
+
+        mvc.perform(get("/api/v1/patients/me/prescriptions").header("Authorization", bearer(patientUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].items[?(@.medicine == '%s')].substitutionAllowed"
+                        .formatted(paracetamol.getName())).value(true))
+                .andExpect(jsonPath("$[0].items[?(@.medicine == '%s')].substitutionAllowed"
+                        .formatted(omeprazole.getName())).value(false))
+                .andExpect(jsonPath("$[0].items[0].genericName").exists());
+    }
+
+    @Test
     @DisplayName("invalid prescriptions are rejected before they reach the database")
     void invalidPrescriptions() throws Exception {
         Appointment started = visit(rao, patient, now.minus(20, ChronoUnit.MINUTES));
@@ -361,7 +387,7 @@ class DoctorWorkspaceTest extends AbstractIntegrationTest {
 
     private static PrescriptionDraft draft(String diagnosis, Medicine medicine, int quantity) {
         return new PrescriptionDraft(diagnosis, null, List.of(
-                new PrescriptionDraft.Item(medicine.getId(), "500mg", "Twice daily", 5, quantity)));
+                new PrescriptionDraft.Item(medicine.getId(), "500mg", "Twice daily", 5, quantity, false)));
     }
 
     private static String rxJson(String diagnosis, Medicine medicine, int quantity) {

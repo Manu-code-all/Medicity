@@ -78,6 +78,14 @@ export function PrescriptionsPage() {
                       <td>
                         <strong>{item.medicine}</strong>
                         <span className="muted"> {item.form.toLowerCase()}</span>
+                        {item.substitutionAllowed && (
+                          <span
+                            className="rx__substitute"
+                            title={`Your doctor allows any brand of ${item.genericName} ${item.strength ?? ""}`}
+                          >
+                            Cheaper brand OK
+                          </span>
+                        )}
                       </td>
                       <td>{item.dosage}</td>
                       <td>{item.frequency}</td>

@@ -215,13 +215,17 @@ public class PatientPortalController {
             String dosage,
             String frequency,
             int durationDays,
-            int quantity
+            int quantity,
+            String genericName,
+            /** A cheaper brand with the same ingredients may be given instead. */
+            boolean substitutionAllowed
     ) {
         static ItemResponse from(PrescriptionItem i) {
             return new ItemResponse(
                     i.getMedicine().getName(), i.getMedicine().getStrength(),
                     i.getMedicine().getForm().name(), i.getDosage(), i.getFrequency(),
-                    i.getDurationDays(), i.getQuantity());
+                    i.getDurationDays(), i.getQuantity(), i.getMedicine().getGenericName(),
+                    i.isSubstitutionAllowed());
         }
     }
 }

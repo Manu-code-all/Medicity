@@ -55,6 +55,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [adopt],
   );
 
+  const registerChemist = useCallback(
+    async (input: Parameters<typeof authApi.registerChemist>[0]) => {
+      adopt(await authApi.registerChemist(input));
+    },
+    [adopt],
+  );
+
   const logout = useCallback(() => {
     // Read the refresh token before clearing it, so the server can end the session.
     revokeSession();
@@ -67,8 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const value = useMemo(
-    () => ({ session, login, register, logout }),
-    [session, login, register, logout],
+    () => ({ session, login, register, registerChemist, logout }),
+    [session, login, register, registerChemist, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

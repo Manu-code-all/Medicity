@@ -17,7 +17,7 @@ export interface TokenPair {
   fullName: string;
 }
 
-export type Role = "PATIENT" | "DOCTOR" | "ADMIN";
+export type Role = "PATIENT" | "DOCTOR" | "ADMIN" | "CHEMIST";
 
 export type AppointmentStatus = "BOOKED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 
@@ -98,6 +98,9 @@ export interface PrescriptionItem {
   frequency: string;
   durationDays: number;
   quantity: number;
+  genericName: string;
+  /** The doctor allows a cheaper brand with the same ingredients and strength. */
+  substitutionAllowed: boolean;
 }
 
 export interface Prescription {
@@ -163,6 +166,7 @@ export interface PrescriptionDraftItem {
   frequency: string;
   durationDays: number;
   quantity: number;
+  substitutionAllowed: boolean;
 }
 
 export interface PrescriptionDraft {
@@ -196,4 +200,58 @@ export interface AppNotification {
 export interface NotificationList {
   unread: number;
   items: AppNotification[];
+}
+
+// --- Chemists' stores -----------------------------------------------------
+
+/** Local wall-clock times, "HH:mm:ss", in the store's own zone. */
+export interface StoreHoursInfo {
+  opensAt: string;
+  closesAt: string;
+  open24h: boolean;
+  openNow: boolean;
+}
+
+export interface NearbyStore extends StoreHoursInfo {
+  id: string;
+  name: string;
+  phone: string;
+  addressLine: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+  distanceM: number;
+  holdHours: number;
+}
+
+export interface StoreProfile extends StoreHoursInfo {
+  id: string;
+  name: string;
+  licenceNumber: string;
+  phone: string;
+  addressLine: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+  holdHours: number;
+  verified: boolean;
+  verifiedAt: string | null;
+  ownerName: string;
+  ownerEmail: string;
+  registeredAt: string;
+}
+
+/** What a chemist sends to create or edit their store. Times are "HH:mm". */
+export interface StoreInput {
+  name: string;
+  licenceNumber: string;
+  phone: string;
+  addressLine: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+  opensAt: string;
+  closesAt: string;
+  open24h: boolean;
+  holdHours: number;
 }

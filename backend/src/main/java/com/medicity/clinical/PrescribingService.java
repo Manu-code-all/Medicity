@@ -146,6 +146,7 @@ public class PrescribingService {
                     .frequency(item.frequency().trim())
                     .durationDays(item.durationDays())
                     .quantity(item.quantity())
+                    .substitutionAllowed(item.substitutionAllowed())
                     .build());
         }
         return prescription;
@@ -183,6 +184,7 @@ public class PrescribingService {
 
     /** What a doctor submits. Validated at the HTTP boundary; see the controller. */
     public record PrescriptionDraft(String diagnosis, String notes, List<Item> items) {
-        public record Item(UUID medicineId, String dosage, String frequency, int durationDays, int quantity) {}
+        public record Item(UUID medicineId, String dosage, String frequency, int durationDays, int quantity,
+                           boolean substitutionAllowed) {}
     }
 }

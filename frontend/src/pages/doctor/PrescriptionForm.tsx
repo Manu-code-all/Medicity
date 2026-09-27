@@ -20,6 +20,7 @@ const EMPTY_ITEM: PrescriptionDraftItem = {
   frequency: "",
   durationDays: 5,
   quantity: 10,
+  substitutionAllowed: false,
 };
 
 export function PrescriptionForm(props: Props) {
@@ -53,6 +54,7 @@ function DraftForm({
           frequency: item.frequency,
           durationDays: item.durationDays,
           quantity: item.quantity,
+          substitutionAllowed: item.substitutionAllowed,
         }))
       : [{ ...EMPTY_ITEM }],
   );
@@ -145,6 +147,14 @@ function DraftForm({
                 onChange={(e) => update(index, { quantity: Number(e.target.value) })}
               />
             </div>
+            <label className="check rx-item__substitute">
+              <input
+                type="checkbox"
+                checked={item.substitutionAllowed}
+                onChange={(e) => update(index, { substitutionAllowed: e.target.checked })}
+              />
+              Cheaper brand with the same ingredients is OK
+            </label>
             {items.length > 1 && (
               <button
                 type="button"

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/context";
 
@@ -88,6 +88,9 @@ export function RegisterPage() {
       <button type="submit" disabled={busy}>
         {busy ? "Creating…" : "Create account"}
       </button>
+      <p className="muted">
+        Run a pharmacy? <Link to="/register/store">Register your store</Link>, free.
+      </p>
     </form>
   );
 }

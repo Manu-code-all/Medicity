@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, Navigate, NavLink, Outlet, Route, Routes, useNavigate } from "react-router-dom";
 import { notifications } from "./api/endpoints";
+import type { Role } from "./api/types";
 import { homeFor, useAuth } from "./auth/context";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BookingPage } from "./pages/BookingPage";
@@ -12,12 +13,24 @@ import { DoctorsPage } from "./pages/DoctorsPage";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NOTIFICATIONS_KEY, NotificationsPage } from "./pages/NotificationsPage";
+import { PendingStoresPage } from "./pages/admin/PendingStoresPage";
+import { ChemistsPage } from "./pages/portal/ChemistsPage";
+import { StoreLayout } from "./pages/store/StoreLayout";
+import { StoreProfilePage } from "./pages/store/StoreProfilePage";
+import { StoreRegisterPage } from "./pages/store/StoreRegisterPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { OverviewPage } from "./pages/portal/OverviewPage";
 import { PortalLayout } from "./pages/portal/PortalLayout";
 import { PrescriptionsPage } from "./pages/portal/PrescriptionsPage";
 import { ProfilePage } from "./pages/portal/ProfilePage";
 import { VisitsPage } from "./pages/portal/VisitsPage";
+
+const HOME_LABEL: Record<Role, string> = {
+  PATIENT: "My portal",
+  DOCTOR: "My workspace",
+  CHEMIST: "My store",
+  ADMIN: "Stores to verify",
+};
 
 export function App() {
   const { session, logout } = useAuth();
@@ -40,11 +53,7 @@ export function App() {
             <NavLink to="/doctors">Find a doctor</NavLink>
             {session ? (
               <>
-                {session.role !== "ADMIN" && (
-                  <NavLink to={homeFor(session.role)}>
-                    {session.role === "DOCTOR" ? "My workspace" : "My portal"}
-                  </NavLink>
-                )}
+                <NavLink to={homeFor(session.role)}>{HOME_LABEL[session.role]}</NavLink>
                 <NotificationsLink />
                 <button type="button" className="link" onClick={signOut}>
                   Sign out
@@ -73,11 +82,15 @@ export function App() {
               <Route path="visits" element={<VisitsPage />} />
               <Route path="prescriptions" element={<PrescriptionsPage />} />
               <Route path="profile" element={<ProfilePage />} />
+              <Route path="chemists" element={<ChemistsPage />} />
             </Route>
             <Route path="/doctor" element={<DoctorLayout />}>
               <Route index element={<SchedulePage />} />
               <Route path="visits/:visitId" element={<VisitPage />} />
               <Route path="patients/:patientId" element={<PatientHistoryPage />} />
+            </Route>
+            <Route path="/store" element={<StoreLayout />}>
+              <Route index element={<StoreProfilePage />} />
             </Route>
           </Route>
 
@@ -86,7 +99,9 @@ export function App() {
             <Route path="/doctors" element={<DoctorsPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/register/store" element={<StoreRegisterPage />} />
             <Route element={<ProtectedRoute />}>
+              <Route path="/admin/stores" element={<PendingStoresPage />} />
               <Route path="/doctors/:doctorId/book" element={<BookingPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
             </Route>

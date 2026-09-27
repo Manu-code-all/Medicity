@@ -223,7 +223,7 @@ class OutboxNotificationsTest extends AbstractIntegrationTest {
                 .name("Paracetamol-" + UUID.randomUUID().toString().substring(0, 6)).genericName("ob-test-para")
                 .form(Medicine.Form.TABLET).strength("500mg").unitPrice(new BigDecimal("40.00")).build());
         var draft = new PrescribingService.PrescriptionDraft("Viral fever", null,
-                List.of(new PrescribingService.PrescriptionDraft.Item(paracetamol.getId(), "1 tablet", "Three times a day", 3, 9)));
+                List.of(new PrescribingService.PrescriptionDraft.Item(paracetamol.getId(), "1 tablet", "Three times a day", 3, 9, false)));
         var original = prescribingService.issue(visit.getId(), doctor.getId(), draft);
         jdbc.update("INSERT INTO prescription_dispensations (prescription_id, dispensed_by) VALUES (?, ?)",
                 original.getId(), adminUser.getId());

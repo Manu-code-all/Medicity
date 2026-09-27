@@ -16,6 +16,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
@@ -91,22 +92,7 @@ public class AuthService {
     public TokenPair register(String email, String rawPassword, String fullName,
                               String phone, LocalDate dateOfBirth, Patient.Gender gender) {
 
-        User user = User.builder()
-                .passwordHash(passwordEncoder.encode(rawPassword))
-                .fullName(fullName.trim())
-                .phone(phone)
-                .role(Role.PATIENT)
-                .enabled(true)
-                .build();
-        user.setEmail(email);   // setter normalises to lowercase
-
-        try {
-            user = userRepository.saveAndFlush(user);
-        } catch (DataIntegrityViolationException e) {
-            // Checking existsByEmail() first would leave a race between the check
-            // and the insert. Let the unique index decide, then translate.
-            throw new ConflictException("EMAIL_TAKEN", "An account with that email already exists");
-        }
+        User user = createAccount(email, rawPassword, fullName, phone, Role.PATIENT);
 
         patientRepository.save(Patient.builder()
                 .user(user)
@@ -115,6 +101,41 @@ public class AuthService {
                 .build());
 
         log.info("Registered patient account {}", user.getId());
+        return startSession(user);
+    }
+
+    /**
+     * Creates a sign-in for a self-service registration: a patient here, or a
+     * chemist from the store sign-up. Never called with a role taken from a
+     * request (see {@link #register}).
+     *
+     * <p>{@code MANDATORY}: the account and its profile row are one unit. An
+     * account without its store, left behind by a failed second insert, could
+     * sign in to a workspace that does not exist.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public User createAccount(String email, String rawPassword, String fullName, String phone, Role role) {
+        User user = User.builder()
+                .passwordHash(passwordEncoder.encode(rawPassword))
+                .fullName(fullName.trim())
+                .phone(phone == null || phone.isBlank() ? null : phone)
+                .role(role)
+                .enabled(true)
+                .build();
+        user.setEmail(email);   // setter normalises to lowercase
+
+        try {
+            return userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException e) {
+            // Checking existsByEmail() first would leave a race between the check
+            // and the insert. Let the unique index decide, then translate.
+            throw new ConflictException("EMAIL_TAKEN", "An account with that email already exists");
+        }
+    }
+
+    /** Signs in an account created in this request. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public TokenPair signInNewAccount(User user) {
         return startSession(user);
     }
 
