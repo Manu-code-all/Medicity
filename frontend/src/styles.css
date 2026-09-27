@@ -610,3 +610,6 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .photo__img--small { max-height: 220px; }
 .photo-start { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; align-items: flex-start; }
 .photo-start__pick { cursor: pointer; }
+
+/* Landing: the chemist network */
+.network-extras { margin-top: 24px; }
