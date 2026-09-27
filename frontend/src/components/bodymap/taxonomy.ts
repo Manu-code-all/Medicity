@@ -277,3 +277,75 @@ export function specialistPhrase(specialty: string): string {
 export function regionsIn(view: BodyView): BodyRegion[] {
   return Object.values(BODY_TAXONOMY).filter((r) => r.views.includes(view));
 }
+
+/** Everyday words people type for a speciality, beyond what the body guide lists. */
+const EVERYDAY: Record<string, string> = {
+  skin: "Dermatology",
+  rash: "Dermatology",
+  acne: "Dermatology",
+  hair: "Dermatology",
+  tooth: "Dentistry",
+  teeth: "Dentistry",
+  gum: "Dentistry",
+  heart: "Cardiology",
+  "blood pressure": "Cardiology",
+  child: "Paediatrics",
+  baby: "Paediatrics",
+  fever: "General Medicine",
+  diabetes: "General Medicine",
+  sugar: "General Medicine",
+  bone: "Orthopaedics",
+  joint: "Orthopaedics",
+  stomach: "Gastroenterology",
+  acidity: "Gastroenterology",
+  kidney: "Nephrology",
+  urine: "Urology",
+  pregnancy: "Gynaecology",
+  period: "Gynaecology",
+  ear: "ENT",
+  nose: "ENT",
+  throat: "ENT",
+  cough: "Pulmonology",
+  asthma: "Pulmonology",
+};
+
+export interface WordMatch {
+  /** What matched, as the visitor would say it. */
+  label: string;
+  specialty: string;
+  zone?: string;
+}
+
+/**
+ * Specialities for everyday words ("knee", "skin", "toothache"): the body
+ * guide's areas and symptoms, then a short list of common words. The search
+ * box shows these beside doctors and specialities, so typing what hurts
+ * works as well as typing a speciality's name.
+ */
+export function wordMatches(term: string, limit = 3): WordMatch[] {
+  const t = term.trim().toLowerCase();
+  if (t.length < 3) return [];
+  const found: WordMatch[] = [];
+  const seen = new Set<string>();
+  const add = (m: WordMatch) => {
+    const key = `${m.specialty}|${m.label}`;
+    if (!seen.has(key) && !found.some((f) => f.specialty === m.specialty)) {
+      seen.add(key);
+      found.push(m);
+    }
+  };
+  for (const region of Object.values(BODY_TAXONOMY)) {
+    for (const s of region.subSymptoms) {
+      if (!s.isRedFlag && s.label.toLowerCase().includes(t)) {
+        add({ label: s.label, specialty: s.specialty ?? region.routing.primarySpecialty, zone: region.id });
+      }
+    }
+    if (region.label.toLowerCase().includes(t)) {
+      add({ label: region.label, specialty: region.routing.primarySpecialty, zone: region.id });
+    }
+  }
+  for (const [word, specialty] of Object.entries(EVERYDAY)) {
+    if (word.startsWith(t) || t.startsWith(word)) add({ label: word[0]!.toUpperCase() + word.slice(1), specialty });
+  }
+  return found.slice(0, limit);
+}

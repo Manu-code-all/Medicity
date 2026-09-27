@@ -1495,6 +1495,13 @@ directory now matches specialisations as well as names, and
 `GET /api/v1/doctors/specialties` replaces the page's hard-coded list, so it
 only offers specialities someone can be booked in.
 
+**Everyday words.** Checking the live page found that the search box's own
+example, "knee", found nothing: suggestions only matched names and
+specialities. `wordMatches` now turns the body guide's areas and symptoms,
+and a short list of common words (skin, tooth, fever, kidney…), into
+specialities on the spot, shown first as "For what you described". Warning
+signs are never offered as search suggestions.
+
 **The directory reads its filters from the URL,** so both doors link into it
 and a filtered list can be shared. Arriving from the guide shows which area
 it was for, and an empty result offers the area's alternative speciality.
