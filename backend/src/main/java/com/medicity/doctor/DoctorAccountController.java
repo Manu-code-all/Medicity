@@ -47,7 +47,8 @@ public class DoctorAccountController {
     @PreAuthorize("hasRole('DOCTOR')")
     @Operation(summary = "The caller's doctor profile, including whether it is verified")
     public ProfileResponse profile(@AuthenticationPrincipal AppUserPrincipal principal) {
-        Doctor d = doctors.findByUserId(principal.getId()).orElseThrow();
+        // Fetched with the account: the response reads its name and email after the query returns.
+        Doctor d = doctors.findWithUserByUserId(principal.getId()).orElseThrow();
         return ProfileResponse.from(d);
     }
 

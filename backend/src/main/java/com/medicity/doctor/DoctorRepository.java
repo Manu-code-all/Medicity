@@ -58,6 +58,10 @@ public interface DoctorRepository extends JpaRepository<Doctor, UUID> {
     @Query("SELECT d FROM Doctor d JOIN FETCH d.user WHERE d.verifiedAt IS NULL ORDER BY d.createdAt")
     List<Doctor> findUnverified();
 
+    /** With the account loaded, for responses that show the name and email. */
+    @Query("SELECT d FROM Doctor d JOIN FETCH d.user u WHERE u.id = :userId")
+    Optional<Doctor> findWithUserByUserId(@Param("userId") UUID userId);
+
     @Query("SELECT d FROM Doctor d JOIN FETCH d.user WHERE d.id = :id")
     Optional<Doctor> findWithUser(@Param("id") UUID id);
 
