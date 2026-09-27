@@ -88,6 +88,7 @@ abstract class NetworkTestSupport extends AbstractIntegrationTest {
     protected Medicine cetirizine;
     protected Medicine unrelated;
     protected UUID prescriptionId;
+    private int visits;
 
     protected User nearOwner;
     protected User nearerOwner;
@@ -228,7 +229,8 @@ abstract class NetworkTestSupport extends AbstractIntegrationTest {
     }
 
     protected UUID prescribe(Patient patient, List<PrescriptionDraft.Item> items) {
-        Instant start = clock.instant().truncatedTo(ChronoUnit.MINUTES).minus(20, ChronoUnit.MINUTES);
+        // Each visit an hour before the last: one doctor's slots must not overlap.
+        Instant start = clock.instant().truncatedTo(ChronoUnit.MINUTES).minus(20 + 60L * visits++, ChronoUnit.MINUTES);
         AppointmentSlot slot = slotRepository.save(AppointmentSlot.builder()
                 .doctor(doctor).startsAt(start).endsAt(start.plus(30, ChronoUnit.MINUTES)).build());
         Appointment visit = appointmentRepository.save(Appointment.builder().slot(slot).patient(patient)
