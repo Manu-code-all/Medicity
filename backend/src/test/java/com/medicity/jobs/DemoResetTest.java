@@ -75,6 +75,8 @@ class DemoResetTest extends AbstractIntegrationTest {
         assertThat(count("SELECT quantity_on_hand FROM medicine_stock WHERE medicine_id = '" + OMEPRAZOLE + "'"))
                 .isEqualTo(250);
         assertThat(count("SELECT count(*) FROM stores WHERE verified_at IS NOT NULL")).isEqualTo(5);
+        assertThat(count("SELECT count(*) FROM request_recipients WHERE status = 'ANSWERED'")).isEqualTo(3);
+        assertThat(count("SELECT count(*) FROM request_answer_lines")).isEqualTo(3);
     }
 
     @Test
@@ -102,6 +104,7 @@ class DemoResetTest extends AbstractIntegrationTest {
                 """.formatted(RAO));
         jdbc.update("UPDATE medicine_stock SET quantity_on_hand = 240 WHERE medicine_id = '" + OMEPRAZOLE + "'");
         jdbc.update("UPDATE stores SET hold_hours = 4, name = 'Renamed' WHERE id = '" + SAI_MEDICALS + "'");
+        jdbc.update("UPDATE medicine_requests SET status = 'CLOSED', closed_at = now()");
         jdbc.update("""
                 INSERT INTO notifications (user_id, event_id, kind, title, body)
                 VALUES ('99999999-9999-4999-8999-999999999901', gen_random_uuid(), 'X', 't', 'b')
@@ -117,6 +120,7 @@ class DemoResetTest extends AbstractIntegrationTest {
         assertThat(count("SELECT count(*) FROM notifications")).isZero();
         assertThat(jdbc.queryForObject("SELECT name FROM stores WHERE id = '" + SAI_MEDICALS + "'", String.class))
                 .isEqualTo("Sri Sai Medicals");
+        assertThat(count("SELECT count(*) FROM medicine_requests WHERE status = 'OPEN'")).isEqualTo(1);
         assertThat(count("SELECT quantity_on_hand FROM medicine_stock WHERE medicine_id = '" + OMEPRAZOLE + "'"))
                 .isEqualTo(250);
         assertThat(count("""
@@ -153,6 +157,7 @@ class DemoResetTest extends AbstractIntegrationTest {
     }
 
     private void cleanUp() {
+        jdbc.update("DELETE FROM medicine_requests");
         jdbc.update("DELETE FROM prescription_dispensations");
         prescriptionRepository.deleteAllInBatch();
         appointmentRepository.deleteAll();

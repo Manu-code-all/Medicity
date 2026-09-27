@@ -524,3 +524,44 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .store-card__meta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 10px !important; font-size: 0.9rem; }
 .rx-item__substitute { grid-column: 1 / -1; font-size: 0.9rem; }
 .rx__substitute { display: inline-block; margin-left: 8px; font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; color: var(--accent); background: var(--accent-soft); }
+
+/* Asking chemists and comparing answers */
+.small { font-size: 0.85rem; }
+.rx__actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+.rx__ask { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.ask { display: flex; flex-direction: column; gap: 12px; }
+.ask__medicines { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; }
+.ask__medicines legend { font-weight: 700; padding: 0 6px; }
+.request-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; text-decoration: none; color: var(--text); margin: 0; }
+.request-row:hover { border-color: var(--accent); }
+.request-row p { margin: 2px 0 0; }
+.request-row__side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 0.88rem; white-space: nowrap; }
+.badge--open, .badge--reserved { color: var(--accent); border-color: var(--accent); }
+.badge--closed, .badge--expired { color: var(--text-muted); }
+.compare { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.compare__store { margin: 0; }
+.compare__store--complete { border-left: 4px solid var(--accent); }
+.compare__head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.compare__head h2 { margin: 0 0 2px; font-size: 1.08rem; }
+.compare__head p { margin: 0; }
+.compare__badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.compare__lines { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.93rem; }
+.compare__lines td { padding: 7px 8px 7px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+.compare__lines tr:last-child td { border-bottom: none; }
+.compare__lines .num { text-align: right; white-space: nowrap; }
+.compare__substitute { display: block; font-size: 0.82rem; color: var(--accent); }
+.compare__foot { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.compare__note { margin: 8px 0 0; font-style: italic; color: var(--text-muted); }
+.availability { white-space: nowrap; font-weight: 600; }
+.availability--yes { color: var(--accent); }
+.availability--partial { color: var(--warn); }
+.availability--no { color: var(--text-muted); }
+.verified { border-left: 4px solid var(--accent); margin: 0; }
+.verified p { margin: 2px 0; }
+.verified__title { font-weight: 700; color: var(--accent); }
+.answer { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.answer h2 { margin: 0; font-size: 1.1rem; }
+.answer__item { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; }
+.answer__item legend { padding: 0 6px; }
+.answer__item p { margin: 0; }
+.answer__choices { display: flex; gap: 18px; flex-wrap: wrap; }

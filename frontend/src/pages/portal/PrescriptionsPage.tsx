@@ -1,12 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import { portal } from "../../api/endpoints";
 import { formatDate } from "../../lib/format";
+import { AskChemists } from "./AskChemists";
 
 export function PrescriptionsPage() {
   const { hash } = useLocation();
   const prescriptions = useQuery({ queryKey: ["portal", "prescriptions"], queryFn: portal.prescriptions });
+  const [asking, setAsking] = useState<string | null>(null);
 
   // Links from a visit point at #rx-<id>. The target only exists once the
   // data has loaded, so the browser's own anchor jump misses it.
@@ -106,6 +108,23 @@ export function PrescriptionsPage() {
               {rx.notes}
             </p>
           )}
+
+          {rx.items.length > 0 &&
+            (asking === rx.id ? (
+              <div className="rx__ask">
+                <AskChemists prescription={rx} />
+                <button type="button" className="link" onClick={() => setAsking(null)}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="rx__actions">
+                <button type="button" className="button--ghost" onClick={() => setAsking(rx.id)}>
+                  Ask chemists nearby
+                </button>
+                <span className="muted small">One question to every verified store around you.</span>
+              </div>
+            ))}
         </article>
       ))}
     </div>

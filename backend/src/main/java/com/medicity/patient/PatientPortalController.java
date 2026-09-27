@@ -209,6 +209,7 @@ public class PatientPortalController {
     }
 
     public record ItemResponse(
+            UUID medicineId,
             String medicine,
             String strength,
             String form,
@@ -222,7 +223,7 @@ public class PatientPortalController {
     ) {
         static ItemResponse from(PrescriptionItem i) {
             return new ItemResponse(
-                    i.getMedicine().getName(), i.getMedicine().getStrength(),
+                    i.getMedicine().getId(), i.getMedicine().getName(), i.getMedicine().getStrength(),
                     i.getMedicine().getForm().name(), i.getDosage(), i.getFrequency(),
                     i.getDurationDays(), i.getQuantity(), i.getMedicine().getGenericName(),
                     i.isSubstitutionAllowed());

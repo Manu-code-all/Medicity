@@ -32,6 +32,8 @@ public class Outbox {
     public static final String PRESCRIPTION_CORRECTED = "PRESCRIPTION_CORRECTED";
     public static final String STORE_REGISTERED = "STORE_REGISTERED";
     public static final String STORE_VERIFIED = "STORE_VERIFIED";
+    public static final String MEDICINE_REQUEST_CREATED = "MEDICINE_REQUEST_CREATED";
+    public static final String STORE_ANSWERED = "STORE_ANSWERED";
 
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;

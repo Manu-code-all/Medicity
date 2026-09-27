@@ -84,6 +84,26 @@ public class StoreDirectory {
                 }, area.selectParameters());
     }
 
+    /**
+     * The stores a question goes to: the nearest {@code limit} in the circle,
+     * nearest first. Locks nothing; a store verified a moment later simply
+     * misses this question.
+     */
+    public List<StoreInReach> inReach(Area area, int limit) {
+        return jdbc.query("""
+                SELECT s.id, s.owner_user_id, store_distance_m(?, ?, s.latitude, s.longitude) AS distance_m
+                FROM stores s
+                WHERE %s
+                ORDER BY distance_m, s.id
+                LIMIT %d
+                """.formatted(WITHIN, limit), (rs, i) -> new StoreInReach(
+                        rs.getObject("id", UUID.class), rs.getObject("owner_user_id", UUID.class),
+                        (int) Math.round(rs.getDouble("distance_m"))),
+                area.selectParameters());
+    }
+
+    public record StoreInReach(UUID storeId, UUID ownerUserId, int distanceM) {}
+
     /** The search circle and the square around it. */
     public record Area(double lat, double lng, int radiusM,
                        double minLat, double maxLat, double minLng, double maxLng) {

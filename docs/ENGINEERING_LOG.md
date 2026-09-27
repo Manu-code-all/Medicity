@@ -942,6 +942,67 @@ reset restores the demo stores' profiles.
 
 ---
 
+## 22. Ask every chemist nearby, and compare their answers (PR #27)
+
+The core of the pharmacy network (features 3, 4, 15 and 16). A patient sends
+one of their prescriptions to every verified store within 1, 3 or 5 km. Each
+store answers per medicine: yes, partly (how many) or no, with its price, and
+may offer another brand where the doctor allowed one. The patient sees the
+answers ranked side by side.
+
+**The question is always a real prescription.** A patient cannot type in
+medicines: a question is built from a current (not superseded) prescription
+the doctor issued in Medicity. The store sees the doctor's name, speciality
+and registration number, the issue date, and whether the hospital pharmacy
+already dispensed it. That is the answer to fake prescriptions: the chemist
+knows it came from the doctor's own account, not a photo a patient uploaded.
+
+**Minimum necessary.** Stores see "Meera N.", the medicines, dose and
+duration, not the diagnosis or the full name. The patient's location is kept
+for demand counts (next PRs) and never shown to a store. Every store read of
+a question is audited; a store that was not asked gets 404, audited as a denial.
+
+**What the database decides:**
+
+- *One open question per prescription*: a partial unique index on
+  `prescription_id WHERE status IN ('OPEN', 'RESERVED')`. Two taps on "Ask"
+  cannot send every store the same question twice. An expired question is
+  marked expired just before inserting, so asking again after six hours works
+  even before the expiry job exists.
+- *A store answers once, and only while the question is open*: the answer is
+  one conditional `UPDATE request_recipients ... FROM medicine_requests WHERE
+  status = 'PENDING' AND request open AND not expired`. Nothing is read first.
+  A test runs 8 concurrent answers from one store: 1 wins, 2 answer lines
+  exist (one per medicine), 7 get 409.
+- *Answer lines belong to the question*: composite foreign keys to the
+  store's recipient row and to the question's items; a CHECK says "no" has
+  quantity 0 and no price, and anything else has both.
+
+What the service checks, because it needs other rows: every medicine is
+answered once; "partly" is between 1 and one less than asked; another brand
+is allowed only where the doctor ticked it, and only a brand with the same
+ingredient, strength and form from the catalogue.
+
+**Fan-out** uses the same `WITHIN` SQL as the "near me" list, capped at the
+nearest 25 stores, in the same transaction as the question. If no verified
+store is in reach, the patient is told and nothing is saved. Store owners are
+notified through the outbox, and the patient is notified as answers arrive.
+A cap of 5 open questions per patient stops one account from flooding a
+neighbourhood's queues.
+
+**Ranking** happens on the server so every device shows the same order:
+answered before unanswered; everything in full before partial; more medicines;
+cheaper total; nearer. "Cheapest" and "Nearest" labels go on stores that have
+everything. A unit test pins that a complete, dearer store ranks above a
+cheap partial one.
+
+**Demo.** Meera has an open question about her omeprazole. Three stores have
+answered: one in full, one with the cheaper Omez brand the doctor allowed,
+one partly. Sri Sai Medicals (`chemist@medicity.demo`) and one other store
+still have it waiting in their queues.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when

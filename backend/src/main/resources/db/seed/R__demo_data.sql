@@ -298,3 +298,50 @@ INSERT INTO stores (id, owner_user_id, name, licence_number, phone, address_line
    'CityCare Pharmacy', 'KA-B1-20/21-DEMO05', '+919876500305', 'Old Madras Road, Baiyappanahalli', 'Bengaluru',
    12.990000, 77.660000, '08:00', '20:00', false, 3, now())
 ON CONFLICT DO NOTHING;
+
+
+-- ---------------------------------------------------------------------
+-- The demo patient has asked the stores about her reflux prescription
+-- (omeprazole, where Dr. Rao allowed another brand). Three stores have
+-- answered; Sri Sai Medicals (chemist@medicity.demo) and CityCare have it
+-- waiting in their queue. It stays open until the next nightly reset,
+-- longer than a real question's six hours, so visitors always find it.
+-- ---------------------------------------------------------------------
+UPDATE prescription_items SET substitution_allowed = TRUE
+WHERE prescription_id = 'ffffffff-6666-4666-8666-ffffffffff04';
+
+INSERT INTO medicine_requests (id, patient_id, prescription_id, latitude, longitude, radius_m, status,
+                               stores_asked, created_at, expires_at)
+VALUES ('abababab-7777-4777-8777-abababab0001', 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb01',
+        'ffffffff-6666-4666-8666-ffffffffff04', 12.971900, 77.641200, 3000, 'OPEN', 5,
+        now() - INTERVAL '25 minutes', now() + INTERVAL '23 hours')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO medicine_request_items (request_id, medicine_id, quantity, substitution_allowed)
+VALUES ('abababab-7777-4777-8777-abababab0001', 'cccccccc-3333-4333-8333-cccccccccc06', 14, TRUE)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO request_recipients (request_id, store_id, distance_m, status, note, answered_at)
+SELECT 'abababab-7777-4777-8777-abababab0001', s.id,
+       round(store_distance_m(12.9719, 77.6412, s.latitude, s.longitude)),
+       CASE WHEN v.answered THEN 'ANSWERED' ELSE 'PENDING' END, v.note,
+       CASE WHEN v.answered THEN now() - v.ago::interval END
+FROM (VALUES
+  ('55555555-5555-4555-8555-555555555501', false, NULL, NULL),
+  ('55555555-5555-4555-8555-555555555502', true, 'Ready at the counter.', '20 minutes'),
+  ('55555555-5555-4555-8555-555555555503', true, 'Omez is the same medicine, and cheaper.', '15 minutes'),
+  ('55555555-5555-4555-8555-555555555504', true, 'Rest arrives tomorrow morning.', '10 minutes'),
+  ('55555555-5555-4555-8555-555555555505', false, NULL, NULL)
+) AS v (store_id, answered, note, ago)
+JOIN stores s ON s.id = v.store_id::uuid
+ON CONFLICT DO NOTHING;
+
+INSERT INTO request_answer_lines (request_id, store_id, medicine_id, availability, quantity_available,
+                                  unit_price, substitute_medicine_id) VALUES
+  ('abababab-7777-4777-8777-abababab0001', '55555555-5555-4555-8555-555555555502',
+   'cccccccc-3333-4333-8333-cccccccccc06', 'YES', 14, 5.50, NULL),
+  ('abababab-7777-4777-8777-abababab0001', '55555555-5555-4555-8555-555555555503',
+   'cccccccc-3333-4333-8333-cccccccccc06', 'YES', 14, 4.20, 'cccccccc-3333-4333-8333-cccccccccc10'),
+  ('abababab-7777-4777-8777-abababab0001', '55555555-5555-4555-8555-555555555504',
+   'cccccccc-3333-4333-8333-cccccccccc06', 'PARTIAL', 10, 5.80, NULL)
+ON CONFLICT DO NOTHING;

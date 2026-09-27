@@ -97,6 +97,10 @@ public class DemoResetJob {
                 SELECT a.id FROM appointments a JOIN appointment_slots s ON s.id = a.slot_id
                 WHERE s.doctor_id IN %s OR a.patient_id IN %s
                 """.formatted(DEMO_DOCTORS, DEMO_PATIENTS));
+        // Questions to chemists go first: they reference the prescriptions.
+        // Their items, recipients and answers cascade. On the demo, every
+        // question is demo activity.
+        jdbc.update("DELETE FROM medicine_requests");
         jdbc.update("""
                 DELETE FROM prescription_dispensations WHERE prescription_id IN
                   (SELECT id FROM prescriptions WHERE appointment_id IN (SELECT id FROM demo_appointments))
