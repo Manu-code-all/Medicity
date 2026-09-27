@@ -1311,6 +1311,25 @@ move to object storage and this row would stay as the index.
 
 ---
 
+## 29. Free for doctors and chemists, and the landing page for all of it (PR #34)
+
+Feature 13 is a business decision, not code: doctors and chemists pay nothing.
+Paid clinic software charges a monthly fee, and a small-town doctor or chemist
+is exactly who that turns away. The code's part is to not stand in the way:
+- a doctor can keep writing by hand (entry 28);
+- a chemist needs no stock system (entry 22);
+- live stock stays optional (entry 24);
+- signing up is self-service, with the licence check done by a person.
+
+The landing page now explains the chemist network: ask every store, compare,
+reserve and pick up; refill reminders, family members and instructions in your
+language. It also has a section on being free for doctors and chemists, a
+"For chemists" link, and the demo logins for all three roles. The README's
+invariants table and API list cover the new tables and endpoints, and a
+"chemist network" section summarises entries 21 to 28.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Medicine instructions in Indian languages are unreviewed.** The phrasebook

@@ -40,9 +40,10 @@ export function LandingPage() {
             </div>
             {!session && (
               <p className="hero__demo muted">
-                Trying it out? Sign in as <code>patient@medicity.demo</code> to see the patient portal, or as{" "}
-                <code>dr.rao@medicity.demo</code> for the doctor workspace. Password for both:{" "}
-                <code>demo-password-2026</code>. The demo resets every night, so feel free to change things.
+                Trying it out? Sign in as <code>patient@medicity.demo</code> (the patient, who also manages her
+                mother and son), <code>dr.rao@medicity.demo</code> (a doctor) or <code>chemist@medicity.demo</code>{" "}
+                (a neighbourhood chemist). Password for all: <code>demo-password-2026</code>. The demo resets every
+                night, so feel free to change things.
               </p>
             )}
           </div>
@@ -65,6 +66,79 @@ export function LandingPage() {
           <Feature icon={<IconShield />} title="Private by design">
             Your records are visible only to you and the doctors who treat you.
           </Feature>
+        </div>
+      </section>
+
+      <section className="section section--tinted" aria-labelledby="network-title">
+        <div className="section__inner">
+          <h2 className="section__title" id="network-title">
+            One prescription, every chemist nearby
+          </h2>
+          <ol className="steps">
+            <li className="step">
+              <span className="step__num">1</span>
+              <h3>Ask them all at once</h3>
+              <p className="muted">
+                One tap sends your doctor's prescription to every verified chemist within 1, 3 or 5 km. No calling
+                round.
+              </p>
+            </li>
+            <li className="step">
+              <span className="step__num">2</span>
+              <h3>Compare the answers</h3>
+              <p className="muted">
+                Who has everything, who is cheapest, who is nearest, and who offers the same medicine in a cheaper
+                brand your doctor allowed.
+              </p>
+            </li>
+            <li className="step">
+              <span className="step__num">3</span>
+              <h3>Reserve and pick up</h3>
+              <p className="muted">
+                The store keeps it aside for 2 to 4 hours. Show your six-digit code at the counter and pay there.
+              </p>
+            </li>
+          </ol>
+          <ul className="checklist network-extras">
+            <li>
+              <strong>Refill reminders.</strong> "Your tablets run out in 3 days. Ask the stores again?"
+            </li>
+            <li>
+              <strong>Your whole family.</strong> Parents and children under one sign-in.
+            </li>
+            <li>
+              <strong>In your language.</strong> How to take each medicine in Hindi, Tamil, Kannada, Telugu or
+              Bengali, and shareable on WhatsApp.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section className="section" aria-labelledby="free-title">
+        <div className="section__inner split">
+          <div>
+            <h2 className="section__title" id="free-title">
+              Free for doctors and chemists
+            </h2>
+            <p className="muted">
+              No subscription and no per-prescription fee. A doctor can keep writing by hand: photograph the slip
+              and Medicity reads it into a list for the doctor to confirm. A chemist answers questions from nearby
+              patients without keeping a stock list up to date.
+            </p>
+          </div>
+          <ul className="checklist">
+            <li>
+              <strong>Doctors:</strong> the schedule, closing visits, typed or photographed prescriptions, and
+              "cheaper brand with the same medicine is OK" per line.
+            </li>
+            <li>
+              <strong>Chemists:</strong> prescriptions that come straight from the doctor's account, never a
+              patient's upload, and what people nearby asked for this week.
+            </li>
+            <li>
+              <Link to="/register/store">Register your store</Link>, checked by a person before it goes live.
+            </li>
+          </ul>
         </div>
       </section>
 
@@ -125,6 +199,7 @@ export function LandingPage() {
           <span>© {new Date().getFullYear()} Medicity</span>
           <nav>
             <Link to="/doctors">Find a doctor</Link>
+            <Link to="/register/store">For chemists</Link>
             <a href={API_DOCS_URL} target="_blank" rel="noreferrer">
               API docs
             </a>

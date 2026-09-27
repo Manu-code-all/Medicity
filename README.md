@@ -1,7 +1,10 @@
 # Medicity
 
-A hospital management platform — appointment scheduling, clinical records, and
-pharmacy inventory — built around one hard requirement:
+A clinic and neighbourhood-pharmacy platform. Patients book doctors, keep
+their prescriptions, and send a prescription to every verified chemist nearby
+in one tap: they compare the answers, reserve at one store and pick up with a
+code. Doctors can keep writing by hand, and chemists need no stock system. It is
+built around one hard requirement:
 
 > **A consultation slot admits exactly one patient, no matter how many people
 > tap "Book" at the same instant.**
@@ -157,6 +160,13 @@ The schema is the specification. Each of these makes an invalid state
 | `appointments_cancel_consistency` — `CHECK` | V2 | A cancelled row with no cancellation timestamp |
 | `uq_refresh_one_live_per_family` — partial unique index | V9 | A session forking into two live refresh tokens |
 | `audit_log` immutability — `BEFORE UPDATE OR DELETE` row trigger + `BEFORE TRUNCATE` statement trigger | V5, V6 | An attacker erasing their own audit trail |
+| `uq_stores_licence` — unique on `upper(licence_number)` | V14 | One drug licence registering two stores |
+| `uq_request_active_per_prescription` — partial unique index | V15 | Every nearby store receiving the same question twice |
+| Answer lines' composite FKs + `answer_no_means_nothing` `CHECK` | V15 | An answer to a question the store was never sent, or a "no" with a price |
+| `uq_reservation_live_per_request` — partial unique index | V16 | One prescription held at two stores at once |
+| `reservations_hold_window` — `CHECK` | V16 | Medicines held for more than 4 hours |
+| `patients_one_kind` — `CHECK` | V18 | A patient with no one who can sign in for them, or with two |
+| `uq_prescription_scan` — partial unique index; `scans_size` — `CHECK` | V19 | One photographed slip issuing two prescriptions; oversized uploads |
 
 The `EXCLUDE` constraint uses a half-open range `'[)'`, so 10:00–10:30 and
 10:30–11:00 do *not* conflict — exactly what back-to-back consultations need.
@@ -302,10 +312,29 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/pharmacy/medicines/{id}/restock` | ADMIN | Add stock |
 | `POST` | `/api/v1/pharmacy/prescriptions/{id}/dispense` | ADMIN | Dispense, decrementing stock atomically |
 | `GET` | `/api/v1/admin/audit` | ADMIN | Search the audit trail |
+| `POST` | `/api/v1/auth/register/chemist` | — | Register a chemist and their store (unverified) |
+| `GET` | `/api/v1/stores/nearby?lat&lng&radiusM` | signed in | Verified stores in a radius, nearest first |
+| `GET` `PUT` | `/api/v1/stores/me` | CHEMIST | Own store profile |
+| `POST` | `/api/v1/admin/stores/{id}/verify` | ADMIN | Record the drug-licence check |
+| `POST` | `/api/v1/patients/me/medicine-requests` | PATIENT | Ask every nearby store about a prescription |
+| `GET` | `/api/v1/patients/me/medicine-requests/{id}` | PATIENT | Answers, ranked, with any reservation and its code |
+| `POST` | `/api/v1/patients/me/medicine-requests/{id}/reserve` | PATIENT | Reserve one store's answer |
+| `GET` | `/api/v1/stores/me/requests` | CHEMIST | The store's question queue |
+| `POST` | `/api/v1/stores/me/requests/{id}/answer` | recipient store | Yes / partly / no per medicine, with price |
+| `POST` | `/api/v1/stores/me/reservations/{id}/collect` | holding store | Hand over against the patient's code |
+| `GET` | `/api/v1/stores/me/insights` | CHEMIST | What people nearby asked for this week |
+| `PUT` | `/api/v1/stores/me/stock` | CHEMIST | Replace live stock (enables automatic answers) |
+| `GET` | `/api/v1/patients/me/courses` | PATIENT | Each medicine: started, runs out |
+| `GET` `POST` | `/api/v1/patients/me/family` | PATIENT | Family members managed by this account |
+| `POST` | `/api/v1/doctors/me/visits/{id}/scans` | own doctor | Upload a photo of the handwritten slip |
+| `POST` | `/api/v1/doctors/me/scans/{id}/read` | own doctor | A draft read from the photo; issues nothing |
 
 The portal routes take **no patient id at all**. "Me" is resolved from the token,
 so there is no parameter a caller could alter to reach another patient's history:
-the IDOR surface is removed rather than guarded. `PatientPortalTest` gives a
+the IDOR surface is removed rather than guarded. A family member is chosen with
+an `X-Patient-Id` header, read and checked in exactly one place
+(`ActingPatient`): it must be the account's own patient or one of its family,
+and anything else answers 404 and is audited. `PatientPortalTest` gives a
 second patient a history of their own and asserts none of it leaks.
 
 Errors follow **RFC 9457** `application/problem+json` and carry a stable
@@ -473,6 +502,32 @@ missed visit, a corrected prescription and an upcoming appointment.
 
 Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
 
+- **Handwritten prescriptions** — photograph the slip; Claude reads it into a
+  draft the doctor checks line by line and confirms. The model's output is never
+  a prescription by itself. Without `ANTHROPIC_API_KEY` the doctor types, and the
+  photo is still attached for the patient and the stores.
+
+## The chemist network
+
+- **Patients** ask every verified store within 1–5 km about a prescription,
+  compare answers ranked on the server (everything, then cheaper, then nearer),
+  reserve at one store for its 2–4 hour hold, and pick up with a six-digit code
+  only they see. *My medicines* counts each course from the day it was handed
+  over; long-term medicines get "runs out in 3 days, ask again?", short courses
+  get "finish the course". *How to take* shows instructions in six languages and
+  shares them on WhatsApp. One account manages parents and children.
+- **Chemists** (`chemist@medicity.demo`) answer from a queue, per medicine: yes,
+  partly or no, with a price, and another brand only where the doctor allowed it.
+  They see the prescribing doctor's registration and the handwritten original,
+  never the diagnosis or the patient's full name before a reservation. *Insights*
+  shows what people nearby asked for this week, counted only from questions sent
+  to that store and hidden below two people. Stores with billing software can
+  send live stock and answer automatically while it is under a day old.
+- **Administrators** (`admin@medicity.demo`) verify each store's drug licence
+  before it receives anything.
+
+The design notes for each piece are in `docs/ENGINEERING_LOG.md`, entries 21–28.
+
 ---
 
 ## Roadmap
@@ -490,3 +545,12 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
 - [ ] Grafana dashboard
 - [ ] Doctor availability rules engine (recurring weekly templates)
 - [x] k6 load test establishing booking throughput under contention
+- [x] Neighbourhood chemists: verified stores, near-me search
+- [x] Ask every chemist nearby, compare answers, reserve with a pick-up code
+- [x] Store insights and optional live stock
+- [x] Refill and course reminders
+- [x] Family members on one account
+- [x] Medicine instructions in six languages, shareable on WhatsApp
+- [x] Handwritten prescription photos read into a draft the doctor confirms
+- [ ] Native-speaker and pharmacist review of the instruction phrasebook
+- [ ] Photos in object storage instead of the database
