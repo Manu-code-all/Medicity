@@ -1330,8 +1330,65 @@ invariants table and API list cover the new tables and endpoints, and a
 
 ---
 
+## 30. Before the write-up: the gaps list, tests for the untested pages, the header in the docs
+
+A check before Week 6 found three loose ends from the chemist-network work.
+
+**The Known gaps list was behind.** It named the unreviewed phrasebook but not
+the other shortcuts taken in PRs #26–#33. Six bullets were added below; each
+was checked against the code rather than written from memory (the family cap
+comment in `FamilyController` already said "not race-proof"; the open-question
+count in `MedicineRequestService.ask` is a plain `SELECT count(*)`).
+
+**Four pages had no frontend tests**, including the one where a chemist types
+the patient's code. New tests, all against a mocked server:
+
+- `ReservationsPage`: non-digits are dropped, the button stays disabled until
+  six digits, a wrong code shows the server's "attempts left" message and
+  clears the box, the right code empties the list, and a locked reservation
+  offers no code box at all;
+- `FamilyPage`: adding a member sends exactly the fields filled in, and a
+  refusal (the cap) keeps the form and its contents;
+- `StockPage`: sending replaces the whole list and leaves out half-filled
+  rows; stale stock says it will not answer by itself; the auto-answer toggle;
+- `PendingStoresPage`: verifying takes a store off the list, and a
+  non-administrator's visit makes no request at all.
+
+`test/renderPage.tsx` holds the query-client-and-router wrapper the page tests
+had each been repeating. Frontend tests: 41 to 50.
+
+**`X-Patient-Id` was missing from the API reference.** `ActingPatient` reads
+the header from the request, never as a controller parameter, so springdoc had
+no way to see it. An `OpenApiCustomizer` adds it (optional, uuid) to every
+route under `/api/v1/patients/me` except `/family`, plus booking and "my
+appointments". `ApiDocsTest` fetches `/v3/api-docs` and asserts where it
+appears and that it is absent from the family and store routes, so a new route
+cannot quietly drift from the rule.
+
 ## Known gaps (tracked, not hidden)
 
+- **The family and open-question caps are checked, not locked.** Adding a
+  family member counts, then inserts; two adds at the same moment at seven
+  members could make nine. The five-open-questions cap works the same way.
+  Both are abuse limits, not invariants, so a rare overshoot by one was
+  accepted; a per-account advisory lock would close it.
+- **Reserving does not reduce live stock.** A store with live stock answers
+  "yes, 10" to every question until its billing software sends the next list,
+  even after reservations have taken all ten. Stores with auto-answer should
+  send stock often; decrementing on reserve is the fix.
+- **Prescription photos are stored in PostgreSQL.** `BYTEA`, capped at 5 MB by
+  a CHECK. Fine at demo scale; at volume they belong in object storage with
+  the database holding a key, so backups and replicas stay small.
+- **A question keeps the patient's location.** The latitude and longitude it
+  was asked from stay on the row for distance and insights. They are never
+  shown to a store (stores see a distance) but are not coarsened or deleted
+  after the question closes.
+- **Chemist sign-up is not rate-limited either,** for the same reason as
+  patient registration below. A store is inert until an administrator checks
+  its licence, which limits the harm.
+- **An automatic answer trusts the store's stock list completely.** There is
+  no check that the prices are plausible or that the list came from billing
+  software rather than being typed in.
 - **Medicine instructions in Indian languages are unreviewed.** The phrasebook
   behind "How to take" (entry 27) was written without a native speaker or a
   pharmacist checking it. It is deliberately small and falls back to the

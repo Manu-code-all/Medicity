@@ -334,7 +334,7 @@ so there is no parameter a caller could alter to reach another patient's history
 the IDOR surface is removed rather than guarded. A family member is chosen with
 an `X-Patient-Id` header, read and checked in exactly one place
 (`ActingPatient`): it must be the account's own patient or one of its family,
-and anything else answers 404 and is audited. `PatientPortalTest` gives a
+and anything else answers 404 and is audited. The header is listed in the OpenAPI reference on every route that honours it (`ApiDocsTest` keeps that true). `PatientPortalTest` gives a
 second patient a history of their own and asserts none of it leaks.
 
 Errors follow **RFC 9457** `application/problem+json` and carry a stable
