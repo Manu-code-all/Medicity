@@ -42,6 +42,17 @@ describe("LandingPage", () => {
     expect(screen.getByText("Cheapest", { selector: ".lm-map__tag" })).toBeInTheDocument();
   });
 
+  it("keeps the top navigation to finding a doctor and signing in", () => {
+    renderLanding();
+
+    const nav = screen.getByRole("navigation", { name: "Main" });
+    expect(within(nav).getByRole("link", { name: "Find a doctor" })).toHaveAttribute("href", "/doctors");
+    expect(within(nav).getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
+    for (const gone of ["For doctors", "For chemists", "Book a visit"]) {
+      expect(within(nav).queryByRole("link", { name: gone })).not.toBeInTheDocument();
+    }
+  });
+
   it("walks the five stations and points each role to its own sign-in", () => {
     renderLanding();
 

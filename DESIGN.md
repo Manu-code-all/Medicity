@@ -338,7 +338,7 @@ Every component takes its accent from the active line through `--lm-line`, `--lm
 - **Error:** a message block above the form, 12px 16px, 8px radius, 1px alert red border on an 8% red tint, ink text, `role="alert"`.
 
 ### Navigation
-- **Island:** a floating pill fixed 24px from the top, centred, 80% surface with a 16px blur, 1px rule border, Float shadow. Holds the roundel wordmark, quiet pill links (14px / 20px at 500, muted ink, raised fill and ink on hover) and a compact primary button.
+- **Island:** a floating pill fixed 24px from the top, centred, 80% surface with a 16px blur, 1px rule border, Float shadow. Holds the roundel wordmark, quiet pill links (14px / 20px at 500, muted ink, raised fill and ink on hover): How it works, Find a doctor, and Sign in. No button: the two doors are the call to action, and doctors and chemists reach their sign-in from their line sections and the sign-in page's role switch.
 - **Mobile:** under 860px the links hide and a 40px round burger appears; opening it fades in a full screen frosted sheet whose links (30px / 36px at 600) rise 48px into place with a 50ms stagger.
 
 ### Role switch (signature)

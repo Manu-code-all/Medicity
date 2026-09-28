@@ -128,11 +128,12 @@ export function App() {
 
           {/* Everything else sits in a centred column. */}
           <Route element={<Contained />}>
-            <Route path="/doctors" element={<DoctorsPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/register/store" element={<StoreRegisterPage />} />
             <Route path="/register/doctor" element={<RegisterDoctorPage />} />
             <Route element={<ProtectedRoute />}>
+              {/* Signed-in only: whoever picked a doctor on the landing page signs in first, then sees the list. */}
+              <Route path="/doctors" element={<DoctorsPage />} />
               <Route path="/admin/stores" element={<PendingStoresPage />} />
               <Route path="/admin/doctors" element={<PendingDoctorsPage />} />
               <Route path="/doctors/:doctorId/book" element={<BookingPage />} />

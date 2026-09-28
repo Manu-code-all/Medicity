@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/context";
 
 export function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  // Sent here from sign-in on the way to the doctors list? Go back there once the account exists.
+  const returnTo = (useLocation().state as { from?: string } | null)?.from;
 
   const [form, setForm] = useState({
     fullName: "",
@@ -30,7 +32,7 @@ export function RegisterPage() {
     setBusy(true);
     try {
       await register(form);
-      navigate("/portal", { replace: true });
+      navigate(returnTo ?? "/portal", { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         // Server-side validation is the authority; mirror its field errors
