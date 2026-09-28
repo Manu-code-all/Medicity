@@ -1581,6 +1581,38 @@ Frontend tests were missing on the flows an evaluator is most likely to try:
 
 Frontend tests: 78 to 85. Their per-test limit is now 15 s: three long form tests passed alone but crossed the 5 s default when the whole suite ran in parallel. Known gaps gained the doctor sign-up shortcuts.
 
+## 36. Sign in before the doctors list; a quieter navigation
+
+The landing page's navigation carried five destinations and a button: How
+it works, Find a doctor, For doctors, For chemists, Sign in, and Book a
+visit. Book a visit went to the same place as Find a doctor, and the two
+role links duplicated the role switch on the sign-in page and the doctor
+and chemist sections further down. They are gone; the island holds How it
+works, Find a doctor and Sign in.
+
+Choosing a doctor now needs an account. `/doctors` moved inside the
+signed-in routes, so the body guide's answer, a search, a speciality
+shortcut or the nav link all go through sign-in first. Two details make
+that bearable rather than a wall:
+
+- **The way back keeps the filter.** The route guard stored only the path,
+  so `/doctors?specialty=Cardiology&zone=chest` would have come back as the
+  unfiltered list. It now stores the path with its query.
+- **The sign-in page says why.** Arriving from the doctors list, it reads
+  "Sign in to see the Cardiology doctors available and book a time."
+  (or names the searched doctor), and "Create an account" carries the same
+  destination, so a new patient lands on the list once registered.
+
+The doctor search API stays public: the landing page's search box still
+suggests specialities and doctor names before sign-in, and a doctor's
+listing is public information, as on Practo. The gate is a product
+choice about when to ask for an account, not access control, which is what
+the route guard's comment already says of itself.
+
+Tests: a round trip through the real guard and sign-in page, from a
+filtered link to the filtered list, and the navigation's contents. Frontend
+tests: 85 to 88.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

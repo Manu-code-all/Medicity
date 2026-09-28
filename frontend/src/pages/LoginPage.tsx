@@ -48,6 +48,7 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
   const returnTo = (location.state as { from?: string } | null)?.from;
   const copy = COPY[role];
   const demo = DEMO_ACCOUNTS[role];
+  const why = doctorsWaiting(returnTo);
 
   function signedIn(session: Session) {
     navigate(returnTo ?? homeFor(session.role), { replace: true });
@@ -109,6 +110,7 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
           </nav>
 
           <h1 className="lm-auth__title">{copy.title}</h1>
+          {why && <p className="lm-auth__why">{why}</p>}
 
           {error && (
             <p className="lm-error" role="alert">
@@ -187,7 +189,7 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
           <p className="lm-auth__foot">
             {role === "patient" && (
               <>
-                New here? <Link to="/register">Create an account</Link>
+                New here? <Link to="/register" state={location.state}>Create an account</Link>
               </>
             )}
             {role === "doctor" && (
@@ -371,4 +373,15 @@ function MobileSignIn({
       </div>
     </form>
   );
+}
+
+/** Says why sign-in was asked for when a visitor was on their way to the doctors list. */
+function doctorsWaiting(returnTo: string | undefined): string | null {
+  if (!returnTo?.startsWith("/doctors")) return null;
+  const params = new URLSearchParams(returnTo.split("?")[1] ?? "");
+  const specialty = params.get("specialty");
+  const name = params.get("q");
+  if (specialty) return `Sign in to see the ${specialty} doctors available and book a time.`;
+  if (name) return `Sign in to see doctors matching “${name}” and book a time.`;
+  return "Sign in to see the doctors available and book a time.";
 }

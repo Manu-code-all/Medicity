@@ -5,8 +5,6 @@ import { homeFor, useAuth } from "../auth/context";
 const LINKS = [
   { to: "/#line", label: "How it works" },
   { to: "/doctors", label: "Find a doctor" },
-  { to: "/login/doctor", label: "For doctors" },
-  { to: "/login/chemist", label: "For chemists" },
 ];
 
 /** The landing page's floating navigation; a full-screen sheet on phones. */
@@ -49,9 +47,6 @@ export function IslandNav() {
             <NavLink to={account.to}>{account.label}</NavLink>
           </li>
         </ul>
-        <Link to="/doctors" className="lm-button lm-button--sm lm-nav__cta">
-          Book a visit
-        </Link>
         <button
           type="button"
           className="lm-burger"
@@ -68,7 +63,7 @@ export function IslandNav() {
       {/* Kept in the DOM so it can animate; visibility hides it from keyboards and readers when closed. */}
       <div id="lm-sheet" className="lm-sheet">
         <ul>
-          {[...LINKS, account, { to: "/doctors", label: "Book a visit" }].map((l, i) => (
+          {[...LINKS, account].map((l, i) => (
             <li key={l.label} style={{ transitionDelay: `${100 + i * 50}ms` }}>
               <Link to={l.to} onClick={() => setOpen(false)}>
                 {l.label}

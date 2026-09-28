@@ -626,6 +626,7 @@
 .lm-auth__back { align-self: flex-start; color: var(--lm-ink-2) !important; }
 .lm-auth__card { width: 100%; max-width: 400px; margin: auto; padding: 48px 0; display: grid; gap: 16px; }
 .lm-auth__title { font-size: 30px; line-height: 36px; letter-spacing: -0.01em; margin-top: 16px; }
+.lm-auth__why { margin: 8px 0 0; font-size: 16px; line-height: 24px; color: var(--lm-ink-2); }
 
 .lm-roles {
   position: relative;
@@ -768,7 +769,7 @@
 }
 
 @media (max-width: 860px) {
-  .lm-nav__links, .lm-nav__cta { display: none; }
+  .lm-nav__links { display: none; }
   .lm-burger { display: block; }
   .lm-nav__pill { width: 100%; justify-content: space-between; }
   .lm-auth { grid-template-columns: 1fr; }

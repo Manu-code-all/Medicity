@@ -509,6 +509,10 @@ subdirectory means `vercel.json` is never read.
   - *Search*: a combobox suggesting specialities and doctors as you type,
     and turning everyday words ("knee", "skin", "tooth") into the right
     speciality; six speciality shortcuts beneath it.
+  - Either door leads to the doctors list, which needs a signed-in account:
+    a signed-out visitor is asked to sign in (or create an account) first,
+    told what they are signing in for, and then lands on the list already
+    filtered to the speciality or name they picked.
 - **Sign-in pages** (`/login`, `/login/doctor`, `/login/chemist`) — one frame,
   one coloured line per role (teal, indigo, marigold), each with a one-click
   sign-in as that role's demo account. Mobile number and a one-time code, or
