@@ -131,6 +131,9 @@ export function DoctorsPage() {
               <Link className="button" to={`/doctors/${doctor.id}/book`}>
                 Book
               </Link>
+              <Link className="button button--quiet" to={`/doctors/${doctor.id}/walk-in`}>
+                Walk in today
+              </Link>
             </div>
             {doctor.nextSlots.length > 0 ? (
               <ul className="next-slots" aria-label={`Next free times with ${doctor.fullName}`}>

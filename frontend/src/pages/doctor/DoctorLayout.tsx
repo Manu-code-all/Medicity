@@ -44,6 +44,9 @@ export function DoctorLayout() {
           <NavLink to="/doctor" end className={({ isActive }) => (isActive ? "portal__link is-active" : "portal__link")}>
             Schedule
           </NavLink>
+          <NavLink to="/doctor/queue" className={({ isActive }) => (isActive ? "portal__link is-active" : "portal__link")}>
+            Front desk
+          </NavLink>
           <NavLink to="/doctor/hours" className={({ isActive }) => (isActive ? "portal__link is-active" : "portal__link")}>
             Your hours
           </NavLink>

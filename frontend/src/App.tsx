@@ -36,6 +36,9 @@ import { PortalLayout } from "./pages/portal/PortalLayout";
 import { PrescriptionsPage } from "./pages/portal/PrescriptionsPage";
 import { ProfilePage } from "./pages/portal/ProfilePage";
 import { VisitsPage } from "./pages/portal/VisitsPage";
+import { TokensPage } from "./pages/portal/TokensPage";
+import { WalkInPage } from "./pages/queue/WalkInPage";
+import { FrontDeskPage } from "./pages/doctor/FrontDeskPage";
 
 const HOME_LABEL: Record<Role, string> = {
   PATIENT: "My portal",
@@ -102,6 +105,7 @@ export function App() {
             <Route path="/portal" element={<PortalLayout />}>
               <Route index element={<OverviewPage />} />
               <Route path="visits" element={<VisitsPage />} />
+              <Route path="queue" element={<TokensPage />} />
               <Route path="prescriptions" element={<PrescriptionsPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="family" element={<FamilyPage />} />
@@ -115,6 +119,7 @@ export function App() {
               <Route path="visits/:visitId" element={<VisitPage />} />
               <Route path="patients/:patientId" element={<PatientHistoryPage />} />
               <Route path="hours" element={<HoursPage />} />
+              <Route path="queue" element={<FrontDeskPage />} />
             </Route>
             <Route path="/store" element={<StoreLayout />}>
               <Route index element={<StoreProfilePage />} />
@@ -137,6 +142,7 @@ export function App() {
               <Route path="/admin/stores" element={<PendingStoresPage />} />
               <Route path="/admin/doctors" element={<PendingDoctorsPage />} />
               <Route path="/doctors/:doctorId/book" element={<BookingPage />} />
+              <Route path="/doctors/:doctorId/walk-in" element={<WalkInPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
             </Route>
             {/* The old URL, kept working for existing bookmarks. */}

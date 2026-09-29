@@ -134,6 +134,8 @@ public class DemoResetJob {
         // Notifications and stored idempotent responses describe bookings that
         // no longer exist. On the demo everything is demo activity.
         jdbc.update("DELETE FROM notifications");
+        // Yesterday's walk-in lines; the seed opens today's with a few waiting.
+        jdbc.update("DELETE FROM queue_days");
         jdbc.update("DELETE FROM idempotency_keys");
 
         // Stock back to the seed level, through the ledger so on-hand stays

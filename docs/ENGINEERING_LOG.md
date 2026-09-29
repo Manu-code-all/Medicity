@@ -1763,6 +1763,43 @@ or the family member's account holder), and nothing else can create one.
 The demo seeds four reviews and leaves two of Meera's completed visits
 unreviewed so a visitor can try it.
 
+## 42. Door 2: walk-in tokens for today
+
+Booking covers "a time next week". It does not cover "I need a doctor this
+morning", which in Indian clinics is a token at the front desk. Patients
+can now take a token for a doctor today, see their place, and be told when
+they are called; the doctor's front desk calls tokens in order.
+
+- **Numbers without duplicates or gaps.** Each doctor's day has a row with
+  a counter. A join runs `UPDATE queue_days SET last_token = last_token + 1
+  ... RETURNING last_token`, which locks that one row for the increment:
+  ten patients joining at the same instant get #101 to #110 (a test does
+  exactly that on ten threads). The same statement refuses a closed day,
+  and a unique index on (doctor, day, number) is the backstop. If the
+  insert then fails because the patient already holds a place (a partial
+  unique index on active tokens), the transaction rolls back the increment
+  too, so no number is skipped.
+- **Calling next is safe with two people at the desk.** `SELECT ... FOR
+  UPDATE SKIP LOCKED` picks the lowest waiting token; a second press at the
+  same moment skips the locked row and calls the following patient rather
+  than calling the same one twice. The patient is notified through the
+  outbox, in the same transaction as the call.
+- **Place and wait are computed, not stored.** "2 ahead" is a count of
+  waiting tokens with lower numbers; the wait is that times the doctor's
+  visit length for the day (from their hours, 15 minutes if unset). Nothing
+  needs updating when someone ahead leaves.
+- **India time.** A clinic's day and its 7 am to 9 pm token hours are in
+  Asia/Kolkata; UTC midnight is 5:30 am there. Tests build the service with
+  a clock fixed at 10 am India time, so they do not depend on when CI runs.
+- **Polling, not push.** The token and desk pages refresh every 10 seconds,
+  as notifications already do. Server-sent events would be quicker to
+  update but need authentication on a long-lived connection and a proxy
+  that keeps it open; ten seconds is well inside how fast a clinic line
+  moves.
+
+The demo opens Dr. Menon's line each morning with one seen, one called and
+two waiting, so a visitor taking a token gets #105 with two ahead.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -1773,6 +1810,11 @@ unreviewed so a visitor can try it.
   a day cannot say so, and there is no way to mark leave or a holiday apart
   from removing that weekday. Doctors also cannot edit their fee or bio after
   signing up.
+- **The walk-in queue refreshes by polling, and has no receptionist role.**
+  Places update every 10 seconds rather than being pushed; the doctor's
+  account is the front desk, and there is no separate kiosk or receptionist
+  login. Arrivals for booked visits are listed beside the walk-ins, not
+  merged into one numbered line.
 - **ICD-10 is a curated subset.** About 130 common outpatient codes from
   ICD-10-CM (public domain), not the full classification; a condition
   outside it can still be written in words, just without a code. Loading

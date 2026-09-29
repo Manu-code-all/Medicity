@@ -29,6 +29,7 @@ public class Outbox {
     public static final String APPOINTMENT_BOOKED = "APPOINTMENT_BOOKED";
     public static final String APPOINTMENT_CANCELLED = "APPOINTMENT_CANCELLED";
     public static final String APPOINTMENT_RESCHEDULED = "APPOINTMENT_RESCHEDULED";
+    public static final String QUEUE_CALLED = "QUEUE_CALLED";
     public static final String PRESCRIPTION_ISSUED = "PRESCRIPTION_ISSUED";
     public static final String PRESCRIPTION_CORRECTED = "PRESCRIPTION_CORRECTED";
     public static final String STORE_REGISTERED = "STORE_REGISTERED";
