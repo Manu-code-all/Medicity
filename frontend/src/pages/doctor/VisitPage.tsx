@@ -98,6 +98,34 @@ export function VisitPage() {
             </p>
           )}
           {v.cancelReason && <p className="muted">Cancelled by patient: {v.cancelReason}</p>}
+          {v.intake && (
+            <div className="intake-card">
+              <p className="intake-card__title">Before the visit · from the patient's body guide answers</p>
+              <dl className="details">
+                <dt>Area</dt>
+                <dd>{v.intake.area}</dd>
+                {v.intake.symptoms.length > 0 && (
+                  <>
+                    <dt>Symptoms</dt>
+                    <dd>{v.intake.symptoms.join("; ")}</dd>
+                  </>
+                )}
+                {v.intake.since && (
+                  <>
+                    <dt>Since</dt>
+                    <dd>{v.intake.since}</dd>
+                  </>
+                )}
+                {v.intake.suggested && (
+                  <>
+                    <dt>Guide suggested</dt>
+                    <dd>{v.intake.suggested}</dd>
+                  </>
+                )}
+              </dl>
+              <p className="muted small">No warning signs were reported (those send patients to emergency care instead).</p>
+            </div>
+          )}
           {v.visitType === "VIDEO" && v.status === "BOOKED" && (
             <p>
               <Link className="button" to={`/visits/${v.id}/video`}>
@@ -258,3 +286,4 @@ export function VisitPage() {
     </div>
   );
 }
+

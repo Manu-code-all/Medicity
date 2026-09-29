@@ -5,7 +5,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { appointments, doctors, reviews } from "../api/endpoints";
 import type { Slot, VisitType } from "../api/types";
-import { readVisitNote, saveVisitNote } from "../lib/visitNote";
+import { readIntake, readVisitNote, saveIntake, saveVisitNote } from "../lib/visitNote";
 
 /**
  * Slot picker and booking flow.
@@ -27,6 +27,9 @@ export function BookingPage() {
   // What the visitor typed in the body guide, as a starting point.
   const [reason, setReason] = useState(readVisitNote);
   const [visitType, setVisitType] = useState<VisitType>("IN_PERSON");
+  // The body guide's answers, offered to the doctor; the patient decides.
+  const [intake] = useState(readIntake);
+  const [shareIntake, setShareIntake] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
 
   const window = useDateWindow();
@@ -59,8 +62,8 @@ export function BookingPage() {
   }
 
   const booking = useMutation({
-    mutationFn: ({ slotId, why, type }: { slotId: string; why: string; type: VisitType }) =>
-      appointments.book(slotId, why, keyFor(slotId, `${type}:${why}`), type),
+    mutationFn: ({ slotId, why, type, share }: { slotId: string; why: string; type: VisitType; share: boolean }) =>
+      appointments.book(slotId, why, keyFor(slotId, `${type}:${share}:${why}`), type, share ? intake : null),
     // Safe only because of the key: a network failure may have hidden a
     // booking that succeeded, and the retry then returns it instead of
     // booking twice. Errors the server answered are not retried.
@@ -69,6 +72,7 @@ export function BookingPage() {
     onSuccess: () => {
       attempt.current = null;
       saveVisitNote("");
+      saveIntake(null);
       setNotice("Appointment confirmed.");
       setSelectedSlot(null);
       setReason("");
@@ -200,7 +204,7 @@ export function BookingPage() {
           onSubmit={(e) => {
             e.preventDefault();
             setNotice(null);
-            booking.mutate({ slotId: selectedSlot.id, why: reason, type: visitType });
+            booking.mutate({ slotId: selectedSlot.id, why: reason, type: visitType, share: Boolean(intake && shareIntake) });
           }}
         >
           <fieldset className="visit-type">
@@ -219,6 +223,18 @@ export function BookingPage() {
               Video call
             </label>
           </fieldset>
+          {intake && (
+            <div className="intake-share">
+              <p className="intake-share__title">Your answers in the body guide</p>
+              <p className="muted small">
+                {[intake.area, ...intake.symptoms, intake.since].filter(Boolean).join(" · ")}
+              </p>
+              <label>
+                <input type="checkbox" checked={shareIntake} onChange={(e) => setShareIntake(e.target.checked)} /> Share
+                these answers with the doctor before the visit
+              </label>
+            </div>
+          )}
           <label htmlFor="reason">What brings you in?</label>
           <textarea
             id="reason"

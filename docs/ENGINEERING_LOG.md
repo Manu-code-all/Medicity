@@ -1861,6 +1861,35 @@ Tests: the Gemini request shape and reply parsing against a mock server,
 a rate limit and a non-reading both failing cleanly, and the chooser
 (skips readers without a key, falls back after a failure, reports off).
 
+## 45. The body guide's answers reach the doctor
+
+The body guide already passed the patient's own words into the booking
+reason. The structured part (which area, the symptoms ticked, since when,
+the kind of doctor it suggested) stopped at the patient's screen. Now it
+can travel with the booking, and the doctor sees it before the visit.
+
+- **The patient decides.** The booking form shows the answers with "Share
+  these answers with the doctor", ticked by default; unticked, nothing is
+  sent. They travel in session storage, like the words, because the route
+  from the guide to booking passes through sign-in, which drops router
+  state, and because symptoms do not belong in URLs.
+- **A snapshot, stored as JSON** (`appointments.intake_summary`, V27),
+  mapped to a validated record (`Intake`: an area, at most ten symptoms,
+  bounded lengths). It is shown as it was and never queried field by
+  field, so a column per field would add nothing. A move keeps it.
+- **No urgency field.** Answers with warning signs never reach booking:
+  the guide sends those patients to emergency care. The doctor's card says
+  so ("no warning signs were reported") rather than inventing a triage
+  level.
+- **Not copied into the prescription.** The spec suggested importing the
+  answers into the visit note; the only note on a prescription is the one
+  for the patient, so importing would hand the patient their own answers
+  back. A private clinical note is the right home, and does not exist yet.
+
+Tests: the intake reaches the doctor's visit view and survives a move;
+no intake when none is sent; an empty area is refused; the booking form
+sends it only while ticked and forgets it once booked.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

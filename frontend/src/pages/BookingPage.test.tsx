@@ -45,6 +45,37 @@ async function pickFirstSlotAndConfirm(user: ReturnType<typeof userEvent.setup>,
 const keyOf = (call: RecordedCall | undefined) => call?.headers["Idempotency-Key"];
 
 describe("BookingPage", () => {
+  it("offers the body guide's answers to the doctor, shared by default and only if the patient keeps it ticked", async () => {
+    const intake = { area: "Chest", symptoms: ["Heart racing or skipping beats"], since: "A few days", suggested: "Cardiology" };
+    sessionStorage.setItem("medicity.intake", JSON.stringify(intake));
+    const user = userEvent.setup();
+    const { posts } = renderPage(() => json(201, APPOINTMENT));
+
+    const [first] = await screen.findAllByRole("button", { pressed: false });
+    await user.click(first!);
+    expect(screen.getByText("Chest · Heart racing or skipping beats · A few days")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /Share these answers with the doctor/ })).toBeChecked();
+    await user.click(screen.getByRole("button", { name: /^Confirm/ }));
+
+    await waitFor(() => expect(posts()).toHaveLength(1));
+    expect(posts()[0]!.body).toMatchObject({ intake });
+    await waitFor(() => expect(sessionStorage.getItem("medicity.intake")).toBeNull());
+  });
+
+  it("unticked, the answers stay with the patient", async () => {
+    sessionStorage.setItem("medicity.intake", JSON.stringify({ area: "Chest", symptoms: [], since: null, suggested: null }));
+    const user = userEvent.setup();
+    const { posts } = renderPage(() => json(201, APPOINTMENT));
+
+    const [first] = await screen.findAllByRole("button", { pressed: false });
+    await user.click(first!);
+    await user.click(screen.getByRole("checkbox", { name: /Share these answers/ }));
+    await user.click(screen.getByRole("button", { name: /^Confirm/ }));
+
+    await waitFor(() => expect(posts()).toHaveLength(1));
+    expect(posts()[0]!.body).toMatchObject({ intake: null });
+  });
+
   it("can book a video call instead of a clinic visit", async () => {
     const user = userEvent.setup();
     const { posts } = renderPage(() => json(201, { ...APPOINTMENT, visitType: "VIDEO" }));

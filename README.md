@@ -522,7 +522,10 @@ subdirectory means `vercel.json` is never read.
     list works without the drawing. Visitors can also say it in their own
     words: the text is read against the same fixed lists (warning signs,
     everyday words like "tooth"), and if they book, it becomes the visit's
-    reason, carried in session storage rather than the URL.
+    reason, carried in session storage rather than the URL. The structured
+    answers (area, symptoms, since when, the guide's suggestion) are offered
+    at booking with "Share these answers with the doctor" (ticked by default),
+    and the doctor sees them as "Before the visit" on the visit page.
   - *Search*: a combobox suggesting specialities and doctors as you type,
     and turning everyday words ("knee", "skin", "tooth") into the right
     speciality; six speciality shortcuts beneath it.
