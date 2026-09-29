@@ -9,6 +9,7 @@ import { PhotoViewer } from "../../components/PhotoViewer";
 import { PhotoStart } from "./PhotoStart";
 import { PrescriptionForm, type StartingItem } from "./PrescriptionForm";
 import { FollowUpPanel } from "../../components/FollowUpPanel";
+import { AttachmentsPanel } from "../../components/AttachmentsPanel";
 
 type Mode = "view" | "prescribe" | "correct";
 
@@ -127,6 +128,9 @@ export function VisitPage() {
               <p className="muted small">No warning signs were reported (those send patients to emergency care instead).</p>
             </div>
           )}
+          <div className="visit-records">
+            <AttachmentsPanel appointmentId={v.id} canEdit={false} hideWhenEmpty />
+          </div>
           {v.visitType === "VIDEO" && v.status === "BOOKED" && (
             <p>
               <Link className="button" to={`/visits/${v.id}/video`}>

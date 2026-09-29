@@ -7,6 +7,7 @@ import { appointments, doctors, reviews } from "../api/endpoints";
 import type { Slot, VisitType } from "../api/types";
 import { readIntake, readVisitNote, saveIntake, saveVisitNote } from "../lib/visitNote";
 import { WaitlistPanel } from "./WaitlistPanel";
+import { AttachmentsPanel } from "../components/AttachmentsPanel";
 
 /**
  * Slot picker and booking flow.
@@ -248,6 +249,14 @@ export function BookingPage() {
             {booking.isPending ? "Booking…" : `Confirm ${formatSlot(selectedSlot.startsAt)}`}
           </button>
         </form>
+      )}
+
+      {booking.isSuccess && booking.data && (
+        <section className="card" aria-labelledby="attach-title">
+          <h2 id="attach-title">Have lab reports or earlier prescriptions?</h2>
+          <p className="muted small">Attach them now so the doctor can read them before your visit (optional).</p>
+          <AttachmentsPanel appointmentId={booking.data.id} canEdit />
+        </section>
       )}
 
       {!moving && <WaitlistPanel doctorId={doctorId} />}

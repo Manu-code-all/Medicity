@@ -746,3 +746,13 @@ export interface FollowUpThread {
   open: boolean;
   awaitingDoctor: boolean;
 }
+
+/** A report or earlier prescription attached to a visit. */
+export interface Attachment {
+  id: string;
+  fileName: string;
+  contentType: "application/pdf" | "image/jpeg" | "image/png" | "image/webp";
+  sizeBytes: number;
+  note: string | null;
+  uploadedAt: string;
+}

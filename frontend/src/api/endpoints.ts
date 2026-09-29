@@ -1,5 +1,6 @@
 import { request } from "./client";
 import type {
+  Attachment,
   DiagnosisCode,
   FollowUpThread,
   Insurer,
@@ -353,4 +354,18 @@ export const followUps = {
   thread: (appointmentId: string) => request<FollowUpThread>(`/api/v1/appointments/${appointmentId}/followups`),
   post: (appointmentId: string, body: string) =>
     request<FollowUpThread>(`/api/v1/appointments/${appointmentId}/followups`, { method: "POST", body: { body } }),
+};
+
+/** Records a patient attaches to a visit for the doctor. */
+export const attachments = {
+  path: (appointmentId: string, attachmentId: string) => `/api/v1/appointments/${appointmentId}/attachments/${attachmentId}`,
+  list: (appointmentId: string) => request<Attachment[]>(`/api/v1/appointments/${appointmentId}/attachments`),
+  upload: (appointmentId: string, file: File, note: string) => {
+    const form = new FormData();
+    form.append("file", file);
+    if (note.trim()) form.append("note", note.trim());
+    return request<Attachment>(`/api/v1/appointments/${appointmentId}/attachments`, { method: "POST", body: form });
+  },
+  remove: (appointmentId: string, attachmentId: string) =>
+    request<void>(`/api/v1/appointments/${appointmentId}/attachments/${attachmentId}`, { method: "DELETE" }),
 };

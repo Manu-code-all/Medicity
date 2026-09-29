@@ -58,6 +58,32 @@ describe("VisitsPage", () => {
     expect(screen.getByRole("link", { name: "Join video" })).toHaveAttribute("href", "/visits/a1/video");
   });
 
+  it("attaches a report to an upcoming visit", async () => {
+    let attached = false;
+    const calls = mockFetch(({ url, method }) => {
+      if (url.endsWith("/attachments") && method === "POST") {
+        attached = true;
+        return json(201, {});
+      }
+      if (url.endsWith("/attachments")) {
+        return json(200, attached
+          ? [{ id: "x1", fileName: "report.pdf", contentType: "application/pdf", sizeBytes: 2048, note: null, uploadedAt: "2030-01-01T00:00:00Z" }]
+          : []);
+      }
+      if (url.includes("/prescriptions")) return json(200, []);
+      return json(200, page(url.includes("scope=upcoming") ? [UPCOMING] : []));
+    });
+    renderPage(<VisitsPage />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /Attach medical records/ }));
+    const file = new File(["%PDF-1.4"], "report.pdf", { type: "application/pdf" });
+    await userEvent.upload(screen.getByLabelText(/Add a report or earlier prescription/), file);
+
+    expect(await screen.findByRole("list", { name: "Attached records" })).toHaveTextContent("report.pdf");
+    const post = calls.find((c) => c.method === "POST");
+    expect(post?.url).toBe("/api/v1/appointments/a1/attachments");
+  });
+
   it("a visit that ended in the last 7 days offers free follow-up questions", async () => {
     const ended = new Date(Date.now() - 2 * 86_400_000).toISOString();
     const calls = mockFetch(({ url, method }) => {
