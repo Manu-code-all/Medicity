@@ -29,8 +29,9 @@ public class DiagnosisCodes {
     /**
      * Codes matching what the doctor typed. Every word must appear in the
      * code, the title or the everyday keywords ("gerd", "bp", "sugar").
-     * A code typed as a code ranks first, then titles that start with the
-     * text, then the rest alphabetically by code.
+     * A code typed as a code ranks first, then a whole-word match ("bp"
+     * is a keyword of hypertension, and only a fragment of "bppv"), then
+     * titles that start with the text, then the rest alphabetically by code.
      */
     public List<Code> search(String query) {
         String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
@@ -42,7 +43,7 @@ public class DiagnosisCodes {
         for (int i = 0; i < words.size(); i++) {
             where.append(" AND (lower(code) LIKE ? OR lower(title) LIKE ? OR keywords LIKE ?)");
         }
-        Object[] args = new Object[words.size() * 3 + 3];
+        Object[] args = new Object[words.size() * 3 + 4];
         int i = 0;
         for (String w : words) {
             args[i++] = w;
@@ -50,12 +51,16 @@ public class DiagnosisCodes {
             args[i++] = w;
         }
         args[i++] = likePrefix(q);
+        args[i++] = "% " + escape(q) + " %";
         args[i++] = likePrefix(q);
         args[i] = LIMIT;
         return jdbc.query("""
                 SELECT code, title FROM icd10_codes
                 WHERE %s
-                ORDER BY (lower(code) LIKE ?) DESC, (lower(title) LIKE ?) DESC, code
+                ORDER BY (lower(code) LIKE ?) DESC,
+                         (' ' || regexp_replace(lower(title), '[^a-z0-9]+', ' ', 'g') || ' ' || keywords || ' ' LIKE ?) DESC,
+                         (lower(title) LIKE ?) DESC,
+                         code
                 LIMIT ?
                 """.formatted(where), (rs, n) -> new Code(rs.getString("code"), rs.getString("title")), args);
     }

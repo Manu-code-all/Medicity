@@ -228,6 +228,9 @@ class DoctorWorkspaceTest extends AbstractIntegrationTest {
         mvc.perform(get("/api/v1/diagnoses").param("q", "i10").header("Authorization", bearer(raoUser)))
                 .andExpect(jsonPath("$[0].code").value("I10"))
                 .andExpect(jsonPath("$[0].title").value("Essential (primary) hypertension"));
+        // A whole word beats a fragment: "bp" is hypertension, not "bppv".
+        mvc.perform(get("/api/v1/diagnoses").param("q", "bp").header("Authorization", bearer(raoUser)))
+                .andExpect(jsonPath("$[0].code").value("I10"));
         mvc.perform(get("/api/v1/diagnoses").param("q", "back pain").header("Authorization", bearer(raoUser)))
                 .andExpect(jsonPath("$[?(@.code == 'M54.50')]").exists());
         // Every word must match: "knee left" finds the left knee only.
