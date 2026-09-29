@@ -57,7 +57,20 @@ class GeminiPrescriptionReaderTest {
         server.expect(requestTo("https://gemini.test/v1beta/models/gemini-2.5-flash:generateContent"))
                 .andRespond(withStatus(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS));
         assertThatThrownBy(() -> reader.read(new byte[]{1}, "image/png"))
-                .isInstanceOf(PrescriptionReader.ReadingFailed.class);
+                .isInstanceOf(PrescriptionReader.ReadingFailed.class)
+                .hasMessageContaining("rate-limiting");
+
+        server.reset();
+        server.expect(requestTo("https://gemini.test/v1beta/models/gemini-2.5-flash:generateContent"))
+                .andRespond(withStatus(org.springframework.http.HttpStatus.NOT_FOUND));
+        assertThatThrownBy(() -> reader.read(new byte[]{1}, "image/png"))
+                .hasMessageContaining("no model called gemini-2.5-flash");
+
+        server.reset();
+        server.expect(requestTo("https://gemini.test/v1beta/models/gemini-2.5-flash:generateContent"))
+                .andRespond(withStatus(org.springframework.http.HttpStatus.FORBIDDEN));
+        assertThatThrownBy(() -> reader.read(new byte[]{1}, "image/png"))
+                .hasMessageContaining("refused the API key");
 
         server.reset();
         server.expect(requestTo("https://gemini.test/v1beta/models/gemini-2.5-flash:generateContent"))

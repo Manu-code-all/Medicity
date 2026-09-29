@@ -6,6 +6,9 @@ import com.medicity.scan.PrescriptionReader.ReadLine;
 import com.medicity.scan.PrescriptionReader.Reading;
 import com.medicity.scan.PrescriptionReader.ReadingFailed;
 
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,6 +40,26 @@ final class ReadingParser {
             """;
 
     private ReadingParser() {
+    }
+
+    /**
+     * Why a call to the model failed, in words an operator can act on. The
+     * provider's own error text is logged by the caller, never shown: it can
+     * echo request details.
+     */
+    static ReadingFailed callFailed(RestClientException e, String provider, String model) {
+        if (e instanceof RestClientResponseException r) {
+            int status = r.getStatusCode().value();
+            String why = switch (status) {
+                case 400 -> provider + " refused the request (" + status + "); check the model name " + model;
+                case 401, 403 -> provider + " refused the API key (" + status + ")";
+                case 404 -> provider + " has no model called " + model + " (404)";
+                case 429 -> provider + " is rate-limiting this key (429); try again in a minute";
+                default -> provider + " answered with an error (" + status + ")";
+            };
+            return new ReadingFailed("The handwriting reader failed: " + why, e);
+        }
+        return new ReadingFailed("The handwriting reader could not be reached", e);
     }
 
     /** The model's answer as a reading; anything else is a failed read, never a partial draft. */
