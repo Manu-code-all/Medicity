@@ -631,3 +631,20 @@ WHERE u.email LIKE '%@medicity.demo'
   AND u.login_phone IS NULL
   AND u.phone ~ '^\+91[6-9][0-9]{9}$'
   AND NOT EXISTS (SELECT 1 FROM users o WHERE o.login_phone = u.phone);
+
+
+-- ---------------------------------------------------------------------
+-- Reviews, each from a completed visit (V24). Meera's first two completed
+-- visits are left unreviewed, so a visitor can try "Rate this visit".
+-- ---------------------------------------------------------------------
+INSERT INTO doctor_reviews (appointment_id, doctor_id, patient_id, rating, comment, created_at)
+SELECT a.id, s.doctor_id, a.patient_id, v.rating, v.comment, a.scheduled_at + INTERVAL '1 day'
+FROM (VALUES
+  ('eeeeeeee-5555-4555-8555-eeeeeeeeee05', 5, 'Explained the ECG properly and did not rush me.'),
+  ('eeeeeeee-5555-4555-8555-eeeeeeeeee11', 4, 'Patient with my mother. The wait was about twenty minutes.'),
+  ('eeeeeeee-5555-4555-8555-eeeeeeeeee09', 5, 'Clear about when to come back if the fever did not settle.'),
+  ('eeeeeeee-5555-4555-8555-eeeeeeeeee10', 4, NULL)
+) AS v (appointment_id, rating, comment)
+JOIN appointments a ON a.id = v.appointment_id::uuid AND a.status = 'COMPLETED'
+JOIN appointment_slots s ON s.id = a.slot_id
+ON CONFLICT DO NOTHING;

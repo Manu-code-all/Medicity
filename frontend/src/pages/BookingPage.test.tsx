@@ -45,6 +45,30 @@ async function pickFirstSlotAndConfirm(user: ReturnType<typeof userEvent.setup>,
 const keyOf = (call: RecordedCall | undefined) => call?.headers["Idempotency-Key"];
 
 describe("BookingPage", () => {
+  it("shows what patients said, with stars and a first name only", async () => {
+    mockFetch((call) => {
+      if (call.url.includes("/slots")) return json(200, SLOTS);
+      if (call.url.endsWith("/reviews")) {
+        return json(200, [{ rating: 4, comment: "Kind and clear", reviewer: "Meera N.", createdAt: "2030-01-01T00:00:00Z" }]);
+      }
+      return json(404, {});
+    });
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={["/doctors/d1/book"]}>
+          <Routes>
+            <Route path="/doctors/:doctorId/book" element={<BookingPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole("heading", { name: "What patients said" })).toBeInTheDocument();
+    expect(screen.getByLabelText("4 out of 5")).toBeInTheDocument();
+    expect(screen.getByText("Kind and clear")).toBeInTheDocument();
+    expect(screen.getByText("Meera N.")).toBeInTheDocument();
+  });
+
   it("moving a visit: no reason box, one confirm, and the move endpoint", async () => {
     const user = userEvent.setup();
     const calls = mockFetch((call) => {

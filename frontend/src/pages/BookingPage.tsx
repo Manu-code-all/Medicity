@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ApiError } from "../api/client";
-import { appointments, doctors } from "../api/endpoints";
+import { appointments, doctors, reviews } from "../api/endpoints";
 import type { Slot } from "../api/types";
 import { readVisitNote, saveVisitNote } from "../lib/visitNote";
 
@@ -29,6 +29,7 @@ export function BookingPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const window = useDateWindow();
+  const doctorReviews = useQuery({ queryKey: ["reviews", doctorId], queryFn: () => reviews.forDoctor(doctorId) });
   // A time tapped on the directory card arrives as ?slot= and starts selected.
   const [params] = useSearchParams();
   const wanted = params.get("slot");
@@ -212,6 +213,25 @@ export function BookingPage() {
             {booking.isPending ? "Booking…" : `Confirm ${formatSlot(selectedSlot.startsAt)}`}
           </button>
         </form>
+      )}
+
+      {doctorReviews.data && doctorReviews.data.length > 0 && (
+        <section id="reviews" className="reviews" aria-labelledby="reviews-title">
+          <h2 id="reviews-title">What patients said</h2>
+          <p className="muted small">Only patients who were seen can leave a review.</p>
+          <ul>
+            {doctorReviews.data.map((r, i) => (
+              <li key={i} className="review">
+                <span className="review__stars" aria-label={`${r.rating} out of 5`}>
+                  {"★".repeat(r.rating)}
+                  <span className="review__stars-off">{"★".repeat(5 - r.rating)}</span>
+                </span>
+                {r.comment && <p>{r.comment}</p>}
+                <p className="muted small">{r.reviewer}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </section>
   );

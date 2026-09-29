@@ -52,6 +52,16 @@ describe("DoctorsPage", () => {
     expect(within(times).getByRole("link", { name: "More times" })).toHaveAttribute("href", "/doctors/d4/book");
   });
 
+  it("shows the rating from visits, linked to the reviews", async () => {
+    mockFetch(({ url }) =>
+      json(200, url.endsWith("/specialties") ? [] : { ...MENON, content: [{ ...MENON.content[0], rating: 4.5, reviewCount: 2 }] }),
+    );
+    renderAt("/doctors");
+
+    expect(await screen.findByText("4.5", { exact: false })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "2 reviews from visits" })).toHaveAttribute("href", "/doctors/d4/book#reviews");
+  });
+
   it("says so when a doctor has no free times soon", async () => {
     mockFetch(({ url }) => json(200, url.endsWith("/specialties") ? [] : MENON));
     renderAt("/doctors");

@@ -47,6 +47,46 @@ describe("VisitsPage", () => {
     });
   });
 
+  it("a completed visit can be rated from history, once", async () => {
+    let reviewed = false;
+    const calls = mockFetch(({ url, method }) => {
+      if (method === "POST") {
+        reviewed = true;
+        return new Response(null, { status: 204 });
+      }
+      if (url.includes("/prescriptions")) return json(200, []);
+      return json(200, page(url.includes("scope=past") ? [{ ...PAST, reviewed }] : []));
+    });
+    renderPage(<VisitsPage />);
+    await screen.findByText("Nothing booked");
+    await userEvent.click(screen.getByRole("tab", { name: "History" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: "Rate this visit" }));
+    const send = screen.getByRole("button", { name: "Send review" });
+    expect(send).toBeDisabled();
+    await userEvent.click(screen.getByRole("radio", { name: /4 stars/ }));
+    await userEvent.type(screen.getByLabelText("A few words (optional)"), "Kind and clear");
+    await userEvent.click(send);
+
+    expect(await screen.findByText("You reviewed this visit. Thank you.")).toBeInTheDocument();
+    const post = calls.find((c) => c.method === "POST");
+    expect(post?.url).toBe("/api/v1/appointments/a0/review");
+    expect(post?.body).toEqual({ rating: 4, comment: "Kind and clear" });
+  });
+
+  it("an already reviewed visit offers no rating", async () => {
+    mockFetch(({ url }) => {
+      if (url.includes("/prescriptions")) return json(200, []);
+      return json(200, page(url.includes("scope=past") ? [{ ...PAST, reviewed: true }] : []));
+    });
+    renderPage(<VisitsPage />);
+    await screen.findByText("Nothing booked");
+    await userEvent.click(screen.getByRole("tab", { name: "History" }));
+
+    expect(await screen.findByText("You reviewed this visit. Thank you.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Rate this visit" })).not.toBeInTheDocument();
+  });
+
   it("history offers no cancel button, and a visit with a prescription links to it", async () => {
     mockFetch(({ url }) => {
       if (url.includes("/prescriptions")) return json(200, [{ id: "rx9", appointmentId: "a0" }]);
