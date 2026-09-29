@@ -124,9 +124,41 @@ export function DoctorsPage() {
                 Book
               </Link>
             </div>
+            {doctor.nextSlots.length > 0 ? (
+              <ul className="next-slots" aria-label={`Next free times with ${doctor.fullName}`}>
+                {doctor.nextSlots.map((slot) => (
+                  <li key={slot.id}>
+                    <Link className="slot-pill" to={`/doctors/${doctor.id}/book?slot=${slot.id}`}>
+                      {slotLabel(slot.startsAt)}
+                    </Link>
+                  </li>
+                ))}
+                <li>
+                  <Link className="slot-pill slot-pill--more" to={`/doctors/${doctor.id}/book`}>
+                    More times
+                  </Link>
+                </li>
+              </ul>
+            ) : (
+              <p className="muted small next-slots__none">No free times in the next two weeks.</p>
+            )}
           </li>
         ))}
       </ul>
     </section>
   );
+}
+
+/** "Today, 4:30 pm", "Tomorrow, 10:00 am", "Thu 1 Oct, 10:00 am": short enough for a pill. */
+export function slotLabel(iso: string, now = new Date()): string {
+  const at = new Date(iso);
+  const time = at.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const days = Math.round((startOfDay(at) - startOfDay(now)) / 86_400_000);
+  if (days === 0) return `Today, ${time}`;
+  if (days === 1) return `Tomorrow, ${time}`;
+  return `${at.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}, ${time}`;
+}
+
+function startOfDay(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }

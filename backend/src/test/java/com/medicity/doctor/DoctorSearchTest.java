@@ -1,6 +1,10 @@
 package com.medicity.doctor;
 
+import com.medicity.patient.Patient;
 import com.medicity.patient.PatientRepository;
+import com.medicity.scheduling.Appointment;
+import com.medicity.scheduling.AppointmentSlot;
+import com.medicity.scheduling.AppointmentStatus;
 import com.medicity.scheduling.AppointmentRepository;
 import com.medicity.scheduling.SlotRepository;
 import com.medicity.support.AbstractIntegrationTest;
@@ -15,8 +19,12 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -156,6 +164,41 @@ class DoctorSearchTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$[0].doctors").value(1));
         mvc.perform(get("/api/v1/doctors/suggest").param("q", "khan"))
                 .andExpect(jsonPath("$.doctors", hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("each card carries its doctor's next three bookable times: not too soon, not taken")
+    void cardsCarryNextSlots() throws Exception {
+        Doctor rao = doctorRepository.findAll().stream()
+                .filter(d -> d.getSpecialization().equals("Cardiology") && d.getUser().getFullName().contains("Rao"))
+                .findFirst().orElseThrow();
+        Instant hour = Instant.now().truncatedTo(ChronoUnit.HOURS).plus(1, ChronoUnit.DAYS);
+        slot(rao, Instant.now().plus(10, ChronoUnit.MINUTES));  // inside the 30-minute notice: not offered
+        AppointmentSlot taken = slot(rao, hour);
+        User someone = User.builder().passwordHash("{noop}x").fullName("Meera Nair").role(Role.PATIENT).enabled(true).build();
+        someone.setEmail("meera@medicity.test");
+        Patient meera = patientRepository.save(Patient.builder().user(userRepository.save(someone))
+                .dateOfBirth(LocalDate.of(1993, 4, 1)).gender(Patient.Gender.FEMALE).build());
+        appointmentRepository.save(Appointment.builder().slot(taken).patient(meera)
+                .status(AppointmentStatus.BOOKED).scheduledAt(hour).build());
+        for (int h = 1; h <= 4; h++) {
+            slot(rao, hour.plus(h, ChronoUnit.HOURS));
+        }
+
+        mvc.perform(get("/api/v1/doctors").param("q", "Rao"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].nextSlots", hasSize(3)))
+                .andExpect(jsonPath("$.content[0].nextSlots[*].startsAt", contains(
+                        hour.plus(1, ChronoUnit.HOURS).toString(),
+                        hour.plus(2, ChronoUnit.HOURS).toString(),
+                        hour.plus(3, ChronoUnit.HOURS).toString())));
+        mvc.perform(get("/api/v1/doctors").param("q", "Iyer"))
+                .andExpect(jsonPath("$.content[0].nextSlots", hasSize(0)));
+    }
+
+    private AppointmentSlot slot(Doctor doctor, Instant start) {
+        return slotRepository.save(AppointmentSlot.builder()
+                .doctor(doctor).startsAt(start).endsAt(start.plus(30, ChronoUnit.MINUTES)).build());
     }
 
     @Test

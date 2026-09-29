@@ -78,7 +78,7 @@ public class BookingService {
     private static final String UQ_PATIENT_ACTIVE_AT_TIME      = "uq_patient_active_at_time";
 
     /** Bookings must be made at least this far ahead, to allow for travel. */
-    private static final Duration MIN_LEAD_TIME = Duration.ofMinutes(30);
+    public static final Duration MIN_LEAD_TIME = Duration.ofMinutes(30);
 
     /** Free cancellation window; later cancellations still succeed but are flagged. */
     private static final Duration FREE_CANCELLATION_WINDOW = Duration.ofHours(4);

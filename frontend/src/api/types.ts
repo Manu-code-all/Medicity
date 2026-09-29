@@ -28,6 +28,8 @@ export interface Doctor {
   consultationFee: number;
   yearsExperience: number;
   bio: string | null;
+  /** The next few open times, soonest first (empty in search-box suggestions). */
+  nextSlots: Slot[];
 }
 
 export interface Specialty {

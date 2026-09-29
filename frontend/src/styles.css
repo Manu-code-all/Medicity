@@ -163,6 +163,21 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .doctor h2 { margin: 0 0 2px; font-size: 1.05rem; }
 .doctor__action, .appointment__action { display: flex; align-items: center; gap: 12px; }
 .fee { font-weight: 700; margin: 0; }
+.next-slots { flex-basis: 100%; list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.slot-pill {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.slot-pill:hover { background: var(--accent); color: var(--accent-contrast); }
+.slot-pill--more { border-color: var(--border); color: inherit; font-weight: 500; }
+.next-slots__none { flex-basis: 100%; margin: 0; }
 
 .doctor-list, .appointment-list, .slot-grid { list-style: none; padding: 0; margin: 0; }
 

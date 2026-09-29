@@ -1,6 +1,7 @@
 package com.medicity.doctor;
 
 import com.medicity.scheduling.AppointmentSlot;
+import com.medicity.scheduling.BookingService;
 import com.medicity.scheduling.SlotRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -15,8 +16,12 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Public directory and availability lookup.
@@ -36,6 +41,10 @@ public class DoctorController {
 
     /** Widest window the availability endpoint will serve in one request. */
     private static final Duration MAX_WINDOW = Duration.ofDays(60);
+
+    /** How many next times each directory card offers, and how far ahead it looks for them. */
+    private static final int NEXT_SLOTS = 3;
+    private static final Duration NEXT_SLOTS_WINDOW = Duration.ofDays(14);
 
     private final DoctorRepository doctorRepository;
     private final SlotRepository slotRepository;
@@ -62,7 +71,7 @@ public class DoctorController {
         return new Suggestions(
                 doctorRepository.specialties(q).stream().map(SpecialtyResponse::from).toList(),
                 doctorRepository.search(null, q, PageRequest.of(0, 5, Sort.by("specialization")))
-                        .map(DoctorResponse::from).getContent());
+                        .map(d -> DoctorResponse.from(d, List.of())).getContent());
     }
 
     @GetMapping
@@ -81,8 +90,26 @@ public class DoctorController {
                 Math.min(Math.max(size, 1), 50),
                 Sort.by("specialization"));
 
-        return doctorRepository.search(blankToNull(specialization), blankToNull(nameQuery), pageable)
-                .map(DoctorResponse::from);
+        Page<Doctor> doctors = doctorRepository.search(blankToNull(specialization), blankToNull(nameQuery), pageable);
+        Map<UUID, List<SlotResponse>> next = nextSlots(doctors.map(Doctor::getId).getContent());
+        return doctors.map(d -> DoctorResponse.from(d, next.getOrDefault(d.getId(), List.of())));
+    }
+
+    /**
+     * Each card's next few bookable times. Starts after the booking service's
+     * minimum notice, so every time offered can actually be booked; like the
+     * slot list, it is a snapshot and the booking itself is the authority.
+     */
+    private Map<UUID, List<SlotResponse>> nextSlots(List<UUID> doctorIds) {
+        if (doctorIds.isEmpty()) {
+            return Map.of();
+        }
+        Instant from = Instant.now().plus(BookingService.MIN_LEAD_TIME);
+        List<UUID> ids = slotRepository.findNextAvailableIds(doctorIds, from, from.plus(NEXT_SLOTS_WINDOW), NEXT_SLOTS);
+        return slotRepository.findAllById(ids).stream()
+                .sorted(Comparator.comparing(AppointmentSlot::getStartsAt))
+                .collect(Collectors.groupingBy(s -> s.getDoctor().getId(), LinkedHashMap::new,
+                        Collectors.mapping(SlotResponse::from, Collectors.toList())));
     }
 
     /**
@@ -120,16 +147,19 @@ public class DoctorController {
             String specialization,
             BigDecimal consultationFee,
             int yearsExperience,
-            String bio
+            String bio,
+            /** The next few open times, soonest first; empty in suggestions. */
+            List<SlotResponse> nextSlots
     ) {
-        static DoctorResponse from(Doctor d) {
+        static DoctorResponse from(Doctor d, List<SlotResponse> nextSlots) {
             return new DoctorResponse(
                     d.getId(),
                     d.getUser().getFullName(),
                     d.getSpecialization(),
                     d.getConsultationFee(),
                     d.getYearsExperience(),
-                    d.getBio());
+                    d.getBio(),
+                    nextSlots);
         }
     }
 
