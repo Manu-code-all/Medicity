@@ -905,7 +905,27 @@
 .bm-sheet h3, .bm-result h3 { font-size: 20px; line-height: 28px; display: flex; align-items: center; gap: 8px; }
 .bm-choices { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .bm-choices legend { padding: 0; margin-bottom: 8px; font-size: 14px; line-height: 20px; font-weight: 600; }
+.bm-describe { display: grid; gap: 8px; }
+.bm-describe label { font-size: 14px; line-height: 20px; font-weight: 600; }
+.bm-describe textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--lm-rule);
+  background: var(--lm-surface);
+  color: var(--lm-ink);
+  font: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  transition: border-color 700ms var(--lm-ease), box-shadow 700ms var(--lm-ease);
+}
+.bm-describe textarea::placeholder { color: var(--lm-ink-2); }
+.bm-describe textarea:hover { border-color: var(--lm-ink-2); }
+.bm-describe textarea:focus { outline: none; border-color: var(--lm-patient); box-shadow: 0 0 0 4px color-mix(in srgb, var(--lm-patient) 24%, transparent); }
+.bm-describe p { margin: 0; font-size: 12px; line-height: 16px; color: var(--lm-ink-2); }
 .bm-result p { margin: 0; }
+.bm-result p a { color: inherit; font-weight: 600; }
 .bm-result__lead { font-size: 14px; line-height: 20px; color: var(--lm-ink-2); }
 .bm-result__alt, .bm-result__note { font-size: 14px; line-height: 20px; color: var(--lm-ink-2); }
 .bm-result__alt a { color: var(--lm-patient-text); font-weight: 600; }

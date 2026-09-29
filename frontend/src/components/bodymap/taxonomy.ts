@@ -245,26 +245,80 @@ export type DurationId = (typeof DURATIONS)[number]["id"];
 
 export interface Recommendation {
   emergency: boolean;
+  /** The visitor wrote about harming themselves: the emergency answer adds the mental health helpline. */
+  crisis: boolean;
   specialty: string;
   alternative: string;
   rationale: string;
 }
 
 /**
- * What to do, from the area and the symptoms ticked. Any warning sign wins
- * outright. Otherwise the first ticked symptom that names a speciality
- * decides, and the area's default applies when none does.
+ * Warning signs as people write them. Deliberately broad and blind to
+ * negation ("no crushing pain" still matches): a false alarm costs a call,
+ * a missed one costs far more. The same rule as the ticked warning signs.
  */
-export function recommend(regionId: string, symptomIds: string[]): Recommendation {
+const EMERGENCY_WORDS: RegExp[] = [
+  /\b(can'?t|cannot|can not|unable to|not able to|struggling to) breathe?\b/,
+  /\b(unconscious|fainted|passed out|not waking up|collapsed)\b/,
+  /\b(seizures?|convulsions?|fitting)\b/,
+  /\bslurred\b|\b(face|mouth)\b.{0,12}\bdroop|\bdroop\w* (face|mouth)\b/,
+  /\bparaly[sz]ed\b|\bcan'?t move (my|one) (arm|leg|side)\b/,
+  /\b(vomit\w*|cough\w*) (up )?blood\b|\bblood\b.{0,12}\b(vomit|cough)/,
+  /\bcrushing\b|\bspread\w* to (my |the )?(left )?(arm|jaw)\b/,
+  /\bworst headache\b|\bbleeding (heavily|a lot)\b|\bwon'?t stop bleeding\b/,
+];
+
+const CRISIS_WORDS = /\b(suicid\w*|kill myself|end my life|want to die|harm myself|hurt myself)\b/;
+
+export interface DescriptionReading {
+  emergency: boolean;
+  crisis: boolean;
+  /** The everyday word that named a speciality ("tooth"), if the text has one. */
+  word?: string;
+  specialty?: string;
+}
+
+/**
+ * Reads what the visitor typed in their own words, with fixed tables like
+ * everything else here: warning signs first, then the earliest everyday
+ * word that names a speciality. Nothing is sent anywhere.
+ */
+export function readDescription(text: string): DescriptionReading {
+  const t = text.toLowerCase().replace(/’/g, "'");
+  const crisis = CRISIS_WORDS.test(t);
+  const emergency = crisis || EMERGENCY_WORDS.some((re) => re.test(t));
+  let first: { at: number; word: string } | undefined;
+  for (const word of Object.keys(EVERYDAY)) {
+    const at = t.search(new RegExp(`\\b${word}(s|es)?\\b`));
+    if (at >= 0 && (!first || at < first.at)) first = { at, word };
+  }
+  const specialty = first && EVERYDAY[first.word];
+  return first && specialty ? { emergency, crisis, word: first.word, specialty } : { emergency, crisis };
+}
+
+/**
+ * What to do, from the area, the symptoms ticked and anything typed. Any
+ * warning sign, ticked or typed, wins outright. Otherwise the first ticked
+ * symptom that names a speciality decides. Ticks are about the area tapped,
+ * so an everyday word in the description decides only when nothing is
+ * ticked; the area's default applies when neither does.
+ */
+export function recommend(regionId: string, symptomIds: string[], description = ""): Recommendation {
   const region = BODY_TAXONOMY[regionId];
   if (!region) throw new Error(`Unknown body region ${regionId}`);
   const chosen = region.subSymptoms.filter((s) => symptomIds.includes(s.id));
-  const emergency = chosen.some((s) => s.isRedFlag);
-  const specific = chosen.find((s) => s.specialty)?.specialty;
-  const specialty = specific ?? region.routing.primarySpecialty;
+  const typed = readDescription(description);
+  const emergency = typed.emergency || chosen.some((s) => s.isRedFlag);
+  const ticked = chosen.find((s) => s.specialty)?.specialty;
+  const worded = chosen.length === 0 ? typed.specialty : undefined;
+  const specialty = ticked ?? worded ?? region.routing.primarySpecialty;
   const alternative =
     specialty === region.routing.primarySpecialty ? region.routing.secondarySpecialty : region.routing.primarySpecialty;
-  return { emergency, specialty, alternative, rationale: region.routing.rationale };
+  const rationale =
+    worded && worded !== region.routing.primarySpecialty
+      ? `You mentioned “${typed.word}”, which ${specialistPhrase(worded)} looks after.`
+      : region.routing.rationale;
+  return { emergency, crisis: typed.crisis, specialty, alternative, rationale };
 }
 
 /** "a gastroenterologist", "an ENT specialist" */

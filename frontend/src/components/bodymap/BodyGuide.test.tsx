@@ -51,6 +51,33 @@ describe("BodyGuide", () => {
     expect(screen.queryByRole("link", { name: /Find .* doctors/ })).not.toBeInTheDocument();
   });
 
+  it("words alone are enough: typing a toothache on the head sends the visitor to a dentist, and keeps the words for booking", async () => {
+    renderGuide();
+
+    await userEvent.click(screen.getByRole("button", { name: "Head and face" }));
+    const next = screen.getByRole("button", { name: "See who to consult" });
+    expect(next).toBeDisabled();
+    await userEvent.type(screen.getByLabelText("Or say it in your own words"), "My back tooth hurts when I chew");
+    expect(next).toBeEnabled();
+    await userEvent.click(next);
+
+    expect(screen.getByRole("heading", { name: "See a dentist" })).toBeInTheDocument();
+    expect(screen.getByText("You mentioned \u201ctooth\u201d, which a dentist looks after.")).toBeInTheDocument();
+    expect(sessionStorage.getItem("medicity.visitNote")).toBe("My back tooth hurts when I chew");
+  });
+
+  it("a warning sign typed in words gives the emergency answer, with the helpline when someone writes about ending their life", async () => {
+    renderGuide();
+
+    await userEvent.click(screen.getByRole("button", { name: "Chest" }));
+    await userEvent.type(screen.getByLabelText("Or say it in your own words"), "I feel like I want to end my life");
+    await userEvent.click(screen.getByRole("button", { name: "See who to consult" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Get emergency care now");
+    expect(screen.getByRole("link", { name: "14416" })).toHaveAttribute("href", "tel:14416");
+    expect(sessionStorage.getItem("medicity.visitNote")).toBeNull();
+  });
+
   it("the back view has the spine and kidneys, and the list works without the drawing", async () => {
     renderGuide();
 

@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { appointments, doctors } from "../api/endpoints";
 import type { Slot } from "../api/types";
+import { readVisitNote, saveVisitNote } from "../lib/visitNote";
 
 /**
  * Slot picker and booking flow.
@@ -23,7 +24,8 @@ export function BookingPage() {
   const queryClient = useQueryClient();
 
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
-  const [reason, setReason] = useState("");
+  // What the visitor typed in the body guide, as a starting point.
+  const [reason, setReason] = useState(readVisitNote);
   const [notice, setNotice] = useState<string | null>(null);
 
   const window = useDateWindow();
@@ -57,6 +59,7 @@ export function BookingPage() {
 
     onSuccess: () => {
       attempt.current = null;
+      saveVisitNote("");
       setNotice("Appointment confirmed.");
       setSelectedSlot(null);
       setReason("");

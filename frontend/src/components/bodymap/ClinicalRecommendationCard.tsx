@@ -28,6 +28,12 @@ export function ClinicalRecommendationCard({
           These symptoms may need urgent evaluation. Go to the nearest hospital emergency department, or call for
           help now. Do not wait for an appointment.
         </p>
+        {recommendation.crisis && (
+          <p>
+            If you are thinking about ending your life or harming yourself, you can also talk to someone now at
+            Tele MANAS, free and at any hour: <a href="tel:14416">14416</a>.
+          </p>
+        )}
         <div className="bm-result__calls">
           <a className="lm-button" href="tel:112">
             <Phone size={20} weight="bold" aria-hidden="true" /> Call 112

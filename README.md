@@ -505,7 +505,10 @@ subdirectory means `vercel.json` is never read.
     headache, a drooping face…) switch the answer to emergency care with
     112 and 108. The mapping is a static table, so the same taps always give
     the same answer, instantly; it is a guide, not a diagnosis, and a plain
-    list works without the drawing.
+    list works without the drawing. Visitors can also say it in their own
+    words: the text is read against the same fixed lists (warning signs,
+    everyday words like "tooth"), and if they book, it becomes the visit's
+    reason, carried in session storage rather than the URL.
   - *Search*: a combobox suggesting specialities and doctors as you type,
     and turning everyday words ("knee", "skin", "tooth") into the right
     speciality; six speciality shortcuts beneath it.

@@ -1613,6 +1613,40 @@ Tests: a round trip through the real guard and sign-in page, from a
 filtered link to the filtered list, and the navigation's contents. Frontend
 tests: 85 to 88.
 
+## 37. The body guide takes the visitor's own words
+
+The symptom chips cover what most people have, but not everyone: someone
+with a toothache who tapped the head saw headache choices only. The sheet
+now has a text box under the chips, "Or say it in your own words", and
+typing alone is enough to get an answer.
+
+The text is read with fixed tables, like the rest of the guide, not a
+model: the same words always give the same answer, instantly, with nothing
+sent anywhere.
+
+- **Warning signs first.** A short list of phrases people actually write
+  ("can't breathe", "fainted", "coughing up blood", "spreading to my left
+  arm", "worst headache") gives the emergency answer, exactly as a ticked
+  warning sign does. The list ignores negation on purpose: a false alarm
+  costs a phone call, a missed one costs far more. Writing about ending
+  one's life gives the emergency answer with the national mental health
+  helpline (Tele MANAS, 14416) added.
+- **Then everyday words, whole words only.** The search box's list ("tooth",
+  "skin", "heart") names the speciality, matched on word boundaries so
+  "ear" is not found in "heart" or "year". A word decides only when nothing
+  is ticked: ticks are about the area tapped, and "acid reflux" ticked on
+  the stomach should not become a skin doctor because the text also
+  mentions an itch.
+- **The words go to the doctor, not into the URL.** If the visitor books,
+  the booking form's "What brings you in?" starts with what they typed. It
+  travels in session storage (this tab only, gone when it closes, cleared
+  once booked) because the doctors list's address, which already survives
+  the sign-in, would put symptoms into browser history and server logs.
+
+Tests: the phrase list and whole-word matching, the order of precedence,
+the sheet with words alone, the helpline, and the booking form picking the
+note up and forgetting it. Frontend tests: 88 to 94.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -1623,6 +1657,11 @@ tests: 85 to 88.
   a day cannot say so, and there is no way to mark leave or a holiday apart
   from removing that weekday. Doctors also cannot edit their fee or bio after
   signing up.
+- **Typed descriptions are read by word lists, in English only.** The body
+  guide's text box looks for fixed warning phrases and everyday words; it
+  ignores negation ("no crushing pain" still sends people to emergency care,
+  deliberately), misses misspellings, and does not read Hindi or other
+  languages.
 - **The body guide has not been reviewed by a clinician.** Which doctor each
   area and symptom points to, and which symptoms count as emergencies, were
   written from general medical knowledge. It errs towards emergency care and
