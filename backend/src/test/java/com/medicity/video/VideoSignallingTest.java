@@ -102,6 +102,17 @@ class VideoSignallingTest {
         verify(first, never()).sendMessage(new TextMessage("{\"type\":\"answer\",\"sdp\":\"x\"}"));
     }
 
+    @Test
+    @DisplayName("a handshake without a valid ticket is refused with 403")
+    void refusesWithoutTicket() throws Exception {
+        org.springframework.http.server.ServerHttpRequest request = mock(org.springframework.http.server.ServerHttpRequest.class);
+        org.springframework.http.server.ServerHttpResponse response = mock(org.springframework.http.server.ServerHttpResponse.class);
+        when(request.getURI()).thenReturn(java.net.URI.create("wss://api.test/ws/video?ticket=made-up"));
+
+        assertThat(relay.beforeHandshake(request, response, relay, new HashMap<>())).isFalse();
+        verify(response).setStatusCode(org.springframework.http.HttpStatus.FORBIDDEN);
+    }
+
     private WebSocketSession socket(String id, VideoTickets.Side side) {
         WebSocketSession s = mock(WebSocketSession.class);
         Map<String, Object> attributes = new HashMap<>(Map.of("visit", visit, "side", side));
