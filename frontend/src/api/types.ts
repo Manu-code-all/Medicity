@@ -101,6 +101,7 @@ export interface Visit {
   cancelReason: string | null;
   /** The patient has already reviewed this visit. */
   reviewed?: boolean;
+  visitType?: VisitType;
 }
 
 export interface PortalSummary {
@@ -161,6 +162,7 @@ export interface PatientBrief {
 }
 
 export interface DoctorVisitSummary {
+  visitType?: VisitType;
   id: string;
   status: AppointmentStatus;
   scheduledAt: string;
@@ -172,6 +174,7 @@ export interface DoctorVisitSummary {
 }
 
 export interface DoctorVisitDetail {
+  visitType?: VisitType;
   id: string;
   status: AppointmentStatus;
   scheduledAt: string;
@@ -677,4 +680,16 @@ export interface QueueToken {
 export interface QueueDesk {
   status: QueueStatus;
   tokens: QueueToken[];
+}
+
+export type VisitType = "IN_PERSON" | "VIDEO";
+
+/** A one-time pass into a video visit's signalling socket. */
+export interface VideoTicket {
+  ticket: string;
+  side: "PATIENT" | "DOCTOR";
+  expiresAt: string;
+  iceServers: string[];
+  opensAt: string;
+  closesAt: string;
 }

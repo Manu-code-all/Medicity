@@ -53,6 +53,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/doctors/me/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/v1/doctors/**").permitAll()
                 .requestMatchers("/actuator/health/**").permitAll()
+                // The video socket checks its own one-time ticket at the handshake.
+                .requestMatchers("/ws/video").permitAll()
                 // Metrics describe the system's internals (routes, error rates,
                 // login failures); any signed-in patient could read them before.
                 .requestMatchers("/actuator/**").hasRole("ADMIN")

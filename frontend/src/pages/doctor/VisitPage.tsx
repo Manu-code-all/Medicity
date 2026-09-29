@@ -98,6 +98,13 @@ export function VisitPage() {
             </p>
           )}
           {v.cancelReason && <p className="muted">Cancelled by patient: {v.cancelReason}</p>}
+          {v.visitType === "VIDEO" && v.status === "BOOKED" && (
+            <p>
+              <Link className="button" to={`/visits/${v.id}/video`}>
+                Start video visit
+              </Link>
+            </p>
+          )}
           <Link to={`/doctor/patients/${v.patient.id}`}>View patient history →</Link>
         </div>
         <span className={`badge badge--${v.status.toLowerCase()}`}>{v.status.replace("_", " ").toLowerCase()}</span>

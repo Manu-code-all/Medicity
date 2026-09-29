@@ -106,8 +106,15 @@ public class BookingService {
      */
     @Transactional
     public Appointment book(UUID slotId, UUID patientId, String reason) {
+        return book(slotId, patientId, reason, VisitType.IN_PERSON);
+    }
+
+    /** As {@link #book(UUID, UUID, String)}, in person or by video. */
+    @Transactional
+    public Appointment book(UUID slotId, UUID patientId, String reason, VisitType visitType) {
         try {
-            Appointment booked = attemptBooking(slotId, patientId, reason, null);
+            Appointment booked = attemptBooking(slotId, patientId, reason, null,
+                    visitType == null ? VisitType.IN_PERSON : visitType);
             metrics.bookingCommitted();
             return booked;
         } catch (DomainException e) {
@@ -118,7 +125,8 @@ public class BookingService {
         }
     }
 
-    private Appointment attemptBooking(UUID slotId, UUID patientId, String reason, UUID rescheduledFrom) {
+    private Appointment attemptBooking(UUID slotId, UUID patientId, String reason, UUID rescheduledFrom,
+                                       VisitType visitType) {
         Instant now = clock.instant();
 
         AppointmentSlot slot = slotRepository.findById(slotId)
@@ -151,6 +159,7 @@ public class BookingService {
                 .reason(reason)
                 .scheduledAt(slot.getStartsAt())
                 .rescheduledFrom(rescheduledFrom)
+                .visitType(visitType)
                 .build();
 
         try {
@@ -237,7 +246,8 @@ public class BookingService {
         appointmentRepository.saveAndFlush(old);
         Appointment moved;
         try {
-            moved = attemptBooking(newSlotId, old.getPatient().getId(), old.getReason(), appointmentId);
+            moved = attemptBooking(newSlotId, old.getPatient().getId(), old.getReason(), appointmentId,
+                    old.getVisitType());
             metrics.bookingCommitted();
         } catch (DomainException e) {
             metrics.bookingRefused(e.getCode());

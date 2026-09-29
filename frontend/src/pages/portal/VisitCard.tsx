@@ -38,6 +38,7 @@ export function VisitCard({ visit, prescriptionId, onCancel, cancelling, canRevi
         <div className="visit__head">
           <strong>{visit.doctorName}</strong>
           <span className={`badge badge--${visit.status.toLowerCase()}`}>{status}</span>
+          {visit.visitType === "VIDEO" && <span className="badge badge--video">Video</span>}
         </div>
         <p className="muted visit__meta">
           {visit.specialization} · {formatDayLong(visit.scheduledAt)} · {formatTime(visit.scheduledAt)}–
@@ -59,6 +60,11 @@ export function VisitCard({ visit, prescriptionId, onCancel, cancelling, canRevi
           <div className="visit__actions">
             {prescriptionId && (
               <Link to={`/portal/prescriptions#rx-${prescriptionId}`}>View prescription</Link>
+            )}
+            {visit.visitType === "VIDEO" && visit.status === "BOOKED" && onCancel && (
+              <Link className="button button--sm" to={`/visits/${visit.id}/video`}>
+                Join video
+              </Link>
             )}
             {onCancel && visit.status === "BOOKED" && !isPast && (
               <Link to={`/doctors/${visit.doctorId}/book?move=${visit.id}`}>Change time</Link>

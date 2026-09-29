@@ -682,3 +682,21 @@ CROSS JOIN (VALUES
 WHERE d.doctor_id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa04'
   AND d.queue_date = (now() AT TIME ZONE 'Asia/Kolkata')::date
 ON CONFLICT DO NOTHING;
+
+
+-- ---------------------------------------------------------------------
+-- A video visit today: Meera with Dr. Rao (V26). The demo profile opens
+-- video rooms 14 hours either side, so two windows (Meera, Dr. Rao) can
+-- try the call at any time of day.
+-- ---------------------------------------------------------------------
+INSERT INTO appointment_slots (id, doctor_id, starts_at, ends_at, status) VALUES
+  ('dddddddd-4444-4444-8444-dddddddddd20', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa01',
+   date_trunc('hour', now()) + INTERVAL '5 hours',
+   date_trunc('hour', now()) + INTERVAL '5 hours 30 minutes', 'OPEN')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO appointments (id, slot_id, patient_id, status, reason, scheduled_at, visit_type)
+SELECT 'eeeeeeee-5555-4555-8555-eeeeeeeeee20', s.id, 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb01', 'BOOKED',
+       'Follow-up on the ECG results', s.starts_at, 'VIDEO'
+FROM appointment_slots s WHERE s.id = 'dddddddd-4444-4444-8444-dddddddddd20'
+ON CONFLICT DO NOTHING;

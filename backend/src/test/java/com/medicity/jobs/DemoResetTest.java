@@ -67,7 +67,7 @@ class DemoResetTest extends AbstractIntegrationTest {
     void seedsTheDemo() {
         reset();
 
-        assertThat(count("SELECT count(*) FROM appointments WHERE patient_id = '" + MEERA + "'")).isEqualTo(6);
+        assertThat(count("SELECT count(*) FROM appointments WHERE patient_id = '" + MEERA + "'")).isEqualTo(7);
         assertThat(count("SELECT count(*) FROM prescriptions WHERE patient_id = '" + MEERA + "'")).isEqualTo(4);
         assertThat(count("SELECT count(*) FROM prescription_dispensations")).isEqualTo(3);  // Meera's two, and her mother's metformin
         assertThat(jdbc.queryForObject("SELECT status FROM appointments WHERE id = '" + ARJUN_VISIT + "'", String.class))

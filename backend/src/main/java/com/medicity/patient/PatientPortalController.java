@@ -186,7 +186,8 @@ public class PatientPortalController {
             Instant cancelledAt,
             String cancelReason,
             /** The patient has already reviewed this visit. */
-            boolean reviewed
+            boolean reviewed,
+            String visitType
     ) {
         public static VisitResponse from(Appointment a) {
             return from(a, false);
@@ -197,7 +198,7 @@ public class PatientPortalController {
             return new VisitResponse(
                     a.getId(), a.getStatus().name(), a.getScheduledAt(), a.getSlot().getEndsAt(),
                     a.getReason(), d.getId(), d.getUser().getFullName(), d.getSpecialization(),
-                    a.getCancelledAt(), a.getCancelReason(), reviewed);
+                    a.getCancelledAt(), a.getCancelReason(), reviewed, a.getVisitType().name());
         }
     }
 

@@ -175,7 +175,7 @@ public class DoctorWorkspaceController {
         return new VisitDetail(
                 visit.getId(), visit.getStatus().name(), visit.getScheduledAt(), visit.getSlot().getEndsAt(),
                 visit.getReason(), visit.getCancelReason(), started,
-                PatientBrief.from(visit.getPatient(), LocalDate.now(clock)), current);
+                PatientBrief.from(visit.getPatient(), LocalDate.now(clock)), current, visit.getVisitType().name());
     }
 
     private Map<UUID, Instant> dispensedAt(java.util.Collection<Prescription> prescriptions) {
@@ -231,11 +231,12 @@ public class DoctorWorkspaceController {
 
     public record VisitSummary(
             UUID id, String status, Instant scheduledAt, Instant endsAt, String reason,
-            PatientBrief patient, UUID prescriptionId, Instant dispensedAt
+            PatientBrief patient, UUID prescriptionId, Instant dispensedAt, String visitType
     ) {
         static VisitSummary from(Appointment a, UUID prescriptionId, Instant dispensedAt, LocalDate today) {
             return new VisitSummary(a.getId(), a.getStatus().name(), a.getScheduledAt(), a.getSlot().getEndsAt(),
-                    a.getReason(), PatientBrief.from(a.getPatient(), today), prescriptionId, dispensedAt);
+                    a.getReason(), PatientBrief.from(a.getPatient(), today), prescriptionId, dispensedAt,
+                    a.getVisitType().name());
         }
     }
 
@@ -244,7 +245,8 @@ public class DoctorWorkspaceController {
             /** Whether the start time has passed, so the visit can be closed. */
             boolean started,
             PatientBrief patient,
-            PrescriptionResponse prescription
+            PrescriptionResponse prescription,
+            String visitType
     ) {}
 
     public record PatientHistory(PatientBrief patient, List<VisitResponse> visits,

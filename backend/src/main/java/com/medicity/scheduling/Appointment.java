@@ -52,6 +52,11 @@ public class Appointment extends BaseEntity {
     @Column(name = "cancel_reason", length = 300)
     private String cancelReason;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "visit_type", nullable = false, updatable = false, length = 16)
+    private VisitType visitType = VisitType.IN_PERSON;
+
     /** The appointment this one replaced when the patient moved a visit to another time. */
     @Column(name = "rescheduled_from", updatable = false)
     private UUID rescheduledFrom;

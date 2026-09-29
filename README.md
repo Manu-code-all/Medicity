@@ -329,6 +329,8 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/appointments` | PATIENT | **Book a slot** (optional `Idempotency-Key`) |
 | `POST` | `/api/v1/appointments/{id}/cancel` | owner | Cancel, releasing the slot |
 | `POST` | `/api/v1/appointments/{id}/reschedule` | owner | Move to another time with the same doctor; both halves or neither |
+| `POST` | `/api/v1/appointments/{id}/video-ticket` | the visit's patient or doctor | One-time, 60-second ticket for the video room's signalling socket |
+| `WS` | `/ws/video?ticket=` | ticket | Relays offer, answer, candidates and hang-up between the two browsers |
 | `GET` | `/api/v1/appointments/mine` | PATIENT / DOCTOR | Own appointments |
 | `GET` | `/api/v1/patients/me` | PATIENT | Portal: profile |
 | `GET` | `/api/v1/patients/me/summary` | PATIENT | Portal: totals and next visit |
@@ -528,6 +530,10 @@ subdirectory means `vercel.json` is never read.
     a signed-out visitor is asked to sign in (or create an account) first,
     told what they are signing in for, and then lands on the list already
     filtered to the speciality or name they picked.
+  - *Video visits*: when booking, choose "Video call" instead of the clinic;
+    "Join video" on the visit opens a browser call with the doctor. Try it
+    with two windows, one signed in as Meera and one as Dr. Rao: the demo has
+    a video visit between them today.
   - *Walk in today* (Door 2, for today without an appointment): take a
     token for a doctor (#105), see how many are ahead and about how long,
     and follow it live in "Walk-in tokens"; the patient is notified when

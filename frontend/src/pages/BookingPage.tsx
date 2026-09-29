@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { appointments, doctors, reviews } from "../api/endpoints";
-import type { Slot } from "../api/types";
+import type { Slot, VisitType } from "../api/types";
 import { readVisitNote, saveVisitNote } from "../lib/visitNote";
 
 /**
@@ -26,6 +26,7 @@ export function BookingPage() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   // What the visitor typed in the body guide, as a starting point.
   const [reason, setReason] = useState(readVisitNote);
+  const [visitType, setVisitType] = useState<VisitType>("IN_PERSON");
   const [notice, setNotice] = useState<string | null>(null);
 
   const window = useDateWindow();
@@ -48,6 +49,7 @@ export function BookingPage() {
   // One key per booking attempt: the same slot and reason submitted again (a
   // double click, a retry after a dropped connection) reuses it, so the server
   // returns the booking it already made. Changing either starts a new attempt.
+  // The visit type is part of the request, so changing it is a new attempt too.
   const attempt = useRef<{ slotId: string; why: string; key: string } | null>(null);
   function keyFor(slotId: string, why: string): string {
     if (attempt.current?.slotId !== slotId || attempt.current.why !== why) {
@@ -57,8 +59,8 @@ export function BookingPage() {
   }
 
   const booking = useMutation({
-    mutationFn: ({ slotId, why }: { slotId: string; why: string }) =>
-      appointments.book(slotId, why, keyFor(slotId, why)),
+    mutationFn: ({ slotId, why, type }: { slotId: string; why: string; type: VisitType }) =>
+      appointments.book(slotId, why, keyFor(slotId, `${type}:${why}`), type),
     // Safe only because of the key: a network failure may have hidden a
     // booking that succeeded, and the retry then returns it instead of
     // booking twice. Errors the server answered are not retried.
@@ -198,9 +200,25 @@ export function BookingPage() {
           onSubmit={(e) => {
             e.preventDefault();
             setNotice(null);
-            booking.mutate({ slotId: selectedSlot.id, why: reason });
+            booking.mutate({ slotId: selectedSlot.id, why: reason, type: visitType });
           }}
         >
+          <fieldset className="visit-type">
+            <legend>How would you like to see the doctor?</legend>
+            <label>
+              <input
+                type="radio"
+                name="visit-type"
+                checked={visitType === "IN_PERSON"}
+                onChange={() => setVisitType("IN_PERSON")}
+              />{" "}
+              At the clinic
+            </label>
+            <label>
+              <input type="radio" name="visit-type" checked={visitType === "VIDEO"} onChange={() => setVisitType("VIDEO")} />{" "}
+              Video call
+            </label>
+          </fieldset>
           <label htmlFor="reason">What brings you in?</label>
           <textarea
             id="reason"

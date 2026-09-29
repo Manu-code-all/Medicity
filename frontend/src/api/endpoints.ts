@@ -1,6 +1,8 @@
 import { request } from "./client";
 import type {
   DiagnosisCode,
+  VideoTicket,
+  VisitType,
   QueueDesk,
   QueueStatus,
   QueueToken,
@@ -108,10 +110,10 @@ export const appointments = {
    * again (a retry after a dropped response) returns the original booking
    * instead of a "you already have an appointment" error.
    */
-  book: (slotId: string, reason: string, idempotencyKey: string) =>
+  book: (slotId: string, reason: string, idempotencyKey: string, visitType: VisitType = "IN_PERSON") =>
     request<Appointment>("/api/v1/appointments", {
       method: "POST",
-      body: { slotId, reason },
+      body: { slotId, reason, visitType },
       headers: { "Idempotency-Key": idempotencyKey },
     }),
 
@@ -321,4 +323,10 @@ export const queue = {
     request<QueueToken>(`/api/v1/doctors/me/queue/tokens/${tokenId}/${seen ? "seen" : "missed"}`, { method: "POST" }),
   setOpen: (open: boolean) =>
     request<QueueStatus>(`/api/v1/doctors/me/queue/${open ? "open" : "close"}`, { method: "POST" }),
+};
+
+/** Video visits: a ticket for the signalling socket (patient or doctor of the visit). */
+export const video = {
+  ticket: (appointmentId: string) =>
+    request<VideoTicket>(`/api/v1/appointments/${appointmentId}/video-ticket`, { method: "POST" }),
 };

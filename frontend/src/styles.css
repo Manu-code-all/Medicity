@@ -165,6 +165,18 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .doctor h2 { margin: 0 0 2px; font-size: 1.05rem; }
 .doctor__action, .appointment__action { display: flex; align-items: center; gap: 12px; }
 .fee { font-weight: 700; margin: 0; }
+.badge--video { background: #eef2ff; color: #4f46e5; margin-left: 6px; }
+.visit-type { border: 0; padding: 0; margin: 0 0 8px; display: flex; gap: 16px; flex-wrap: wrap; }
+.visit-type legend { font-weight: 600; margin-bottom: 4px; padding: 0; }
+.video-room { display: grid; gap: 12px; }
+.video-room__stage { position: relative; background: #0f172a; border-radius: 16px; overflow: hidden; aspect-ratio: 16 / 9; }
+.video-room__remote { width: 100%; height: 100%; object-fit: cover; }
+.video-room__self {
+  position: absolute; right: 12px; bottom: 12px; width: 28%; max-width: 220px; aspect-ratio: 4 / 3;
+  object-fit: cover; border-radius: 10px; border: 2px solid rgba(255, 255, 255, 0.7); background: #1e293b;
+}
+.video-room__controls { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.video-room__hangup { background: #b3261e; color: #fff; }
 .walk-in { display: grid; gap: 16px; max-width: 560px; }
 .walk-in__line { margin: 0; }
 .walk-in__form { display: grid; gap: 8px; }
