@@ -1,7 +1,7 @@
 import { ActingBanner } from "../components/ActingBanner";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { appointments, doctors } from "../api/endpoints";
 import type { Slot } from "../api/types";
@@ -29,6 +29,10 @@ export function BookingPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const window = useDateWindow();
+  // A time tapped on the directory card arrives as ?slot= and starts selected.
+  const [params] = useSearchParams();
+  const wanted = params.get("slot");
+  const preselected = useRef(false);
 
   const slotsQuery = useQuery({
     queryKey: ["slots", doctorId, window.from],
@@ -96,6 +100,14 @@ export function BookingPage() {
       }
     },
   });
+
+  useEffect(() => {
+    if (!wanted || !slotsQuery.data || preselected.current) return;
+    preselected.current = true;
+    const slot = slotsQuery.data.find((s) => s.id === wanted);
+    if (slot) setSelectedSlot(slot);
+    else setNotice("That time has just been taken. Here are the times still free.");
+  }, [wanted, slotsQuery.data]);
 
   if (slotsQuery.isPending) return <p className="muted">Loading availability…</p>;
   if (slotsQuery.isError) return <p className="error">Could not load availability.</p>;

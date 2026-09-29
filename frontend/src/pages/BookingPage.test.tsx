@@ -13,7 +13,7 @@ const SLOTS = [
 
 const APPOINTMENT = { id: "appt-1", slotId: "slot-1", status: "BOOKED" };
 
-function renderPage(answerBooking: (call: RecordedCall, attempt: number) => Response | Promise<Response>) {
+function renderPage(answerBooking: (call: RecordedCall, attempt: number) => Response | Promise<Response>, path = "/doctors/d1/book") {
   let bookings = 0;
   const calls = mockFetch((call) => {
     if (call.url.includes("/slots")) return json(200, SLOTS);
@@ -24,7 +24,7 @@ function renderPage(answerBooking: (call: RecordedCall, attempt: number) => Resp
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={["/doctors/d1/book"]}>
+      <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/doctors/:doctorId/book" element={<BookingPage />} />
         </Routes>
@@ -45,6 +45,20 @@ async function pickFirstSlotAndConfirm(user: ReturnType<typeof userEvent.setup>,
 const keyOf = (call: RecordedCall | undefined) => call?.headers["Idempotency-Key"];
 
 describe("BookingPage", () => {
+  it("starts with the time tapped on the directory card chosen, or says it has gone", async () => {
+    renderPage(() => json(201, APPOINTMENT), "/doctors/d1/book?slot=slot-2");
+    await screen.findByLabelText("What brings you in?");
+    const chosen = screen.getAllByRole("button", { pressed: true });
+    expect(chosen).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /^Confirm/ })).toBeInTheDocument();
+  });
+
+  it("says so when the tapped time was taken meanwhile", async () => {
+    renderPage(() => json(201, APPOINTMENT), "/doctors/d1/book?slot=gone");
+    expect(await screen.findByRole("status")).toHaveTextContent("That time has just been taken");
+    expect(screen.queryByLabelText("What brings you in?")).not.toBeInTheDocument();
+  });
+
   it("starts the reason from what the visitor typed in the body guide, and forgets it once booked", async () => {
     sessionStorage.setItem("medicity.visitNote", "My back tooth hurts when I chew");
     const user = userEvent.setup();

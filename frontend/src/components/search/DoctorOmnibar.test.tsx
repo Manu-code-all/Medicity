@@ -27,7 +27,7 @@ function renderBox() {
 const SUGGESTIONS = {
   specialties: [{ name: "Gastroenterology", doctors: 1 }],
   doctors: [
-    { id: "d5", fullName: "Dr. Arvind Kulkarni", specialization: "Gastroenterology", consultationFee: 1300, yearsExperience: 16, bio: null },
+    { id: "d5", fullName: "Dr. Arvind Kulkarni", specialization: "Gastroenterology", consultationFee: 1300, yearsExperience: 16, bio: null, nextSlots: [] },
   ],
 };
 

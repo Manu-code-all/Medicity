@@ -1647,6 +1647,35 @@ Tests: the phrase list and whole-word matching, the order of precedence,
 the sheet with words alone, the helpline, and the booking form picking the
 note up and forgetting it. Frontend tests: 88 to 94.
 
+## 38. The next free times, on the doctor's card
+
+Picking a time took two steps: choose a doctor, then open their calendar.
+Doctolib puts the next few times on the card itself, and so does the
+directory now: three pills per doctor and a "More times" link. Tapping a
+pill opens booking with that time already chosen.
+
+- **One query for a page, not one per card.** A card list of 20 doctors
+  asking for slots one by one is the classic N+1. `findNextAvailableIds`
+  numbers each doctor's open slots with `row_number() OVER (PARTITION BY
+  doctor_id ORDER BY starts_at)` and keeps the first three, for all the
+  page's doctors at once; the existing `(doctor_id, starts_at)` index
+  serves it. It returns ids only, and the slots are then loaded as
+  entities: two queries per page, and no guessing which Java type the
+  driver uses for a native `timestamptz` column.
+- **Only times that can be booked.** The window starts after the booking
+  service's 30-minute notice (`BookingService.MIN_LEAD_TIME`, now shared
+  rather than copied), and taken slots are excluded by the same rule as
+  the calendar.
+- **Still a snapshot.** A pill can be taken between the list loading and
+  the tap. The booking page checks the chosen id against the fresh list
+  and, if it has gone, says so and shows the times still free, rather than
+  pretending the old time is available.
+
+Tests: a backend test with a too-soon slot, a taken slot and four free
+ones (exactly the three soonest free come back, in order; a doctor with
+none gets an empty list), and frontend tests for the pills, the "no free
+times" line, the preselected time and the taken-meanwhile message.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

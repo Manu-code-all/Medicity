@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
@@ -8,7 +8,7 @@ import { DoctorsPage } from "./DoctorsPage";
 
 const EMPTY = { content: [], totalElements: 0, totalPages: 0, number: 0 };
 const MENON = {
-  content: [{ id: "d4", fullName: "Dr. Kavitha Menon", specialization: "General Medicine", consultationFee: 700, yearsExperience: 12, bio: null }],
+  content: [{ id: "d4", fullName: "Dr. Kavitha Menon", specialization: "General Medicine", consultationFee: 700, yearsExperience: 12, bio: null, nextSlots: [] }],
   totalElements: 1,
   totalPages: 1,
   number: 0,
@@ -25,6 +25,40 @@ function renderAt(path: string) {
 }
 
 describe("DoctorsPage", () => {
+  it("shows each doctor's next free times as links that open booking with that time chosen", async () => {
+    const soon = new Date();
+    soon.setDate(soon.getDate() + 1);
+    soon.setHours(10, 0, 0, 0);
+    const later = new Date(soon.getTime() + 30 * 60_000);
+    mockFetch(({ url }) => {
+      if (url.endsWith("/specialties")) return json(200, []);
+      return json(200, {
+        ...MENON,
+        content: [{
+          ...MENON.content[0],
+          nextSlots: [
+            { id: "s1", startsAt: soon.toISOString(), endsAt: later.toISOString() },
+            { id: "s2", startsAt: later.toISOString(), endsAt: later.toISOString() },
+          ],
+        }],
+      });
+    });
+    renderAt("/doctors");
+
+    const times = await screen.findByRole("list", { name: "Next free times with Dr. Kavitha Menon" });
+    const first = within(times).getAllByRole("link")[0]!;
+    expect(first).toHaveTextContent(/^Tomorrow, /);
+    expect(first).toHaveAttribute("href", "/doctors/d4/book?slot=s1");
+    expect(within(times).getByRole("link", { name: "More times" })).toHaveAttribute("href", "/doctors/d4/book");
+  });
+
+  it("says so when a doctor has no free times soon", async () => {
+    mockFetch(({ url }) => json(200, url.endsWith("/specialties") ? [] : MENON));
+    renderAt("/doctors");
+
+    expect(await screen.findByText("No free times in the next two weeks.")).toBeInTheDocument();
+  });
+
   it("takes the body guide's answer from the link, and offers the alternative when nobody matches", async () => {
     const calls = mockFetch(({ url }) => {
       if (url.endsWith("/specialties")) return json(200, [{ name: "General Medicine", doctors: 1 }]);

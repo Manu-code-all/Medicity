@@ -312,7 +312,7 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/auth/otp/verify` | — | Mobile number and code for a token pair |
 | `POST` | `/api/v1/auth/refresh` | — | Rotate: spend a refresh token for a new pair (reuse ends the session) |
 | `POST` | `/api/v1/auth/logout` | — | End the session the refresh token belongs to |
-| `GET` | `/api/v1/doctors` | — | Search doctors |
+| `GET` | `/api/v1/doctors` | — | Search doctors, each with their next three open times |
 | `GET` | `/api/v1/doctors/specialties` | — | Specialisations someone can be booked in, with doctor counts |
 | `GET` | `/api/v1/doctors/suggest?q=` | — | Search-box suggestions: specialisations, then up to five doctors |
 | `GET` | `/api/v1/doctors/{id}/slots` | — | Available slots |
@@ -516,6 +516,8 @@ subdirectory means `vercel.json` is never read.
     a signed-out visitor is asked to sign in (or create an account) first,
     told what they are signing in for, and then lands on the list already
     filtered to the speciality or name they picked.
+  - Each doctor's card shows their next three free times; tapping one opens
+    booking with that time already chosen (or says it was just taken).
 - **Sign-in pages** (`/login`, `/login/doctor`, `/login/chemist`) — one frame,
   one coloured line per role (teal, indigo, marigold), each with a one-click
   sign-in as that role's demo account. Mobile number and a one-time code, or
