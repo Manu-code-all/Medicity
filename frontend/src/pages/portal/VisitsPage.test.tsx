@@ -58,6 +58,31 @@ describe("VisitsPage", () => {
     expect(screen.getByRole("link", { name: "Join video" })).toHaveAttribute("href", "/visits/a1/video");
   });
 
+  it("a visit that ended in the last 7 days offers free follow-up questions", async () => {
+    const ended = new Date(Date.now() - 2 * 86_400_000).toISOString();
+    const calls = mockFetch(({ url, method }) => {
+      if (url.includes("/prescriptions")) return json(200, []);
+      if (url.endsWith("/followups")) {
+        return json(200, {
+          messages: method === "POST" ? [{ id: "f1", sender: "PATIENT", body: "Is the dose right?", sentAt: ended }] : [],
+          questionsLeft: method === "POST" ? 2 : 3, closesAt: ended, open: true, awaitingDoctor: method === "POST",
+        });
+      }
+      return json(200, page(url.includes("scope=past") ? [{ ...PAST, scheduledAt: ended, endsAt: ended, reviewed: true }] : []));
+    });
+    renderPage(<VisitsPage />);
+    await screen.findByText("Nothing booked");
+    await userEvent.click(screen.getByRole("tab", { name: "History" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /Free follow-up · 5 days left/ }));
+    expect(await screen.findByText(/3 of 3 free questions left/)).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Your question"), "Is the dose right?");
+    await userEvent.click(screen.getByRole("button", { name: "Send question" }));
+
+    expect(await screen.findByText(/2 of 3 free questions left/)).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST")?.url).toBe("/api/v1/appointments/a0/followups");
+  });
+
   it("a completed visit can be rated from history, once", async () => {
     let reviewed = false;
     const calls = mockFetch(({ url, method }) => {

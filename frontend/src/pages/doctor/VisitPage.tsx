@@ -8,6 +8,7 @@ import { formatDate, formatDayLong, formatTime } from "../../lib/format";
 import { PhotoViewer } from "../../components/PhotoViewer";
 import { PhotoStart } from "./PhotoStart";
 import { PrescriptionForm, type StartingItem } from "./PrescriptionForm";
+import { FollowUpPanel } from "../../components/FollowUpPanel";
 
 type Mode = "view" | "prescribe" | "correct";
 
@@ -281,6 +282,13 @@ export function VisitPage() {
               />
             </>
           )}
+        </section>
+      )}
+
+      {v.status === "COMPLETED" && (
+        <section className="card" aria-labelledby="followups-title">
+          <h2 id="followups-title">Follow-up questions</h2>
+          <FollowUpPanel appointmentId={v.id} side="DOCTOR" />
         </section>
       )}
     </div>

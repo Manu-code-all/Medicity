@@ -730,3 +730,19 @@ export interface Insurer {
   name: string;
   kind: "PRIVATE" | "PUBLIC" | "GOVERNMENT";
 }
+
+export interface FollowUpMessage {
+  id: string;
+  sender: "PATIENT" | "DOCTOR";
+  body: string;
+  sentAt: string;
+}
+
+/** A visit's free follow-up thread. */
+export interface FollowUpThread {
+  messages: FollowUpMessage[];
+  questionsLeft: number;
+  closesAt: string;
+  open: boolean;
+  awaitingDoctor: boolean;
+}
