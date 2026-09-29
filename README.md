@@ -318,6 +318,7 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `GET` | `/api/v1/doctors/{id}/slots` | — | Available slots |
 | `POST` | `/api/v1/appointments` | PATIENT | **Book a slot** (optional `Idempotency-Key`) |
 | `POST` | `/api/v1/appointments/{id}/cancel` | owner | Cancel, releasing the slot |
+| `POST` | `/api/v1/appointments/{id}/reschedule` | owner | Move to another time with the same doctor; both halves or neither |
 | `GET` | `/api/v1/appointments/mine` | PATIENT / DOCTOR | Own appointments |
 | `GET` | `/api/v1/patients/me` | PATIENT | Portal: profile |
 | `GET` | `/api/v1/patients/me/summary` | PATIENT | Portal: totals and next visit |
@@ -528,7 +529,9 @@ subdirectory means `vercel.json` is never read.
     latest prescription.
   - *Visits*: upcoming (soonest first) and history (newest first). The two lists
     are exact complements, so a visit whose time passed while still `BOOKED`
-    moves to history instead of vanishing. Upcoming visits can be cancelled.
+    moves to history instead of vanishing. Upcoming visits can be cancelled, or moved to another time
+    with "Change time": the old time is released and the new one booked in one
+    transaction, so a time taken meanwhile leaves the visit as it was.
   - *Prescriptions*: dose, frequency and duration per medicine. Prescriptions are
     append-only; a correction supersedes the original, and only the current
     version is shown, so a patient never sees two conflicting sets of instructions.

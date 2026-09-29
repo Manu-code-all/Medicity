@@ -46,6 +46,12 @@ public class NotificationConsumer implements OutboxConsumer {
                             + (p.path("late").asBoolean() ? " at short notice." : "."),
                     "/doctor", instant(p, "scheduledAt"));
 
+            case Outbox.APPOINTMENT_RESCHEDULED -> notify(event, uuid(p, "doctorUserId"),
+                    "Visit moved",
+                    p.path("patientName").asText() + " moved their visit from "
+                            + p.path("fromLabel").asText() + ".",
+                    "/doctor", instant(p, "scheduledAt"));
+
             case Outbox.PRESCRIPTION_ISSUED -> notify(event, uuid(p, "patientUserId"),
                     "New prescription", p.path("doctorName").asText() + " prescribed for "
                             + p.path("diagnosis").asText() + ".",

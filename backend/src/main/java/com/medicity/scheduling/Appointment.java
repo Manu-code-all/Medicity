@@ -52,6 +52,10 @@ public class Appointment extends BaseEntity {
     @Column(name = "cancel_reason", length = 300)
     private String cancelReason;
 
+    /** The appointment this one replaced when the patient moved a visit to another time. */
+    @Column(name = "rescheduled_from", updatable = false)
+    private UUID rescheduledFrom;
+
     /**
      * Transitions to CANCELLED. Sets {@code cancelledAt} in the same call
      * because a database CHECK requires the two to agree — splitting them

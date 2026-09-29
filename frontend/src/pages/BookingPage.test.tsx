@@ -45,6 +45,55 @@ async function pickFirstSlotAndConfirm(user: ReturnType<typeof userEvent.setup>,
 const keyOf = (call: RecordedCall | undefined) => call?.headers["Idempotency-Key"];
 
 describe("BookingPage", () => {
+  it("moving a visit: no reason box, one confirm, and the move endpoint", async () => {
+    const user = userEvent.setup();
+    const calls = mockFetch((call) => {
+      if (call.url.includes("/slots")) return json(200, SLOTS);
+      if (call.url === "/api/v1/appointments/a1/reschedule") {
+        return json(200, { ...APPOINTMENT, id: "appt-2", slotId: "slot-2", scheduledAt: SLOTS[1]!.startsAt, rescheduledFrom: "a1" });
+      }
+      return json(404, {});
+    });
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={["/doctors/d1/book?move=a1&slot=slot-2"]}>
+          <Routes>
+            <Route path="/doctors/:doctorId/book" element={<BookingPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Choose a new time" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("What brings you in?")).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /^Move to/ }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Visit moved to");
+    const move = calls.find((c) => c.method === "POST");
+    expect(move?.url).toBe("/api/v1/appointments/a1/reschedule");
+    expect(move?.body).toEqual({ slotId: "slot-2" });
+  });
+
+  it("moving to a time someone just took says the visit is unchanged", async () => {
+    const user = userEvent.setup();
+    mockFetch((call) => {
+      if (call.url.includes("/slots")) return json(200, SLOTS);
+      return json(409, { code: "SLOT_ALREADY_BOOKED", detail: "This slot was just booked by someone else." });
+    });
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={["/doctors/d1/book?move=a1&slot=slot-1"]}>
+          <Routes>
+            <Route path="/doctors/:doctorId/book" element={<BookingPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /^Move to/ }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Your visit is unchanged");
+  });
+
   it("starts with the time tapped on the directory card chosen, or says it has gone", async () => {
     renderPage(() => json(201, APPOINTMENT), "/doctors/d1/book?slot=slot-2");
     await screen.findByLabelText("What brings you in?");

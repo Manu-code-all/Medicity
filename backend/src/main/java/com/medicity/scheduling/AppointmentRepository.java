@@ -122,6 +122,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             """)
     Optional<Appointment> findByIdWithDetails(@Param("id") UUID id);
 
+    /** The appointment a visit was moved to, if it was. */
+    Optional<Appointment> findByRescheduledFrom(UUID rescheduledFrom);
+
     /**
      * A doctor's calendar between two instants, earliest first. The caller
      * passes the bounds of "today" in its own time zone, so the server never

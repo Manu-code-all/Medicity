@@ -116,6 +116,13 @@ export const appointments = {
       body: { reason },
     }),
 
+  /** Moves a visit to another time with the same doctor; both happen or neither. */
+  reschedule: (id: string, slotId: string) =>
+    request<Appointment>(`/api/v1/appointments/${id}/reschedule`, {
+      method: "POST",
+      body: { slotId },
+    }),
+
 };
 
 /**

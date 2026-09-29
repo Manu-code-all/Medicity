@@ -18,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -104,7 +107,7 @@ public class BookingService {
     @Transactional
     public Appointment book(UUID slotId, UUID patientId, String reason) {
         try {
-            Appointment booked = attemptBooking(slotId, patientId, reason);
+            Appointment booked = attemptBooking(slotId, patientId, reason, null);
             metrics.bookingCommitted();
             return booked;
         } catch (DomainException e) {
@@ -115,7 +118,7 @@ public class BookingService {
         }
     }
 
-    private Appointment attemptBooking(UUID slotId, UUID patientId, String reason) {
+    private Appointment attemptBooking(UUID slotId, UUID patientId, String reason, UUID rescheduledFrom) {
         Instant now = clock.instant();
 
         AppointmentSlot slot = slotRepository.findById(slotId)
@@ -147,6 +150,7 @@ public class BookingService {
                 .status(AppointmentStatus.BOOKED)
                 .reason(reason)
                 .scheduledAt(slot.getStartsAt())
+                .rescheduledFrom(rescheduledFrom)
                 .build();
 
         try {
@@ -188,6 +192,71 @@ public class BookingService {
             throw e;
         }
     }
+
+    /**
+     * Moves an upcoming visit to another open time with the same doctor.
+     *
+     * <p>One transaction: the old appointment is cancelled and flushed first
+     * (so the patient's own "one visit at a time" constraint does not see the
+     * two overlap), then the new slot is booked through the same path as any
+     * booking. If that fails, because someone else won the slot or it is too
+     * soon, the exception rolls the whole transaction back and the original
+     * visit is untouched: the patient never ends up with both, or neither.
+     *
+     * <p>Safe to retry: if this visit was already moved to that slot, the
+     * earlier move is returned instead of an error.
+     */
+    @Transactional
+    public Appointment reschedule(UUID appointmentId, UUID newSlotId) {
+        Instant now = clock.instant();
+        Appointment old = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new NotFoundException("Appointment", appointmentId));
+
+        if (old.getStatus() == AppointmentStatus.CANCELLED) {
+            return appointmentRepository.findByRescheduledFrom(appointmentId)
+                    .filter(moved -> moved.getSlot().getId().equals(newSlotId))
+                    .orElseThrow(() -> new ValidationException("NOT_RESCHEDULABLE",
+                            "This visit was cancelled, so it cannot be moved"));
+        }
+        if (old.getStatus() != AppointmentStatus.BOOKED || !old.getScheduledAt().isAfter(now)) {
+            throw new ValidationException("NOT_RESCHEDULABLE", "Only an upcoming visit can be moved");
+        }
+        AppointmentSlot target = slotRepository.findById(newSlotId)
+                .orElseThrow(() -> new NotFoundException("Slot", newSlotId));
+        UUID doctorId = old.getSlot().getDoctor().getId();
+        if (!target.getDoctor().getId().equals(doctorId)) {
+            throw new ValidationException("DIFFERENT_DOCTOR",
+                    "A visit can be moved to another time with the same doctor only");
+        }
+        if (target.getId().equals(old.getSlot().getId())) {
+            return old;
+        }
+
+        Instant from = old.getScheduledAt();
+        old.cancel(now, "Moved to another time");
+        appointmentRepository.saveAndFlush(old);
+        Appointment moved;
+        try {
+            moved = attemptBooking(newSlotId, old.getPatient().getId(), old.getReason(), appointmentId);
+            metrics.bookingCommitted();
+        } catch (DomainException e) {
+            metrics.bookingRefused(e.getCode());
+            throw e;
+        }
+
+        auditLog.recordChange("APPOINTMENT_RESCHEDULED", "APPOINTMENT", moved.getId(),
+                Map.of("from", appointmentId, "fromScheduledAt", from, "scheduledAt", moved.getScheduledAt()));
+        outbox.publish(Outbox.APPOINTMENT_RESCHEDULED, moved.getId(), Map.of(
+                "doctorUserId", old.getSlot().getDoctor().getUser().getId(),
+                "patientName", old.getPatient().displayName(),
+                "fromLabel", INDIA_TIME.format(from),
+                "scheduledAt", moved.getScheduledAt()));
+        return moved;
+    }
+
+    /** How the doctor's notification names the old time: the clinics are in India. */
+    private static final DateTimeFormatter INDIA_TIME =
+            DateTimeFormatter.ofPattern("EEE d MMM, h:mm a", Locale.ENGLISH).withZone(ZoneId.of("Asia/Kolkata"));
 
     /**
      * Cancels an appointment, freeing its slot for rebooking.

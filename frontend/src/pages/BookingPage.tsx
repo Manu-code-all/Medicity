@@ -33,6 +33,8 @@ export function BookingPage() {
   const [params] = useSearchParams();
   const wanted = params.get("slot");
   const preselected = useRef(false);
+  // Opened from "Change time" on a visit: this page moves that visit instead of booking a new one.
+  const moving = params.get("move");
 
   const slotsQuery = useQuery({
     queryKey: ["slots", doctorId, window.from],
@@ -101,6 +103,29 @@ export function BookingPage() {
     },
   });
 
+  const move = useMutation({
+    mutationFn: (slotId: string) => appointments.reschedule(moving!, slotId),
+    onSuccess: (moved) => {
+      setNotice(`Visit moved to ${formatSlot(moved.scheduledAt)}.`);
+      setSelectedSlot(null);
+      void queryClient.invalidateQueries({ queryKey: ["slots", doctorId] });
+      void queryClient.invalidateQueries({ queryKey: ["portal"] });
+    },
+    onError: (error: unknown) => {
+      if (!(error instanceof ApiError)) {
+        setNotice("Something went wrong. Your visit has not been moved.");
+        return;
+      }
+      if (error.code === "SLOT_ALREADY_BOOKED" || error.code === "SLOT_NOT_OPEN") {
+        setNotice("Someone just took that time. Your visit is unchanged; here are the times still free.");
+        setSelectedSlot(null);
+        void queryClient.invalidateQueries({ queryKey: ["slots", doctorId] });
+        return;
+      }
+      setNotice(`${error.message} Your visit has not been moved.`);
+    },
+  });
+
   useEffect(() => {
     if (!wanted || !slotsQuery.data || preselected.current) return;
     preselected.current = true;
@@ -116,13 +141,14 @@ export function BookingPage() {
 
   return (
     <section className="booking">
-      <h1>Choose a time</h1>
+      <h1>{moving ? "Choose a new time" : "Choose a time"}</h1>
+      {moving && <p className="muted">Your current time stays booked until the new one is confirmed.</p>}
       <ActingBanner verb="Booking" />
 
       {notice && (
         <p className="notice" role="status" aria-live="polite">
           {notice}
-          {booking.isSuccess && (
+          {(booking.isSuccess || move.isSuccess) && (
             <>
               {" "}
               <Link to="/portal/visits">See it in your portal</Link>
@@ -150,7 +176,22 @@ export function BookingPage() {
         </ul>
       )}
 
-      {selectedSlot && (
+      {selectedSlot && moving && (
+        <form
+          className="booking__confirm"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setNotice(null);
+            move.mutate(selectedSlot.id);
+          }}
+        >
+          <button type="submit" disabled={move.isPending}>
+            {move.isPending ? "Moving…" : `Move to ${formatSlot(selectedSlot.startsAt)}`}
+          </button>
+        </form>
+      )}
+
+      {selectedSlot && !moving && (
         <form
           className="booking__confirm"
           onSubmit={(e) => {

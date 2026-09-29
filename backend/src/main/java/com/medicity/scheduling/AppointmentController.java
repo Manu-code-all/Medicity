@@ -100,6 +100,29 @@ public class AppointmentController {
         return AppointmentResponse.from(bookingService.cancel(id, request.reason()));
     }
 
+    /**
+     * Moves an upcoming visit to another time with the same doctor: the old
+     * time is released and the new one booked together, or nothing changes.
+     */
+    @PostMapping("/{id}/reschedule")
+    @PreAuthorize("hasRole('PATIENT')")
+    @Operation(summary = "Move a visit to another time with the same doctor")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Moved; the response is the new appointment"),
+            @ApiResponse(responseCode = "409", description = "The new time was just taken; the visit is unchanged"),
+            @ApiResponse(responseCode = "422", description = "Not an upcoming visit, a different doctor, or too soon")
+    })
+    public AppointmentResponse reschedule(@AuthenticationPrincipal AppUserPrincipal principal,
+                                          @PathVariable UUID id,
+                                          @Valid @RequestBody RescheduleRequest request) {
+
+        Appointment appointment = appointmentRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new NotFoundException("Appointment", id));
+
+        requireAccess(principal, appointment, "reschedule");
+        return AppointmentResponse.from(bookingService.reschedule(id, request.slotId()));
+    }
+
     @GetMapping("/mine")
     @PreAuthorize("hasAnyRole('PATIENT','DOCTOR')")
     @Operation(summary = "List the caller's own appointments")
@@ -191,6 +214,8 @@ public class AppointmentController {
 
     public record CancelRequest(@Size(max = 300) String reason) {}
 
+    public record RescheduleRequest(@NotNull UUID slotId) {}
+
     public record AppointmentResponse(
             UUID id,
             UUID slotId,
@@ -198,7 +223,8 @@ public class AppointmentController {
             String status,
             Instant scheduledAt,
             String reason,
-            Instant cancelledAt
+            Instant cancelledAt,
+            UUID rescheduledFrom
     ) {
         static AppointmentResponse from(Appointment a) {
             return new AppointmentResponse(
@@ -208,7 +234,8 @@ public class AppointmentController {
                     a.getStatus().name(),
                     a.getScheduledAt(),
                     a.getReason(),
-                    a.getCancelledAt());
+                    a.getCancelledAt(),
+                    a.getRescheduledFrom());
         }
     }
 }
