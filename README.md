@@ -328,6 +328,9 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/appointments/{id}/review` | owner | Review a completed visit, once (1 to 5 stars, optional words) |
 | `POST` | `/api/v1/appointments` | PATIENT | **Book a slot** (optional `Idempotency-Key`) |
 | `POST` | `/api/v1/appointments/{id}/cancel` | owner | Cancel, releasing the slot |
+| `POST` | `/api/v1/doctors/{id}/waitlist` | PATIENT | Be told if a time opens with this doctor on a day (for yourself or family) |
+| `DELETE` | `/api/v1/doctors/{id}/waitlist?date=` | PATIENT | Stop waiting |
+| `GET` | `/api/v1/patients/me/waitlist` | PATIENT | Days you and your family are waiting for |
 | `POST` | `/api/v1/appointments/{id}/reschedule` | owner | Move to another time with the same doctor; both halves or neither |
 | `POST` | `/api/v1/appointments/{id}/video-ticket` | the visit's patient or doctor | One-time, 60-second ticket for the video room's signalling socket |
 | `WS` | `/ws/video?ticket=` | ticket | Relays offer, answer, candidates and hang-up between the two browsers |
@@ -543,7 +546,9 @@ subdirectory means `vercel.json` is never read.
     called. Tokens are given 7 am to 9 pm India time.
   - Each doctor's card shows their next three free times; tapping one opens
     booking with that time already chosen (or says it was just taken), and
-    their rating from reviews. Only a patient who was seen can review, once
+    their rating from reviews. A full day? "Notify me if a time opens" puts
+    the patient on that day's waiting list; a cancellation or a move that day
+    notifies everyone waiting, and the first to book gets the time. Only a patient who was seen can review, once
     per visit, from their history ("Rate this visit").
 - **Sign-in pages** (`/login`, `/login/doctor`, `/login/chemist`) — one frame,
   one coloured line per role (teal, indigo, marigold), each with a one-click

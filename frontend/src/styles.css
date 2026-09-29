@@ -165,6 +165,13 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .doctor h2 { margin: 0 0 2px; font-size: 1.05rem; }
 .doctor__action, .appointment__action { display: flex; align-items: center; gap: 12px; }
 .fee { font-weight: 700; margin: 0; }
+.waitlist { margin-top: 24px; display: grid; gap: 8px; }
+.waitlist h2 { margin: 0; font-size: 1.05rem; }
+.waitlist p { margin: 0; }
+.waitlist__form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.waitlist__form label { font-weight: 600; }
+.waitlist__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.waitlist__list li { display: flex; justify-content: space-between; align-items: center; gap: 8px; border-top: 1px solid var(--border); padding-top: 6px; }
 .intake-share { border: 1px dashed var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; display: grid; gap: 4px; }
 .intake-share p { margin: 0; }
 .intake-share__title, .intake-card__title { font-weight: 600; margin: 0; }

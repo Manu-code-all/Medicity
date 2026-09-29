@@ -1,6 +1,7 @@
 import { request } from "./client";
 import type {
   DiagnosisCode,
+  WaitlistEntry,
   Intake,
   VideoTicket,
   VisitType,
@@ -330,4 +331,13 @@ export const queue = {
 export const video = {
   ticket: (appointmentId: string) =>
     request<VideoTicket>(`/api/v1/appointments/${appointmentId}/video-ticket`, { method: "POST" }),
+};
+
+/** Waiting lists for a full day with a doctor. */
+export const waitlist = {
+  join: (doctorId: string, date: string) =>
+    request<WaitlistEntry>(`/api/v1/doctors/${doctorId}/waitlist`, { method: "POST", body: { date } }),
+  leave: (doctorId: string, date: string) =>
+    request<void>(`/api/v1/doctors/${doctorId}/waitlist?${new URLSearchParams({ date })}`, { method: "DELETE" }),
+  mine: () => request<WaitlistEntry[]>("/api/v1/patients/me/waitlist"),
 };
