@@ -71,7 +71,7 @@ public class AppointmentController {
 
         UUID patientId = acting.resolve(principal.getId()).getId();
         Supplier<AppointmentResponse> booking = () -> AppointmentResponse.from(
-                bookingService.book(request.slotId(), patientId, request.reason(), request.visitType()));
+                bookingService.book(request.slotId(), patientId, request.reason(), request.visitType(), request.intake()));
 
         if (idempotencyKey == null) {
             return ResponseEntity.status(HttpStatus.CREATED).body(booking.get());
@@ -211,7 +211,9 @@ public class AppointmentController {
             @NotNull UUID slotId,
             @Size(max = 500) String reason,
             /** In person unless the patient chose video. */
-            VisitType visitType
+            VisitType visitType,
+            /** The body guide's answers, when the patient chose to share them with the doctor. */
+            @Valid Intake intake
     ) {}
 
     public record CancelRequest(@Size(max = 300) String reason) {}

@@ -106,15 +106,20 @@ public class BookingService {
      */
     @Transactional
     public Appointment book(UUID slotId, UUID patientId, String reason) {
-        return book(slotId, patientId, reason, VisitType.IN_PERSON);
+        return book(slotId, patientId, reason, VisitType.IN_PERSON, null);
     }
 
-    /** As {@link #book(UUID, UUID, String)}, in person or by video. */
     @Transactional
     public Appointment book(UUID slotId, UUID patientId, String reason, VisitType visitType) {
+        return book(slotId, patientId, reason, visitType, null);
+    }
+
+    /** As {@link #book(UUID, UUID, String)}, in person or by video, with the body guide's answers if shared. */
+    @Transactional
+    public Appointment book(UUID slotId, UUID patientId, String reason, VisitType visitType, Intake intake) {
         try {
             Appointment booked = attemptBooking(slotId, patientId, reason, null,
-                    visitType == null ? VisitType.IN_PERSON : visitType);
+                    visitType == null ? VisitType.IN_PERSON : visitType, intake);
             metrics.bookingCommitted();
             return booked;
         } catch (DomainException e) {
@@ -126,7 +131,7 @@ public class BookingService {
     }
 
     private Appointment attemptBooking(UUID slotId, UUID patientId, String reason, UUID rescheduledFrom,
-                                       VisitType visitType) {
+                                       VisitType visitType, Intake intake) {
         Instant now = clock.instant();
 
         AppointmentSlot slot = slotRepository.findById(slotId)
@@ -160,6 +165,7 @@ public class BookingService {
                 .scheduledAt(slot.getStartsAt())
                 .rescheduledFrom(rescheduledFrom)
                 .visitType(visitType)
+                .intake(intake)
                 .build();
 
         try {
@@ -247,7 +253,7 @@ public class BookingService {
         Appointment moved;
         try {
             moved = attemptBooking(newSlotId, old.getPatient().getId(), old.getReason(), appointmentId,
-                    old.getVisitType());
+                    old.getVisitType(), old.getIntake());
             metrics.bookingCommitted();
         } catch (DomainException e) {
             metrics.bookingRefused(e.getCode());

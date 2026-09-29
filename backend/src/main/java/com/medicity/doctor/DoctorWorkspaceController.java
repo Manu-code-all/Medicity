@@ -175,7 +175,8 @@ public class DoctorWorkspaceController {
         return new VisitDetail(
                 visit.getId(), visit.getStatus().name(), visit.getScheduledAt(), visit.getSlot().getEndsAt(),
                 visit.getReason(), visit.getCancelReason(), started,
-                PatientBrief.from(visit.getPatient(), LocalDate.now(clock)), current, visit.getVisitType().name());
+                PatientBrief.from(visit.getPatient(), LocalDate.now(clock)), current, visit.getVisitType().name(),
+                visit.getIntake());
     }
 
     private Map<UUID, Instant> dispensedAt(java.util.Collection<Prescription> prescriptions) {
@@ -246,7 +247,9 @@ public class DoctorWorkspaceController {
             boolean started,
             PatientBrief patient,
             PrescriptionResponse prescription,
-            String visitType
+            String visitType,
+            /** What the patient told the body guide before booking, if they shared it. */
+            com.medicity.scheduling.Intake intake
     ) {}
 
     public record PatientHistory(PatientBrief patient, List<VisitResponse> visits,

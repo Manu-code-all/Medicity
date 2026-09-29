@@ -700,3 +700,15 @@ SELECT 'eeeeeeee-5555-4555-8555-eeeeeeeeee20', s.id, 'bbbbbbbb-2222-4222-8222-bb
        'Follow-up on the ECG results', s.starts_at, 'VIDEO'
 FROM appointment_slots s WHERE s.id = 'dddddddd-4444-4444-8444-dddddddddd20'
 ON CONFLICT DO NOTHING;
+
+
+-- ---------------------------------------------------------------------
+-- Arjun shared his body-guide answers when he booked today's visit with
+-- Dr. Rao (V27), so the doctor sees them before calling him in.
+-- ---------------------------------------------------------------------
+UPDATE appointments
+SET intake_summary = '{"area": "Chest",
+                       "symptoms": ["Chest discomfort on exertion that settles with rest"],
+                       "since": "Weeks or longer",
+                       "suggested": "Cardiology"}'::jsonb
+WHERE id = 'eeeeeeee-5555-4555-8555-eeeeeeeeee07' AND intake_summary IS NULL;

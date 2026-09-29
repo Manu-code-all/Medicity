@@ -1,6 +1,7 @@
 import { request } from "./client";
 import type {
   DiagnosisCode,
+  Intake,
   VideoTicket,
   VisitType,
   QueueDesk,
@@ -110,10 +111,10 @@ export const appointments = {
    * again (a retry after a dropped response) returns the original booking
    * instead of a "you already have an appointment" error.
    */
-  book: (slotId: string, reason: string, idempotencyKey: string, visitType: VisitType = "IN_PERSON") =>
+  book: (slotId: string, reason: string, idempotencyKey: string, visitType: VisitType = "IN_PERSON", intake: Intake | null = null) =>
     request<Appointment>("/api/v1/appointments", {
       method: "POST",
-      body: { slotId, reason, visitType },
+      body: { slotId, reason, visitType, intake },
       headers: { "Idempotency-Key": idempotencyKey },
     }),
 

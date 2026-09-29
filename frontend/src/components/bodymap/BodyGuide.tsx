@@ -2,8 +2,8 @@ import { useState } from "react";
 import { BodyMapCanvas } from "./BodyMapCanvas";
 import { ClinicalRecommendationCard } from "./ClinicalRecommendationCard";
 import { SymptomQualifierModal } from "./SymptomQualifierModal";
-import { saveVisitNote } from "../../lib/visitNote";
-import { BODY_TAXONOMY, recommend, regionsIn, type BodyView, type DurationId } from "./taxonomy";
+import { saveIntake, saveVisitNote } from "../../lib/visitNote";
+import { BODY_TAXONOMY, DURATIONS, recommend, regionsIn, type BodyView, type DurationId } from "./taxonomy";
 
 /**
  * Door 1: not sure who to see. Tap where it hurts, say what it is like, and
@@ -81,6 +81,17 @@ export function BodyGuide() {
           onDone={() => {
             // Carried to the booking form in session storage, not the URL: symptoms do not belong in addresses and logs.
             saveVisitNote(answer?.emergency ? "" : description);
+            // The structured answers too, for the doctor, if the patient chooses to share them when booking.
+            saveIntake(
+              answer && !answer.emergency
+                ? {
+                    area: chosen.label,
+                    symptoms: chosen.subSymptoms.filter((s) => symptoms.includes(s.id)).map((s) => s.label),
+                    since: DURATIONS.find((d) => d.id === duration)?.label ?? null,
+                    suggested: answer.specialty,
+                  }
+                : null,
+            );
             setDone(true);
           }}
           onClose={restart}

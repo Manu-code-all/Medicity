@@ -165,6 +165,12 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .doctor h2 { margin: 0 0 2px; font-size: 1.05rem; }
 .doctor__action, .appointment__action { display: flex; align-items: center; gap: 12px; }
 .fee { font-weight: 700; margin: 0; }
+.intake-share { border: 1px dashed var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; display: grid; gap: 4px; }
+.intake-share p { margin: 0; }
+.intake-share__title, .intake-card__title { font-weight: 600; margin: 0; }
+.intake-card { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--accent-soft); display: grid; gap: 6px; }
+.intake-card p { margin: 0; }
+.intake-card .details { margin: 0; }
 .badge--video { background: #eef2ff; color: #4f46e5; margin-left: 6px; }
 .visit-type { border: 0; padding: 0; margin: 0 0 8px; display: flex; gap: 16px; flex-wrap: wrap; }
 .visit-type legend { font-weight: 600; margin-bottom: 4px; padding: 0; }

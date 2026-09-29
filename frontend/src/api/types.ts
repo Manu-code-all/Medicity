@@ -175,6 +175,7 @@ export interface DoctorVisitSummary {
 
 export interface DoctorVisitDetail {
   visitType?: VisitType;
+  intake?: Intake | null;
   id: string;
   status: AppointmentStatus;
   scheduledAt: string;
@@ -692,4 +693,12 @@ export interface VideoTicket {
   iceServers: string[];
   opensAt: string;
   closesAt: string;
+}
+
+/** The body guide's answers, attached to a booking when the patient chooses. */
+export interface Intake {
+  area: string;
+  symptoms: string[];
+  since: string | null;
+  suggested: string | null;
 }

@@ -142,6 +142,22 @@ describe("VisitPage", () => {
     expect(calls.find((c) => c.method === "POST")?.url).toBe("/api/v1/doctors/me/prescriptions/rx1/corrections");
   });
 
+  it("shows the patient's body guide answers before the visit, when they shared them", async () => {
+    mockFetch(({ url }) => {
+      if (url.startsWith("/api/v1/pharmacy/medicines")) return json(200, MEDICINES);
+      return json(200, {
+        ...BOOKED,
+        intake: { area: "Chest", symptoms: ["Heart racing or skipping beats"], since: "A few days", suggested: "Cardiology" },
+      });
+    });
+    renderVisit();
+
+    expect(await screen.findByText(/Before the visit/)).toBeInTheDocument();
+    expect(screen.getByText("Heart racing or skipping beats")).toBeInTheDocument();
+    expect(screen.getByText("A few days")).toBeInTheDocument();
+    expect(screen.getByText(/No warning signs were reported/)).toBeInTheDocument();
+  });
+
   it("when the patient cancelled meanwhile, says so and shows the visit as it now is", async () => {
     let cancelled = false;
     mockFetch(({ method }) => {
