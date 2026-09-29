@@ -1916,6 +1916,30 @@ time opens. A cancellation or a move that day notifies everyone waiting.
 The spec's BIGINT ids and user-level rows were adapted to the schema's
 UUID keys and to patients, so family members work.
 
+## 47. Insurance and prices before booking
+
+Patients can now filter the directory by the insurance a clinic accepts and
+see what a visit costs before they book.
+
+- **Insurers are reference data** (V29 `insurers`): Star Health, Care
+  Health, HDFC ERGO, ICICI Lombard, Niva Bupa, New India Assurance, CGHS and
+  Ayushman Bharat (PM-JAY). `doctor_insurance` references it, so a filter
+  value is always real and a typo cannot invent an insurer.
+- **The filter is one EXISTS in the existing search.** A small read-only
+  entity (`DoctorInsurance`) lets the JPQL query say `EXISTS (SELECT 1 FROM
+  DoctorInsurance i WHERE ...)`, with the same `cast(:param as String)`
+  guard every optional parameter there needs (entry on the bytea bug).
+- **Still no N+1.** Insurers and prices for a page come in one query each,
+  beside the next free times and the ratings: a page of 20 doctors costs
+  the same few queries as a page of one.
+- **What a visit costs.** The consultation fee stays on `doctors`; extra
+  charges live in `doctor_procedure_prices`. Charges marked "every visit"
+  (a registration fee) are added to the fee as "Each visit", so the number
+  a patient sees first is the number they pay.
+- **Adapted from the spec**: UUID keys, prices beside the fee rather than a
+  second "Consultation" row, and an insurer list for India. What it is not:
+  an eligibility check. Accepting a scheme is the clinic's statement.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -1937,6 +1961,9 @@ UUID keys and to patients, so family members work.
   account is the front desk, and there is no separate kiosk or receptionist
   login. Arrivals for booked visits are listed beside the walk-ins, not
   merged into one numbered line.
+- **Insurance is what the clinic says it accepts.** There is no policy or
+  eligibility check with the insurer, and doctors cannot edit their insurers
+  or price list yet (the demo seeds them).
 - **ICD-10 is a curated subset.** About 130 common outpatient codes from
   ICD-10-CM (public domain), not the full classification; a condition
   outside it can still be written in words, just without a code. Loading

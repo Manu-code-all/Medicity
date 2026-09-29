@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { doctors } from "../api/endpoints";
 import { BODY_TAXONOMY, specialistPhrase } from "../components/bodymap/taxonomy";
+import { InsurerTags, PriceList } from "./DoctorOffers";
 
 /**
  * The directory. Its filters live in the URL (?specialty=, ?q=, and ?zone=
@@ -12,6 +13,7 @@ import { BODY_TAXONOMY, specialistPhrase } from "../components/bodymap/taxonomy"
 export function DoctorsPage() {
   const [params, setParams] = useSearchParams();
   const specialization = params.get("specialty") ?? "";
+  const insurance = params.get("insurance") ?? "";
   const zone = params.get("zone");
   const [nameQuery, setNameQuery] = useState(params.get("q") ?? "");
 
@@ -33,13 +35,23 @@ export function DoctorsPage() {
 
   const q = params.get("q") ?? "";
   const query = useQuery({
-    queryKey: ["doctors", specialization, q],
-    queryFn: () => doctors.search(specialization || undefined, q || undefined),
+    queryKey: ["doctors", specialization, q, insurance],
+    queryFn: () => doctors.search(specialization || undefined, q || undefined, insurance || undefined),
     // Keeps the previous results on screen while a new filter loads, so the
     // list does not collapse to a spinner on every keystroke.
     placeholderData: keepPreviousData,
   });
   const specialties = useQuery({ queryKey: ["doctors", "specialties"], queryFn: doctors.specialties, staleTime: 5 * 60_000 });
+  const insurers = useQuery({ queryKey: ["doctors", "insurers"], queryFn: doctors.insurers, staleTime: 60 * 60_000 });
+
+  function setInsurance(value: string) {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set("insurance", value);
+      else next.delete("insurance");
+      return next;
+    });
+  }
 
   function setSpecialization(value: string) {
     setParams((prev) => {
@@ -90,6 +102,18 @@ export function DoctorsPage() {
             <option value={specialization}>{specialization}</option>
           )}
         </select>
+
+        <label htmlFor="insurance" className="sr-only">
+          Insurance
+        </label>
+        <select id="insurance" value={insurance} onChange={(e) => setInsurance(e.target.value)}>
+          <option value="">Any insurance</option>
+          {insurers.data?.map((i) => (
+            <option key={i.name} value={i.name}>
+              {i.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {query.isPending && <p className="muted">Loading…</p>}
@@ -125,6 +149,8 @@ export function DoctorsPage() {
                 </p>
               ) : null}
               {doctor.bio && <p>{doctor.bio}</p>}
+              <InsurerTags insurers={doctor.insurers ?? []} />
+              <PriceList doctor={doctor} />
             </div>
             <div className="doctor__action">
               <p className="fee">₹{doctor.consultationFee}</p>

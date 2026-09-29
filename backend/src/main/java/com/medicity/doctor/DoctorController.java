@@ -50,6 +50,7 @@ public class DoctorController {
     private final DoctorRepository doctorRepository;
     private final SlotRepository slotRepository;
     private final ReviewService reviewService;
+    private final DoctorOffers offers;
 
     /** Specialisations for the filter and the quick chips: only ones someone can be booked in. */
     @GetMapping("/specialties")
@@ -76,12 +77,20 @@ public class DoctorController {
                         .map(d -> DoctorResponse.from(d, List.of(), null)).getContent());
     }
 
+    /** The insurers the directory can filter by. */
+    @GetMapping("/insurers")
+    @Operation(summary = "Insurers and schemes a doctor can accept (for the directory filter)")
+    public List<DoctorOffers.Insurer> insurers() {
+        return offers.insurers();
+    }
+
     @GetMapping
     @Operation(summary = "Search the doctor directory",
-            description = "`q` matches a doctor's name or specialisation; `specialization` is an exact filter.")
+            description = "`q` matches a doctor's name or specialisation; `specialization` and `insurance` are exact filters.")
     public Page<DoctorResponse> search(
             @RequestParam(required = false) String specialization,
             @RequestParam(required = false, name = "q") String nameQuery,
+            @RequestParam(required = false) String insurance,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
@@ -92,11 +101,15 @@ public class DoctorController {
                 Math.min(Math.max(size, 1), 50),
                 Sort.by("specialization"));
 
-        Page<Doctor> doctors = doctorRepository.search(blankToNull(specialization), blankToNull(nameQuery), pageable);
+        Page<Doctor> doctors = doctorRepository.search(blankToNull(specialization), blankToNull(nameQuery),
+                blankToNull(insurance), pageable);
         List<UUID> ids = doctors.map(Doctor::getId).getContent();
         Map<UUID, List<SlotResponse>> next = nextSlots(ids);
         Map<UUID, ReviewService.Rating> ratings = reviewService.ratings(ids);
-        return doctors.map(d -> DoctorResponse.from(d, next.getOrDefault(d.getId(), List.of()), ratings.get(d.getId())));
+        Map<UUID, List<String>> insurers = offers.insurersOf(ids);
+        Map<UUID, List<DoctorOffers.Price>> prices = offers.pricesOf(ids);
+        return doctors.map(d -> DoctorResponse.from(d, next.getOrDefault(d.getId(), List.of()), ratings.get(d.getId()))
+                .withOffers(insurers.getOrDefault(d.getId(), List.of()), prices.getOrDefault(d.getId(), List.of())));
     }
 
     /**
@@ -156,8 +169,17 @@ public class DoctorController {
             List<SlotResponse> nextSlots,
             /** Average of reviews from completed visits, to one decimal; null when there are none. */
             Double rating,
-            int reviewCount
+            int reviewCount,
+            /** Insurers and schemes the clinic accepts. */
+            List<String> insurers,
+            /** Charges beyond the consultation fee; "every visit" ones are added to it. */
+            List<DoctorOffers.Price> prices
     ) {
+        DoctorResponse withOffers(List<String> insurers, List<DoctorOffers.Price> prices) {
+            return new DoctorResponse(id, fullName, specialization, consultationFee, yearsExperience, bio, nextSlots,
+                    rating, reviewCount, insurers, prices);
+        }
+
         static DoctorResponse from(Doctor d, List<SlotResponse> nextSlots, ReviewService.Rating rating) {
             return new DoctorResponse(
                     d.getId(),
@@ -168,7 +190,9 @@ public class DoctorController {
                     d.getBio(),
                     nextSlots,
                     rating == null ? null : rating.average(),
-                    rating == null ? 0 : rating.count());
+                    rating == null ? 0 : rating.count(),
+                    List.of(),
+                    List.of());
         }
     }
 

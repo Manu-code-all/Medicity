@@ -14,6 +14,15 @@ const MENON = {
   number: 0,
 };
 
+const INSURERS = [
+  { name: "Star Health", kind: "PRIVATE" },
+  { name: "CGHS", kind: "GOVERNMENT" },
+];
+
+/** The directory's fake server: the insurers list, then whatever the test answers. */
+const directory = (respond: Parameters<typeof mockFetch>[0]) =>
+  mockFetch((call) => (call.url === "/api/v1/doctors/insurers" ? json(200, INSURERS) : respond(call)));
+
 function renderAt(path: string) {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
@@ -25,12 +34,39 @@ function renderAt(path: string) {
 }
 
 describe("DoctorsPage", () => {
+  it("filters by insurance, and shows accepted insurers and the price list on each card", async () => {
+    const withOffers = {
+      ...MENON,
+      content: [{
+        ...MENON.content[0],
+        insurers: ["CGHS", "New India Assurance", "Star Health", "Ayushman Bharat (PM-JAY)"],
+        prices: [
+          { procedure: "Registration", priceInr: 100, everyVisit: true },
+          { procedure: "ECG", priceInr: 300, everyVisit: false },
+        ],
+      }],
+    };
+    const calls = directory(({ url }) => json(200, url.endsWith("/specialties") ? [] : withOffers));
+    renderAt("/doctors");
+
+    await screen.findByRole("option", { name: "CGHS" });
+    await userEvent.selectOptions(screen.getByLabelText("Insurance"), "CGHS");
+    expect(calls.some((c) => c.url === "/api/v1/doctors?insurance=CGHS")).toBe(true);
+
+    expect(screen.getByLabelText(/^Accepts CGHS, New India Assurance/)).toHaveTextContent("+1 more");
+    await userEvent.click(screen.getByText("Price list"));
+    const row = (name: string) => screen.getByRole("row", { name: new RegExp(`^${name}`) });
+    expect(row("Consultation")).toHaveTextContent("₹700");
+    expect(row("Each visit")).toHaveTextContent("₹800");
+    expect(row("ECG")).toHaveTextContent("₹300");
+  });
+
   it("shows each doctor's next free times as links that open booking with that time chosen", async () => {
     const soon = new Date();
     soon.setDate(soon.getDate() + 1);
     soon.setHours(10, 0, 0, 0);
     const later = new Date(soon.getTime() + 30 * 60_000);
-    mockFetch(({ url }) => {
+    directory(({ url }) => {
       if (url.endsWith("/specialties")) return json(200, []);
       return json(200, {
         ...MENON,
@@ -53,7 +89,7 @@ describe("DoctorsPage", () => {
   });
 
   it("shows the rating from visits, linked to the reviews", async () => {
-    mockFetch(({ url }) =>
+    directory(({ url }) =>
       json(200, url.endsWith("/specialties") ? [] : { ...MENON, content: [{ ...MENON.content[0], rating: 4.5, reviewCount: 2 }] }),
     );
     renderAt("/doctors");
@@ -63,7 +99,7 @@ describe("DoctorsPage", () => {
   });
 
   it("says so when a doctor has no free times soon", async () => {
-    mockFetch(({ url }) => json(200, url.endsWith("/specialties") ? [] : MENON));
+    directory(({ url }) => json(200, url.endsWith("/specialties") ? [] : MENON));
     renderAt("/doctors");
 
     expect(await screen.findByText(/No free times in the next two weeks/)).toBeInTheDocument();
@@ -71,7 +107,7 @@ describe("DoctorsPage", () => {
   });
 
   it("takes the body guide's answer from the link, and offers the alternative when nobody matches", async () => {
-    const calls = mockFetch(({ url }) => {
+    const calls = directory(({ url }) => {
       if (url.endsWith("/specialties")) return json(200, [{ name: "General Medicine", doctors: 1 }]);
       return json(200, url.includes("General+Medicine") || url.includes("General%20Medicine") ? MENON : EMPTY);
     });
@@ -84,11 +120,11 @@ describe("DoctorsPage", () => {
     await userEvent.click(await screen.findByRole("button", { name: "See a general physician instead" }));
 
     expect(await screen.findByRole("heading", { name: "Dr. Kavitha Menon" })).toBeInTheDocument();
-    expect(screen.getByRole("combobox")).toHaveValue("General Medicine");
+    expect(screen.getByLabelText("Specialization")).toHaveValue("General Medicine");
   });
 
   it("lists only specialisations someone practises, with how many doctors", async () => {
-    mockFetch(({ url }) =>
+    directory(({ url }) =>
       url.endsWith("/specialties") ? json(200, [{ name: "Cardiology", doctors: 2 }]) : json(200, EMPTY),
     );
     renderAt("/doctors?q=rao");
