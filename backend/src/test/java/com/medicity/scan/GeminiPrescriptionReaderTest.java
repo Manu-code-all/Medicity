@@ -25,12 +25,12 @@ class GeminiPrescriptionReaderTest {
     private final RestClient.Builder builder = RestClient.builder().baseUrl("https://gemini.test");
     private final MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
     private final GeminiPrescriptionReader reader =
-            new GeminiPrescriptionReader(builder.build(), json, "test-key", "gemini-2.5-flash");
+            new GeminiPrescriptionReader(builder.build(), json, "test-key", "gemini-3.8-flash");
 
     @Test
     @DisplayName("sends the photo inline with the key in a header, asks for JSON, and parses the reply")
     void readsThePhoto() {
-        server.expect(requestTo("https://gemini.test/v1beta/models/gemini-2.5-flash:generateContent"))
+        server.expect(requestTo("https://gemini.test/v1beta/models/gemini-3.8-flash:generateContent"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(header("x-goog-api-key", "test-key"))
                 .andExpect(jsonPath("$.contents[0].parts[0].inlineData.mimeType").value("image/jpeg"))
@@ -54,26 +54,26 @@ class GeminiPrescriptionReaderTest {
     @Test
     @DisplayName("a rate limit or a reply that is not a reading fails cleanly")
     void failsCleanly() {
-        server.expect(requestTo("https://gemini.test/v1beta/models/gemini-2.5-flash:generateContent"))
+        server.expect(requestTo("https://gemini.test/v1beta/models/gemini-3.8-flash:generateContent"))
                 .andRespond(withStatus(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS));
         assertThatThrownBy(() -> reader.read(new byte[]{1}, "image/png"))
                 .isInstanceOf(PrescriptionReader.ReadingFailed.class)
                 .hasMessageContaining("rate-limiting");
 
         server.reset();
-        server.expect(requestTo("https://gemini.test/v1beta/models/gemini-2.5-flash:generateContent"))
+        server.expect(requestTo("https://gemini.test/v1beta/models/gemini-3.8-flash:generateContent"))
                 .andRespond(withStatus(org.springframework.http.HttpStatus.NOT_FOUND));
         assertThatThrownBy(() -> reader.read(new byte[]{1}, "image/png"))
-                .hasMessageContaining("no model called gemini-2.5-flash");
+                .hasMessageContaining("no model called gemini-3.8-flash");
 
         server.reset();
-        server.expect(requestTo("https://gemini.test/v1beta/models/gemini-2.5-flash:generateContent"))
+        server.expect(requestTo("https://gemini.test/v1beta/models/gemini-3.8-flash:generateContent"))
                 .andRespond(withStatus(org.springframework.http.HttpStatus.FORBIDDEN));
         assertThatThrownBy(() -> reader.read(new byte[]{1}, "image/png"))
                 .hasMessageContaining("refused the API key");
 
         server.reset();
-        server.expect(requestTo("https://gemini.test/v1beta/models/gemini-2.5-flash:generateContent"))
+        server.expect(requestTo("https://gemini.test/v1beta/models/gemini-3.8-flash:generateContent"))
                 .andRespond(withSuccess("{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Sorry.\"}]}}]}",
                         MediaType.APPLICATION_JSON));
         assertThatThrownBy(() -> reader.read(new byte[]{1}, "image/png"))

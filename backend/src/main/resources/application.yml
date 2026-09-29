@@ -68,7 +68,7 @@ medicity:
     # Or Google Gemini, which has a free tier. With both keys set, Claude
     # reads first and Gemini is the fallback.
     gemini-api-key: ${GEMINI_API_KEY:}
-    gemini-model: ${GEMINI_MODEL:gemini-2.5-flash}
+    gemini-model: ${GEMINI_MODEL:gemini-3.8-flash}
 
   sms:
     # Sign-in codes by SMS. Both unset: no texts are sent, and only the demo

@@ -38,7 +38,7 @@ public class GeminiPrescriptionReader implements PrescriptionReader {
     @Autowired
     public GeminiPrescriptionReader(ObjectMapper json,
                                     @Value("${medicity.ai.gemini-api-key:}") String apiKey,
-                                    @Value("${medicity.ai.gemini-model:gemini-2.5-flash}") String model,
+                                    @Value("${medicity.ai.gemini-model:gemini-3.8-flash}") String model,
                                     @Value("${medicity.ai.gemini-base-url:https://generativelanguage.googleapis.com}") String baseUrl) {
         SimpleClientHttpRequestFactory timeouts = new SimpleClientHttpRequestFactory();
         timeouts.setConnectTimeout(Duration.ofSeconds(5));
