@@ -1,5 +1,6 @@
 import { request } from "./client";
 import type {
+  DiagnosisCode,
   AnswerLineInput,
   Appointment,
   CodeSent,
@@ -286,4 +287,9 @@ export const doctorAccount = {
   /** Replaces the week; unbooked future slots are replaced, booked ones kept. */
   saveHours: (days: HoursWindow[]) =>
     request<HoursSaved>("/api/v1/doctors/me/hours", { method: "PUT", body: { days } }),
+};
+
+/** ICD-10 codes for the prescription writer (doctors only). */
+export const diagnoses = {
+  search: (q: string) => request<DiagnosisCode[]>(`/api/v1/diagnoses?${new URLSearchParams({ q })}`),
 };

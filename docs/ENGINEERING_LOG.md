@@ -1707,6 +1707,34 @@ On the page, "Change time" on an upcoming visit opens that doctor's times
 in move mode: no reason box, and a single "Move to …" button. A time taken
 meanwhile says the visit is unchanged and shows what is still free.
 
+## 40. Diagnosis codes in the prescription writer
+
+A diagnosis was free text only: "GERD", "Acid reflux", "reflux disease"
+are one condition written three ways, which no report can count. The
+diagnosis box now suggests ICD-10 codes as the doctor types, and a
+prescription keeps the chosen code beside the doctor's own words.
+
+- **Codes as reference data** (V23): a table of about 130 common outpatient
+  codes from ICD-10-CM, which is in the public domain, each with a few
+  everyday keywords the official title lacks ("bp", "sugar", "acidity",
+  "piles"). `prescriptions.diagnosis_code` is a nullable foreign key: a
+  code is optional, and when present it must be a real one.
+- **Search is plain SQL, on purpose.** At this size a scan per keystroke
+  costs microseconds, so there is no text index to maintain. Every typed
+  word must match the code, the title or a keyword; a code typed as a code
+  ranks first, then titles starting with the text. The user's `%` and `_`
+  are escaped, so typing them cannot turn into a wildcard.
+- **The words stay the doctor's.** Choosing a suggestion fills the box with
+  its title, but the doctor can edit the words afterwards or remove the
+  code; the patient sees the words, with the code in small print.
+- **Validated on the server.** An unknown code is a 422
+  (`UNKNOWN_DIAGNOSIS_CODE`), checked before anything is written; lower
+  case is accepted and stored upper case.
+
+The search box is a combobox in the ARIA sense (arrows, Enter, Escape,
+`aria-activedescendant`), and the list is chosen on mousedown so the
+input's blur does not close it first.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -1717,6 +1745,10 @@ meanwhile says the visit is unchanged and shows what is still free.
   a day cannot say so, and there is no way to mark leave or a holiday apart
   from removing that weekday. Doctors also cannot edit their fee or bio after
   signing up.
+- **ICD-10 is a curated subset.** About 130 common outpatient codes from
+  ICD-10-CM (public domain), not the full classification; a condition
+  outside it can still be written in words, just without a code. Loading
+  the full CMS release would be a data import, not a schema change.
 - **Typed descriptions are read by word lists, in English only.** The body
   guide's text box looks for fixed warning phrases and everyday words; it
   ignores negation ("no crushing pain" still sends people to emergency care,

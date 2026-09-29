@@ -198,6 +198,8 @@ public class PatientPortalController {
             String doctorName,
             String specialization,
             String diagnosis,
+            /** ICD-10, when the doctor chose one. */
+            String diagnosisCode,
             String notes,
             boolean revised,
             /** When the pharmacy filled it; null if not yet dispensed. */
@@ -218,7 +220,7 @@ public class PatientPortalController {
             return new PrescriptionResponse(
                     p.getId(), p.getAppointment().getId(), p.getIssuedAt(),
                     d.getUser().getFullName(), d.getSpecialization(),
-                    p.getDiagnosis(), p.getNotes(), p.getSupersedesId() != null, dispensedAt,
+                    p.getDiagnosis(), p.getDiagnosisCode(), p.getNotes(), p.getSupersedesId() != null, dispensedAt,
                     collected == null ? null : collected.at(), collected == null ? null : collected.storeName(),
                     p.getScanId() != null, p.getItems().stream().map(ItemResponse::from).toList());
         }

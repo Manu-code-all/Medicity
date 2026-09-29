@@ -47,6 +47,10 @@ public class Prescription {
     @Column(name = "diagnosis", nullable = false, updatable = false, length = 500)
     private String diagnosis;
 
+    /** The ICD-10 code the doctor chose, if any (V23); the text above stays the doctor's words. */
+    @Column(name = "diagnosis_code", updatable = false, length = 8)
+    private String diagnosisCode;
+
     @Column(name = "notes", updatable = false, columnDefinition = "text")
     private String notes;
 

@@ -180,6 +180,7 @@ export function VisitPage() {
                 {rx.dispensedAt ? ` · dispensed ${formatDate(rx.dispensedAt)}` : " · not yet dispensed"}
               </p>
               <h3>{rx.diagnosis}</h3>
+              {rx.diagnosisCode && <p className="muted small">ICD-10 {rx.diagnosisCode}</p>}
               <ul>
                 {rx.items.map((item) => (
                   <li key={item.medicine}>

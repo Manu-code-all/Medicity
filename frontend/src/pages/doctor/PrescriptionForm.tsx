@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { pharmacy } from "../../api/endpoints";
 import type { Medicine, Prescription, PrescriptionDraft, PrescriptionDraftItem } from "../../api/types";
 import { FREQUENCY_SUGGESTIONS, parseFrequency } from "../../lib/instructions";
+import { DiagnosisField } from "./DiagnosisField";
 
 /** A line of a draft read from a photo: what the doctor wrote, for checking. */
 export type StartingItem = PrescriptionDraftItem & { readAs?: string | undefined };
@@ -55,6 +56,7 @@ function DraftForm({
   medicines,
 }: Props & { medicines: Medicine[] }) {
   const [diagnosis, setDiagnosis] = useState(replacing?.diagnosis ?? starting?.diagnosis ?? "");
+  const [diagnosisCode, setDiagnosisCode] = useState<string | null>(replacing?.diagnosisCode ?? null);
   const [notes, setNotes] = useState(replacing?.notes ?? "");
   const [items, setItems] = useState<StartingItem[]>(() =>
     starting && starting.items.length > 0
@@ -81,7 +83,7 @@ function DraftForm({
       onSubmit={(e) => {
         e.preventDefault();
         // readAs is only for the doctor's eyes; the API gets the checked values.
-        onSubmit({ diagnosis, notes, items: items.map(({ readAs: _readAs, ...item }) => item), scanId });
+        onSubmit({ diagnosis, diagnosisCode, notes, items: items.map(({ readAs: _readAs, ...item }) => item), scanId });
       }}
     >
       {error && (
@@ -90,9 +92,15 @@ function DraftForm({
         </p>
       )}
 
-      <label htmlFor="rx-diagnosis">Diagnosis</label>
-      <input id="rx-diagnosis" required maxLength={500} value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} />
-      {fieldErrors.diagnosis && <span className="error field-error">{fieldErrors.diagnosis}</span>}
+      <DiagnosisField
+        diagnosis={diagnosis}
+        code={diagnosisCode}
+        onChange={(text, code) => {
+          setDiagnosis(text);
+          setDiagnosisCode(code);
+        }}
+        error={fieldErrors.diagnosis ?? fieldErrors.diagnosisCode}
+      />
 
       {/* Phrases the patient's portal can show in Hindi, Tamil and others. */}
       <datalist id="rx-frequency-suggestions">

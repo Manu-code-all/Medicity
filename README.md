@@ -328,7 +328,8 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `GET` | `/api/v1/doctors/me/visits/{id}` | own doctor | Visit detail with current prescription |
 | `POST` | `/api/v1/doctors/me/visits/{id}/complete` | own doctor | Close a visit as seen |
 | `POST` | `/api/v1/doctors/me/visits/{id}/no-show` | own doctor | Close a visit as missed |
-| `POST` | `/api/v1/doctors/me/visits/{id}/prescriptions` | own doctor | Issue the visit's prescription |
+| `POST` | `/api/v1/doctors/me/visits/{id}/prescriptions` | own doctor | Issue the visit's prescription (optional ICD-10 `diagnosisCode`) |
+| `GET` | `/api/v1/diagnoses?q=` | DOCTOR | ICD-10 codes by code, title or everyday word ("bp", "acidity") |
 | `POST` | `/api/v1/doctors/me/prescriptions/{id}/corrections` | author | Correct (supersede) a prescription |
 | `GET` | `/api/v1/doctors/me/patients/{id}/history` | treating doctor | A patient's history (audited) |
 | `GET` | `/api/v1/pharmacy/medicines` | signed in | Medicine catalogue |
