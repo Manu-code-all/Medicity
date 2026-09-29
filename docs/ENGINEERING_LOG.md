@@ -1890,6 +1890,32 @@ Tests: the intake reaches the doctor's visit view and survives a move;
 no intake when none is sent; an empty area is refused; the booking form
 sends it only while ticked and forgets it once booked.
 
+## 46. A waiting list for a full day
+
+When the day a patient wants is full, they can now ask to be told if a
+time opens. A cancellation or a move that day notifies everyone waiting.
+
+- **One row per doctor, patient and day** (V28, unique). Joining again
+  after leaving is an upsert back to ACTIVE, not a second row. Patients,
+  not accounts: Meera can wait for her mother's appointment, and the
+  notification says so ("For Lalitha, a visit on Wed 30 Sep...").
+- **Told in the same transaction as the cancellation.** `slotReleased`
+  runs inside the cancel (or the move) with propagation MANDATORY, and
+  claims everyone waiting in one `UPDATE ... RETURNING`, publishing an
+  outbox event for each. If the cancellation rolls back, the events roll
+  back with it: nobody hears of a time that never opened. A too-soon slot
+  (inside the 30-minute notice) is not announced, since nobody could book
+  it.
+- **Everyone is told; the first to book wins.** No reservation is held for
+  the first person on the list: holding a slot for someone who may never
+  open the notification wastes it. The existing unique index on active
+  appointments decides between those who try.
+- **The wait ends by itself.** Booking that doctor on that day marks the
+  entry fulfilled, in the booking's transaction. Days are India time.
+
+The spec's BIGINT ids and user-level rows were adapted to the schema's
+UUID keys and to patients, so family members work.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

@@ -6,6 +6,7 @@ import { ApiError } from "../api/client";
 import { appointments, doctors, reviews } from "../api/endpoints";
 import type { Slot, VisitType } from "../api/types";
 import { readIntake, readVisitNote, saveIntake, saveVisitNote } from "../lib/visitNote";
+import { WaitlistPanel } from "./WaitlistPanel";
 
 /**
  * Slot picker and booking flow.
@@ -248,6 +249,8 @@ export function BookingPage() {
           </button>
         </form>
       )}
+
+      {!moving && <WaitlistPanel doctorId={doctorId} />}
 
       {doctorReviews.data && doctorReviews.data.length > 0 && (
         <section id="reviews" className="reviews" aria-labelledby="reviews-title">

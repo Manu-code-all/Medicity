@@ -66,7 +66,8 @@ describe("DoctorsPage", () => {
     mockFetch(({ url }) => json(200, url.endsWith("/specialties") ? [] : MENON));
     renderAt("/doctors");
 
-    expect(await screen.findByText("No free times in the next two weeks.")).toBeInTheDocument();
+    expect(await screen.findByText(/No free times in the next two weeks/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Notify me when a time opens" })).toHaveAttribute("href", "/doctors/d4/book#waitlist");
   });
 
   it("takes the body guide's answer from the link, and offers the alternative when nobody matches", async () => {

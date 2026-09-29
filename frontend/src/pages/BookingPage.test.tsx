@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it } from "vitest";
@@ -74,6 +74,51 @@ describe("BookingPage", () => {
 
     await waitFor(() => expect(posts()).toHaveLength(1));
     expect(posts()[0]!.body).toMatchObject({ intake: null });
+  });
+
+  it("a full day: join its waiting list, see it listed, and stop waiting", async () => {
+    const soon = new Date();
+    soon.setDate(soon.getDate() + 3);
+    const iso = `${soon.getFullYear()}-${String(soon.getMonth() + 1).padStart(2, "0")}-${String(soon.getDate()).padStart(2, "0")}`;
+    const entry = {
+      id: "w1", doctorId: "d1", doctorName: "Dr. Anjali Rao", specialization: "Cardiology", patientId: "p1",
+      patientName: "Meera Nair", date: iso, status: "ACTIVE",
+    };
+    let joined = false;
+    const calls = mockFetch((call) => {
+      if (call.url.includes("/slots")) return json(200, SLOTS);
+      if (call.url === "/api/v1/doctors/d1/waitlist" && call.method === "POST") {
+        joined = true;
+        return json(201, entry);
+      }
+      if (call.method === "DELETE") {
+        joined = false;
+        return new Response(null, { status: 204 });
+      }
+      if (call.url === "/api/v1/patients/me/waitlist") return json(200, joined ? [entry] : []);
+      return json(404, {});
+    });
+    const user = userEvent.setup();
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={["/doctors/d1/book"]}>
+          <Routes>
+            <Route path="/doctors/:doctorId/book" element={<BookingPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    fireEvent.change(await screen.findByLabelText("Day"), { target: { value: iso } });
+    await user.click(screen.getByRole("button", { name: /Notify me if a time opens/ }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("We'll tell you if a time opens on");
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ date: iso });
+    const list = await screen.findByRole("list", { name: "Days you are waiting for" });
+    await user.click(within(list).getByRole("button", { name: "Stop waiting" }));
+
+    await waitFor(() => expect(calls.some((c) => c.method === "DELETE" && c.url.endsWith(`?date=${iso}`))).toBe(true));
+    await waitFor(() => expect(screen.queryByRole("list", { name: "Days you are waiting for" })).not.toBeInTheDocument());
   });
 
   it("can book a video call instead of a clinic visit", async () => {

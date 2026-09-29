@@ -1,6 +1,7 @@
 package com.medicity.scheduling;
 
 import com.medicity.common.DomainException;
+import com.medicity.scheduling.waitlist.WaitlistService;
 import com.medicity.common.DomainMetrics;
 import com.medicity.outbox.Outbox;
 import com.medicity.common.ConflictException;
@@ -92,6 +93,7 @@ public class BookingService {
     private final AuditLog auditLog;
     private final DomainMetrics metrics;
     private final Outbox outbox;
+    private final WaitlistService waitlist;
 
     /** Injected rather than using {@code Instant.now()} so tests control time. */
     private final Clock clock;
@@ -177,6 +179,7 @@ public class BookingService {
             // below working and being dead code.
             Appointment saved = appointmentRepository.saveAndFlush(appointment);
             log.info("Appointment {} booked: slot={} patient={}", saved.getId(), slotId, patientId);
+            waitlist.booked(slot.getDoctor().getId(), patientId, slot.getStartsAt());
             // Same transaction as the insert: reached only if the insert
             // succeeded, and rolled back with it if the commit fails.
             auditLog.recordChange("APPOINTMENT_BOOKED", "APPOINTMENT", saved.getId(),
@@ -250,6 +253,7 @@ public class BookingService {
         Instant from = old.getScheduledAt();
         old.cancel(now, "Moved to another time");
         appointmentRepository.saveAndFlush(old);
+        waitlist.slotReleased(old.getSlot());
         Appointment moved;
         try {
             moved = attemptBooking(newSlotId, old.getPatient().getId(), old.getReason(), appointmentId,
@@ -308,6 +312,7 @@ public class BookingService {
         }
 
         appointment.cancel(now, reason);
+        waitlist.slotReleased(appointment.getSlot());
         // Flushed here so that if the doctor closed this visit a moment ago,
         // the version check fails inside this call and is answered as 409.
         Appointment saved = appointmentRepository.saveAndFlush(appointment);

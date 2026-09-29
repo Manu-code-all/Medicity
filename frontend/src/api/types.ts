@@ -702,3 +702,16 @@ export interface Intake {
   since: string | null;
   suggested: string | null;
 }
+
+/** A day someone is waiting for with a doctor. */
+export interface WaitlistEntry {
+  id: string;
+  doctorId: string;
+  doctorName: string;
+  specialization: string;
+  patientId: string;
+  patientName: string;
+  /** YYYY-MM-DD, India time. */
+  date: string;
+  status: "ACTIVE" | "NOTIFIED" | "FULFILLED" | "LEFT";
+}

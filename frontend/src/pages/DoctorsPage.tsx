@@ -151,7 +151,10 @@ export function DoctorsPage() {
                 </li>
               </ul>
             ) : (
-              <p className="muted small next-slots__none">No free times in the next two weeks.</p>
+              <p className="muted small next-slots__none">
+                No free times in the next two weeks.{" "}
+                <Link to={`/doctors/${doctor.id}/book#waitlist`}>Notify me when a time opens</Link>
+              </p>
             )}
           </li>
         ))}
