@@ -75,7 +75,10 @@ class DemoResetTest extends AbstractIntegrationTest {
         assertThat(count("SELECT quantity_on_hand FROM medicine_stock WHERE medicine_id = '" + OMEPRAZOLE + "'"))
                 .isEqualTo(250);
         assertThat(count("SELECT count(*) FROM stores WHERE verified_at IS NOT NULL")).isEqualTo(5);
-        assertThat(count("SELECT count(*) FROM patients WHERE guardian_user_id IS NOT NULL")).isEqualTo(2);
+        // Meera's mother and son, and the two family members waiting in Dr. Menon's walk-in line.
+        assertThat(count("SELECT count(*) FROM patients WHERE guardian_user_id IS NOT NULL")).isEqualTo(4);
+        assertThat(count("SELECT count(*) FROM queue_tokens WHERE status = 'WAITING'")).isEqualTo(2);
+        assertThat(count("SELECT max(last_token) FROM queue_days")).isEqualTo(104);
         // Today's open question (3 answers) and last week's three (3 answers each).
         assertThat(count("SELECT count(*) FROM request_recipients WHERE status = 'ANSWERED'")).isEqualTo(12);
         assertThat(count("SELECT count(*) FROM request_answer_lines")).isEqualTo(18);
