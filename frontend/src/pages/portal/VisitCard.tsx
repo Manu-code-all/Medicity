@@ -5,6 +5,8 @@ import { ReviewForm } from "./ReviewForm";
 import { useState } from "react";
 import { FollowUpPanel } from "../../components/FollowUpPanel";
 import { AttachmentsPanel } from "../../components/AttachmentsPanel";
+import { LiveStatusPill } from "../../components/LiveStatusPill";
+import { isLaterToday } from "../../lib/format";
 
 /** How long after a visit ends its free follow-up questions stay open (mirrors the server). */
 const FOLLOW_UP_DAYS = 7;
@@ -57,6 +59,9 @@ export function VisitCard({ visit, prescriptionId, onCancel, cancelling, canRevi
           {formatTime(visit.endsAt)}
         </p>
         {visit.reason && <p className="visit__reason">{visit.reason}</p>}
+        {visit.status === "BOOKED" && visit.visitType !== "VIDEO" && isLaterToday(visit.scheduledAt) && (
+          <LiveStatusPill doctorId={visit.doctorId} />
+        )}
         {visit.status === "CANCELLED" && visit.cancelReason && (
           <p className="muted visit__note">Cancelled: {visit.cancelReason}</p>
         )}

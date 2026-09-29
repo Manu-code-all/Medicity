@@ -69,3 +69,9 @@ export function initials(fullName: string): string {
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
 }
+
+/** True for a visit later today that has not started yet: the only time the doctor's pace matters. */
+export function isLaterToday(iso: string, now = new Date()): boolean {
+  const at = new Date(iso);
+  return at > now && at.toDateString() === now.toDateString();
+}

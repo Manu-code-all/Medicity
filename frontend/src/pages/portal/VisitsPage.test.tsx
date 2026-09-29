@@ -58,6 +58,24 @@ describe("VisitsPage", () => {
     expect(screen.getByRole("link", { name: "Join video" })).toHaveAttribute("href", "/visits/a1/video");
   });
 
+  it("a visit later today shows whether the doctor is running on time", async () => {
+    const soon = new Date();
+    soon.setMinutes(soon.getMinutes() + 5);
+    const today = { ...UPCOMING, id: "t1", doctorId: "d1", scheduledAt: soon.toISOString(), endsAt: soon.toISOString() };
+    const calls = mockFetch(({ url }) => {
+      if (url.includes("/prescriptions")) return json(200, []);
+      if (url.endsWith("/live-status")) {
+        return json(200, { state: "RUNNING_LATE", delayMinutes: 25, visitInProgress: true, asOf: soon.toISOString() });
+      }
+      return json(200, page(url.includes("scope=upcoming") ? [today, UPCOMING] : []));
+    });
+    renderPage(<VisitsPage />);
+
+    expect(await screen.findByText(/Doctor is running about 25 min behind/)).toBeInTheDocument();
+    // Only today's visit asks; the one next year does not.
+    expect(calls.filter((c) => c.url.endsWith("/live-status")).map((c) => c.url)).toEqual(["/api/v1/doctors/d1/live-status"]);
+  });
+
   it("attaches a report to an upcoming visit", async () => {
     let attached = false;
     const calls = mockFetch(({ url, method }) => {

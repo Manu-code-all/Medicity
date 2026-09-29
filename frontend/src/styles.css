@@ -165,6 +165,9 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .doctor h2 { margin: 0 0 2px; font-size: 1.05rem; }
 .doctor__action, .appointment__action { display: flex; align-items: center; gap: 12px; }
 .fee { font-weight: 700; margin: 0; }
+.live-pill { display: inline-flex; align-items: center; gap: 4px; margin: 6px 0 0; padding: 3px 10px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; background: color-mix(in srgb, #16a34a 12%, var(--surface)); color: #166534; justify-self: start; width: fit-content; }
+.live-pill--late { background: color-mix(in srgb, #f59e0b 16%, var(--surface)); color: #92400e; }
+@media (prefers-color-scheme: dark) { .live-pill { color: #86efac; } .live-pill--late { color: #fcd34d; } }
 .attachments { display: grid; gap: 8px; margin-top: 8px; }
 .attachments p { margin: 0; }
 .attachments__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }

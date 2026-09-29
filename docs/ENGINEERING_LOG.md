@@ -1984,6 +1984,31 @@ the visit page before the patient walks in.
   by a CHECK as well as by the upload limit. Object storage is the step
   after this; see Known gaps.
 
+## 50. Is the doctor running late?
+
+On the day of an in-clinic visit, the patient sees "Doctor is on time" or
+"running about 20 min behind", refreshed each minute, so they can time
+their arrival.
+
+- **From what the system actually knows.** Medicity does not record when a
+  consultation starts, only when the doctor closes a visit as seen or
+  missed. So the estimate is: the oldest visit today that is still open
+  after its slot ended; the doctor is behind by how long ago it should have
+  ended. A visit still inside its own slot is "in progress", not late.
+- **Forgotten visits are not delays.** A visit that ended more than 90
+  minutes ago and was never closed is taken as forgotten (the nightly job
+  closes those as missed). Without that rule, one forgotten morning visit
+  would make the doctor look hours late all afternoon.
+- **Ten minutes is on time.** Clinics drift; under ten minutes reads as on
+  time rather than alarming anyone.
+- **Signed-in users only.** It says something about a clinic's day that the
+  public directory does not need, so a filter rule requires sign-in (a
+  method-level check alone would answer 403, not 401, after the directory's
+  public rule).
+- **Named honestly.** The pill's tooltip says it is an estimate from
+  unfinished visits; the spec's "based on current consultation progress"
+  would promise data the system does not have.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -2005,6 +2030,9 @@ the visit page before the patient walks in.
   account is the front desk, and there is no separate kiosk or receptionist
   login. Arrivals for booked visits are listed beside the walk-ins, not
   merged into one numbered line.
+- **"Running late" is an estimate.** It relies on doctors closing each visit
+  as they finish; a doctor who closes them all at the end of the day looks
+  late until then. There is no check-in or "consultation started" event.
 - **Attached records live in the database.** Like the prescription photos,
   bounded (5 MB, 5 per visit) but not what object storage with signed URLs
   would give at scale; there is no virus scan.

@@ -313,6 +313,7 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/auth/refresh` | — | Rotate: spend a refresh token for a new pair (reuse ends the session) |
 | `POST` | `/api/v1/auth/logout` | — | End the session the refresh token belongs to |
 | `GET` | `/api/v1/doctors` | — | Search doctors (`specialization`, `q`, `insurance`), each with next open times, rating, accepted insurers and price list |
+| `GET` | `/api/v1/doctors/{id}/live-status` | signed in | On time or running late today, and by about how much (an estimate) |
 | `GET` | `/api/v1/doctors/insurers` | — | Insurers and schemes the directory filters by |
 | `GET` | `/api/v1/doctors/specialties` | — | Specialisations someone can be booked in, with doctor counts |
 | `GET` | `/api/v1/doctors/suggest?q=` | — | Search-box suggestions: specialisations, then up to five doctors |
@@ -573,7 +574,9 @@ subdirectory means `vercel.json` is never read.
     ask the doctor up to 3 questions; the doctor answers from the visit page.
     Before a visit, "Attach medical records" adds lab reports or earlier
     prescriptions (PDF or photo) for the doctor to read beforehand; the
-    booking page offers the same right after booking.
+    booking page offers the same right after booking. On the day, the visit
+    shows "Doctor is on time" or "running about 20 min behind", estimated
+    from the visits the doctor has not finished yet.
   - *Prescriptions*: dose, frequency and duration per medicine. Prescriptions are
     append-only; a correction supersedes the original, and only the current
     version is shown, so a patient never sees two conflicting sets of instructions.

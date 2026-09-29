@@ -51,6 +51,7 @@ public class DoctorController {
     private final SlotRepository slotRepository;
     private final ReviewService reviewService;
     private final DoctorOffers offers;
+    private final LiveStatusService liveStatus;
 
     /** Specialisations for the filter and the quick chips: only ones someone can be booked in. */
     @GetMapping("/specialties")
@@ -75,6 +76,18 @@ public class DoctorController {
                 doctorRepository.specialties(q).stream().map(SpecialtyResponse::from).toList(),
                 doctorRepository.search(null, q, PageRequest.of(0, 5, Sort.by("specialization")))
                         .map(d -> DoctorResponse.from(d, List.of(), null)).getContent());
+    }
+
+    /**
+     * Whether the doctor is running on time today, estimated from visits
+     * still open after their slot ended. For signed-in users: it says
+     * something about a clinic's day, which the public directory does not need.
+     */
+    @GetMapping("/{doctorId}/live-status")
+    @org.springframework.security.access.prepost.PreAuthorize("isAuthenticated()")
+    @Operation(summary = "On time or running late, and by about how much (an estimate)")
+    public LiveStatusService.Status liveStatus(@PathVariable UUID doctorId) {
+        return liveStatus.status(doctorId);
     }
 
     /** The insurers the directory can filter by. */

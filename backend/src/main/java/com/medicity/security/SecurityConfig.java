@@ -51,6 +51,7 @@ public class SecurityConfig {
                 // order and the first match wins, so without this line every GET
                 // under /doctors/me/ would be open to anonymous callers.
                 .requestMatchers("/api/v1/doctors/me/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/v1/doctors/*/live-status").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/v1/doctors/**").permitAll()
                 .requestMatchers("/actuator/health/**").permitAll()
                 // The video socket checks its own one-time ticket at the handshake.

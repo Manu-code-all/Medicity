@@ -4,6 +4,8 @@ import { portal } from "../../api/endpoints";
 import { useAuth } from "../../auth/context";
 import { dateTile, firstName, formatDate, formatDayLong, formatTime, greeting, relativeFromNow } from "../../lib/format";
 import { VisitCard } from "./VisitCard";
+import { LiveStatusPill } from "../../components/LiveStatusPill";
+import { isLaterToday } from "../../lib/format";
 
 export function OverviewPage() {
   const { session } = useAuth();
@@ -45,6 +47,7 @@ export function OverviewPage() {
               {next.specialization} · {formatDayLong(next.scheduledAt)} at {formatTime(next.scheduledAt)}
             </p>
             {next.reason && <p>{next.reason}</p>}
+            {next.visitType !== "VIDEO" && isLaterToday(next.scheduledAt) && <LiveStatusPill doctorId={next.doctorId} />}
           </div>
           <Link className="next-visit__link" to="/portal/visits">
             Manage

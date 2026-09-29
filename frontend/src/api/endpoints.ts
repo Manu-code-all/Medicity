@@ -1,6 +1,7 @@
 import { request } from "./client";
 import type {
   Attachment,
+  LiveStatus,
   DiagnosisCode,
   FollowUpThread,
   Insurer,
@@ -100,6 +101,9 @@ export const doctors = {
 
   /** Specialisations someone can be booked in, with how many doctors practise each. */
   specialties: () => request<Specialty[]>("/api/v1/doctors/specialties"),
+
+  /** Whether the doctor is on time today (signed-in users). */
+  liveStatus: (doctorId: string) => request<LiveStatus>(`/api/v1/doctors/${doctorId}/live-status`),
 
   /** Insurers and schemes the directory can filter by. */
   insurers: () => request<Insurer[]>("/api/v1/doctors/insurers"),
