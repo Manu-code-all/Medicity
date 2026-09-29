@@ -65,6 +65,10 @@ medicity:
     # doctor types the medicines; the photo is still attached.
     anthropic-api-key: ${ANTHROPIC_API_KEY:}
     model: ${MEDICITY_AI_MODEL:claude-sonnet-5}
+    # Or Google Gemini, which has a free tier. With both keys set, Claude
+    # reads first and Gemini is the fallback.
+    gemini-api-key: ${GEMINI_API_KEY:}
+    gemini-model: ${GEMINI_MODEL:gemini-2.5-flash}
 
   sms:
     # Sign-in codes by SMS. Both unset: no texts are sent, and only the demo

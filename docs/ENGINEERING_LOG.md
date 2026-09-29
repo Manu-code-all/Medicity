@@ -1836,6 +1836,31 @@ days early), booking as video, and the relay itself with fake sockets
 (join notices, offer reaches only the other side, unknown messages
 dropped, leaving, rejoining replaces).
 
+## 44. A free option for reading handwriting: Gemini
+
+Reading a photographed prescription needed a paid Anthropic key. Google's
+Gemini API has a free tier and reads images, so it is now a second reader.
+
+- **Same interface, same checks.** `GeminiPrescriptionReader` implements the
+  existing `PrescriptionReader`. The instructions and the parsing of the
+  answer moved into `ReadingParser`, shared by both readers, so switching
+  provider cannot change what the model is asked or how its answer is
+  validated (JSON only, anything else is a failed read, never half a draft).
+- **Chosen by configuration.** `ConfiguredPrescriptionReader` (the primary
+  bean) uses whichever readers have a key, Claude first, Gemini second. If
+  the first fails (a free-tier rate limit is the likely case) it tries the
+  next, and only then falls back to typing. No key: the feature is off, as
+  before.
+- **Key in a header.** Gemini accepts the key as `?key=` in the URL; it is
+  sent as `x-goog-api-key` instead, so it never lands in access logs.
+- **Privacy note.** Free-tier requests may be used by Google to improve its
+  products. Fine for the demo's sample slips; a deployment reading real
+  patients' prescriptions needs a paid tier with the matching terms.
+
+Tests: the Gemini request shape and reply parsing against a mock server,
+a rate limit and a non-reading both failing cleanly, and the chooser
+(skips readers without a key, falls back after a failure, reports off).
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
