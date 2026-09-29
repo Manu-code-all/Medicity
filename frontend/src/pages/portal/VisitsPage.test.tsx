@@ -59,8 +59,12 @@ describe("VisitsPage", () => {
   });
 
   it("a visit later today shows whether the doctor is running on time", async () => {
-    const soon = new Date();
-    soon.setMinutes(soon.getMinutes() + 5);
+    // Midday, so "later today" cannot cross midnight whenever the suite runs.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const noon = new Date();
+    noon.setHours(12, 0, 0, 0);
+    vi.setSystemTime(noon);
+    const soon = new Date(noon.getTime() + 5 * 60_000);
     const today = { ...UPCOMING, id: "t1", doctorId: "d1", scheduledAt: soon.toISOString(), endsAt: soon.toISOString() };
     const calls = mockFetch(({ url }) => {
       if (url.includes("/prescriptions")) return json(200, []);
@@ -74,6 +78,7 @@ describe("VisitsPage", () => {
     expect(await screen.findByText(/Doctor is running about 25 min behind/)).toBeInTheDocument();
     // Only today's visit asks; the one next year does not.
     expect(calls.filter((c) => c.url.endsWith("/live-status")).map((c) => c.url)).toEqual(["/api/v1/doctors/d1/live-status"]);
+    vi.useRealTimers();
   });
 
   it("attaches a report to an upcoming visit", async () => {
