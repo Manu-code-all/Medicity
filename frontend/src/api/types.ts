@@ -56,6 +56,8 @@ export interface Appointment {
   scheduledAt: string;
   reason: string | null;
   cancelledAt: string | null;
+  /** The visit this one replaced, when the patient moved it. */
+  rescheduledFrom: string | null;
 }
 
 export interface Page<T> {

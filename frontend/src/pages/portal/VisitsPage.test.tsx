@@ -32,6 +32,7 @@ describe("VisitsPage", () => {
     renderPage(<VisitsPage />);
 
     expect(await screen.findByText("Dr. Rohan Shetty")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Change time" })).toHaveAttribute("href", "/doctors/d6/book?move=a1");
     const cancel = screen.getByRole("button", { name: "Cancel visit" });
 
     await userEvent.click(cancel);
@@ -58,6 +59,7 @@ describe("VisitsPage", () => {
 
     expect(await screen.findByText("Completed")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cancel visit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Change time" })).not.toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "View prescription" })).toHaveAttribute(
       "href",
       "/portal/prescriptions#rx-rx9",

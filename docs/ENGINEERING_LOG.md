@@ -1676,6 +1676,37 @@ ones (exactly the three soonest free come back, in order; a doctor with
 none gets an empty list), and frontend tests for the pills, the "no free
 times" line, the preselected time and the taken-meanwhile message.
 
+## 39. Moving a visit in one step
+
+Changing a visit's time meant cancelling it and booking again, and between
+the two the patient held nothing: if the new time went to someone else,
+the old one might have gone too. `POST /appointments/{id}/reschedule` does
+both in one transaction.
+
+- **Order matters.** The old appointment is cancelled and flushed first,
+  then the new slot booked through the ordinary booking path. Cancelling
+  first means the patient's own "one visit at a time" constraint never sees
+  the two overlap (moving a visit by half an hour works); booking through
+  the same path means every rule (verified doctor, 30-minute notice, the
+  unique index that settles races) applies unchanged.
+- **Both or neither.** If the booking fails, the exception rolls back the
+  whole transaction, including the cancellation. A test takes the new
+  slot for another patient first and checks the original visit is still
+  booked, with no cancellation time.
+- **The new row remembers the old** (`rescheduled_from`, V22, unique so a
+  visit is moved at most once). That makes a retried request safe without
+  an idempotency key: moving an already-moved visit to the same slot
+  returns the earlier move. The foreign key is `ON DELETE SET NULL` so
+  deleting old rows never trips on it.
+- **Same doctor only.** Moving to a different doctor is a different
+  decision (a new booking), and is refused with `DIFFERENT_DOCTOR`.
+- **One notification to the doctor**, "Meera moved their visit from Wed 30
+  Sep, 3:30 pm", instead of a cancellation followed by a booking.
+
+On the page, "Change time" on an upcoming visit opens that doctor's times
+in move mode: no reason box, and a single "Move to …" button. A time taken
+meanwhile says the visit is unchanged and shows what is still free.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

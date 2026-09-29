@@ -50,6 +50,9 @@ export function VisitCard({ visit, prescriptionId, onCancel, cancelling }: Props
             {prescriptionId && (
               <Link to={`/portal/prescriptions#rx-${prescriptionId}`}>View prescription</Link>
             )}
+            {onCancel && visit.status === "BOOKED" && !isPast && (
+              <Link to={`/doctors/${visit.doctorId}/book?move=${visit.id}`}>Change time</Link>
+            )}
             {onCancel && (
               <button
                 type="button"
