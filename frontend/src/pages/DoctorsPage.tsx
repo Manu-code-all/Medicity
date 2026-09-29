@@ -150,7 +150,7 @@ export function DoctorsPage() {
 }
 
 /** "Today, 4:30 pm", "Tomorrow, 10:00 am", "Thu 1 Oct, 10:00 am": short enough for a pill. */
-export function slotLabel(iso: string, now = new Date()): string {
+function slotLabel(iso: string, now = new Date()): string {
   const at = new Date(iso);
   const time = at.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   const days = Math.round((startOfDay(at) - startOfDay(now)) / 86_400_000);
