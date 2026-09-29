@@ -165,6 +165,15 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .doctor h2 { margin: 0 0 2px; font-size: 1.05rem; }
 .doctor__action, .appointment__action { display: flex; align-items: center; gap: 12px; }
 .fee { font-weight: 700; margin: 0; }
+.followup-badge { justify-self: start; margin-top: 6px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 0.85rem; cursor: pointer; }
+.followup { display: grid; gap: 8px; margin-top: 8px; }
+.followup p { margin: 0; }
+.followup__thread { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.followup__msg { max-width: 85%; padding: 8px 10px; border-radius: 12px; display: grid; gap: 2px; }
+.followup__msg--patient { background: var(--accent-soft); justify-self: end; }
+.followup__msg--doctor { background: color-mix(in srgb, #4f46e5 10%, var(--surface)); justify-self: start; }
+.followup__who { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.followup__form { display: grid; gap: 6px; }
 .insurers { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 0; }
 .tag { font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .price-list { margin-top: 6px; }

@@ -2,6 +2,11 @@ import { Link } from "react-router-dom";
 import type { Visit } from "../../api/types";
 import { dateTile, formatDayLong, formatTime } from "../../lib/format";
 import { ReviewForm } from "./ReviewForm";
+import { useState } from "react";
+import { FollowUpPanel } from "../../components/FollowUpPanel";
+
+/** How long after a visit ends its free follow-up questions stay open (mirrors the server). */
+const FOLLOW_UP_DAYS = 7;
 
 const STATUS_LABEL: Record<Visit["status"], string> = {
   BOOKED: "Booked",
@@ -21,6 +26,11 @@ interface Props {
 }
 
 export function VisitCard({ visit, prescriptionId, onCancel, cancelling, canReview }: Props) {
+  const [followUpOpen, setFollowUpOpen] = useState(false);
+  const followUpDaysLeft = Math.ceil(
+    (new Date(visit.endsAt).getTime() + FOLLOW_UP_DAYS * 86_400_000 - Date.now()) / 86_400_000,
+  );
+  const followUpAvailable = canReview && visit.status === "COMPLETED" && followUpDaysLeft > 0;
   const tile = dateTile(visit.scheduledAt);
   // A past visit still marked BOOKED was never closed by the clinic; calling
   // it "Booked" in the history list would read as if it were still coming up.
@@ -48,6 +58,18 @@ export function VisitCard({ visit, prescriptionId, onCancel, cancelling, canRevi
         {visit.status === "CANCELLED" && visit.cancelReason && (
           <p className="muted visit__note">Cancelled: {visit.cancelReason}</p>
         )}
+
+        {followUpAvailable && (
+          <button
+            type="button"
+            className="followup-badge"
+            aria-expanded={followUpOpen}
+            onClick={() => setFollowUpOpen((o) => !o)}
+          >
+            <span aria-hidden="true">💬</span> Free follow-up · {followUpDaysLeft} day{followUpDaysLeft > 1 ? "s" : ""} left
+          </button>
+        )}
+        {followUpOpen && <FollowUpPanel appointmentId={visit.id} side="PATIENT" />}
 
         {canReview && visit.status === "COMPLETED" &&
           (visit.reviewed ? (

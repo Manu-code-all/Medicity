@@ -32,6 +32,12 @@ const RX: Prescription = {
   }],
 };
 
+const NO_FOLLOWUPS = { messages: [], questionsLeft: 3, closesAt: "2030-01-08T06:00:00Z", open: true, awaitingDoctor: false };
+
+/** The visit page's fake server: an empty follow-up thread unless a test answers it, then the test's answers. */
+const visitServer = (respond: Parameters<typeof mockFetch>[0]) =>
+  mockFetch((call) => (call.url.endsWith("/followups") && call.method === "GET" ? json(200, NO_FOLLOWUPS) : respond(call)));
+
 function renderVisit() {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
@@ -47,7 +53,7 @@ function renderVisit() {
 describe("VisitPage", () => {
   it("closes the visit, then writes a prescription line by line, allowing a cheaper brand", async () => {
     let visit: DoctorVisitDetail = BOOKED;
-    const calls = mockFetch(({ url, method }) => {
+    const calls = visitServer(({ url, method }) => {
       if (url.startsWith("/api/v1/pharmacy/medicines")) return json(200, MEDICINES);
       if (method === "POST" && url.endsWith("/complete")) {
         visit = { ...visit, status: "COMPLETED" };
@@ -87,7 +93,7 @@ describe("VisitPage", () => {
 
   it("finds an ICD-10 code from an everyday word and sends it with the prescription", async () => {
     let visit: DoctorVisitDetail = { ...BOOKED, status: "COMPLETED" };
-    const calls = mockFetch(({ url, method }) => {
+    const calls = visitServer(({ url, method }) => {
       if (url.startsWith("/api/v1/pharmacy/medicines")) return json(200, MEDICINES);
       if (url.startsWith("/api/v1/diagnoses")) {
         return json(200, [
@@ -123,7 +129,7 @@ describe("VisitPage", () => {
   });
 
   it("a correction starts from the issued prescription and replaces it", async () => {
-    const calls = mockFetch(({ url, method }) => {
+    const calls = visitServer(({ url, method }) => {
       if (url.startsWith("/api/v1/pharmacy/medicines")) return json(200, MEDICINES);
       if (method === "POST") return json(201, { ...BOOKED, status: "COMPLETED", prescription: { ...RX, id: "rx2", revised: true, diagnosis: "GERD, mild" } });
       return json(200, { ...BOOKED, status: "COMPLETED", prescription: RX });
@@ -142,8 +148,35 @@ describe("VisitPage", () => {
     expect(calls.find((c) => c.method === "POST")?.url).toBe("/api/v1/doctors/me/prescriptions/rx1/corrections");
   });
 
+  it("answers a patient's follow-up question after the visit", async () => {
+    let answered = false;
+    const thread = (withAnswer: boolean) => ({
+      messages: [
+        { id: "f1", sender: "PATIENT", body: "Can I take it with tea?", sentAt: "2030-01-02T04:00:00Z" },
+        ...(withAnswer ? [{ id: "f2", sender: "DOCTOR", body: "Yes, after food.", sentAt: "2030-01-02T05:00:00Z" }] : []),
+      ],
+      questionsLeft: 2, closesAt: "2030-01-08T06:00:00Z", open: true, awaitingDoctor: !withAnswer,
+    });
+    const calls = mockFetch(({ url, method }) => {
+      if (url.endsWith("/followups")) {
+        if (method === "POST") answered = true;
+        return json(200, thread(answered));
+      }
+      if (url.startsWith("/api/v1/pharmacy/medicines")) return json(200, MEDICINES);
+      return json(200, { ...BOOKED, status: "COMPLETED", prescription: RX });
+    });
+    renderVisit();
+
+    expect(await screen.findByText("Can I take it with tea?")).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Your answer"), "Yes, after food.");
+    await userEvent.click(screen.getByRole("button", { name: "Send answer" }));
+
+    expect(await screen.findByText("Every question has an answer.")).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ body: "Yes, after food." });
+  });
+
   it("shows the patient's body guide answers before the visit, when they shared them", async () => {
-    mockFetch(({ url }) => {
+    visitServer(({ url }) => {
       if (url.startsWith("/api/v1/pharmacy/medicines")) return json(200, MEDICINES);
       return json(200, {
         ...BOOKED,
@@ -160,7 +193,7 @@ describe("VisitPage", () => {
 
   it("when the patient cancelled meanwhile, says so and shows the visit as it now is", async () => {
     let cancelled = false;
-    mockFetch(({ method }) => {
+    visitServer(({ method }) => {
       if (method === "POST") {
         cancelled = true;
         return json(409, { code: "VISIT_NOT_OPEN", detail: "This visit was cancelled by the patient." });

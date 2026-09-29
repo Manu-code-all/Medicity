@@ -1940,6 +1940,27 @@ see what a visit costs before they book.
   second "Consultation" row, and an insurer list for India. What it is not:
   an eligibility check. Accepting a scheme is the clinic's statement.
 
+## 48. Free follow-up questions after a visit
+
+For seven days after a visit ends, the patient can ask the doctor up to
+three questions, and the doctor answers from the visit page. Each side is
+notified through the outbox.
+
+- **The limit holds under concurrency.** Counting three questions and then
+  inserting is the classic check-then-act race: two questions sent at once
+  both count two and both insert. Posting first locks the visit's row
+  (`SELECT ... FOR UPDATE`), so the second waits, then counts three and is
+  refused. A test sends five at the same instant: exactly three are taken.
+- **Order is an identity column.** A question and its answer can share a
+  timestamp; sorting ties by a random UUID could show the answer first.
+  `seq GENERATED ALWAYS AS IDENTITY` orders the thread as written (the same
+  lesson as the sign-in codes, entry 32).
+- **No stranded questions.** The seven days limit the patient; the doctor
+  can answer whatever is waiting even after they end, and can post only when
+  a question is waiting, so the thread stays question-and-answer.
+- **Who.** Only this visit's patient (or the family account holder) and its
+  doctor can read or write; the server decides the side from the caller.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

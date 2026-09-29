@@ -1,6 +1,7 @@
 import { request } from "./client";
 import type {
   DiagnosisCode,
+  FollowUpThread,
   Insurer,
   WaitlistEntry,
   Intake,
@@ -345,4 +346,11 @@ export const waitlist = {
   leave: (doctorId: string, date: string) =>
     request<void>(`/api/v1/doctors/${doctorId}/waitlist?${new URLSearchParams({ date })}`, { method: "DELETE" }),
   mine: () => request<WaitlistEntry[]>("/api/v1/patients/me/waitlist"),
+};
+
+/** Free follow-up questions after a visit (the visit's patient and doctor). */
+export const followUps = {
+  thread: (appointmentId: string) => request<FollowUpThread>(`/api/v1/appointments/${appointmentId}/followups`),
+  post: (appointmentId: string, body: string) =>
+    request<FollowUpThread>(`/api/v1/appointments/${appointmentId}/followups`, { method: "POST", body: { body } }),
 };

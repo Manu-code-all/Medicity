@@ -52,6 +52,14 @@ public class NotificationConsumer implements OutboxConsumer {
                             + p.path("fromLabel").asText() + ".",
                     "/doctor", instant(p, "scheduledAt"));
 
+            case Outbox.FOLLOWUP_ASKED -> notify(event, uuid(p, "doctorUserId"),
+                    "Follow-up question", p.path("patientName").asText() + " asked a question after their visit.",
+                    "/doctor/visits/" + p.path("appointmentId").asText(), null);
+
+            case Outbox.FOLLOWUP_ANSWERED -> notify(event, uuid(p, "patientUserId"),
+                    p.path("doctorName").asText() + " answered",
+                    forWhom(p, "Your follow-up question has an answer."), "/portal/visits", null);
+
             case Outbox.WAITLIST_SLOT_OPENED -> notify(event, uuid(p, "patientUserId"),
                     "A time opened with " + p.path("doctorName").asText(),
                     forWhom(p, "A visit on ") + p.path("dayLabel").asText()

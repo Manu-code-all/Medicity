@@ -332,6 +332,7 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/doctors/{id}/waitlist` | PATIENT | Be told if a time opens with this doctor on a day (for yourself or family) |
 | `DELETE` | `/api/v1/doctors/{id}/waitlist?date=` | PATIENT | Stop waiting |
 | `GET` | `/api/v1/patients/me/waitlist` | PATIENT | Days you and your family are waiting for |
+| `GET` · `POST` | `/api/v1/appointments/{id}/followups` | the visit's patient or doctor | Free follow-up thread: 3 questions within 7 days of a completed visit; the doctor answers |
 | `POST` | `/api/v1/appointments/{id}/reschedule` | owner | Move to another time with the same doctor; both halves or neither |
 | `POST` | `/api/v1/appointments/{id}/video-ticket` | the visit's patient or doctor | One-time, 60-second ticket for the video room's signalling socket |
 | `WS` | `/ws/video?ticket=` | ticket | Relays offer, answer, candidates and hang-up between the two browsers |
@@ -566,6 +567,8 @@ subdirectory means `vercel.json` is never read.
     moves to history instead of vanishing. Upcoming visits can be cancelled, or moved to another time
     with "Change time": the old time is released and the new one booked in one
     transaction, so a time taken meanwhile leaves the visit as it was.
+    For 7 days after a completed visit, "Free follow-up" lets the patient
+    ask the doctor up to 3 questions; the doctor answers from the visit page.
   - *Prescriptions*: dose, frequency and duration per medicine. Prescriptions are
     append-only; a correction supersedes the original, and only the current
     version is shown, so a patient never sees two conflicting sets of instructions.
