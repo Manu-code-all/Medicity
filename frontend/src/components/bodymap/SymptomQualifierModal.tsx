@@ -9,6 +9,8 @@ export function SymptomQualifierModal({
   region,
   symptoms,
   onToggle,
+  description,
+  onDescribe,
   duration,
   onDuration,
   onDone,
@@ -17,6 +19,8 @@ export function SymptomQualifierModal({
   region: BodyRegion;
   symptoms: string[];
   onToggle: (symptomId: string) => void;
+  description: string;
+  onDescribe: (text: string) => void;
   duration: DurationId | null;
   onDuration: (duration: DurationId) => void;
   onDone: () => void;
@@ -47,6 +51,20 @@ export function SymptomQualifierModal({
         ))}
       </fieldset>
 
+      <div className="bm-describe">
+        <label htmlFor="bm-describe">Or say it in your own words</label>
+        <textarea
+          id="bm-describe"
+          rows={2}
+          maxLength={200}
+          value={description}
+          onChange={(e) => onDescribe(e.target.value)}
+          placeholder="For example: sharp pain when I climb stairs"
+          aria-describedby="bm-describe-hint"
+        />
+        <p id="bm-describe-hint">If you book, this is filled in for the doctor. You can change it there.</p>
+      </div>
+
       <fieldset className="bm-choices">
         <legend>Since when?</legend>
         {DURATIONS.map((d) => (
@@ -62,7 +80,7 @@ export function SymptomQualifierModal({
         ))}
       </fieldset>
 
-      <button type="button" className="lm-button lm-button--block" disabled={symptoms.length === 0} onClick={onDone}>
+      <button type="button" className="lm-button lm-button--block" disabled={symptoms.length === 0 && !description.trim()} onClick={onDone}>
         See who to consult
       </button>
     </section>

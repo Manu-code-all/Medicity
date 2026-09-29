@@ -10,4 +10,5 @@ configure({ asyncUtilTimeout: 3000 });
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  sessionStorage.clear();
 });

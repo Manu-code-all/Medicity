@@ -45,6 +45,21 @@ async function pickFirstSlotAndConfirm(user: ReturnType<typeof userEvent.setup>,
 const keyOf = (call: RecordedCall | undefined) => call?.headers["Idempotency-Key"];
 
 describe("BookingPage", () => {
+  it("starts the reason from what the visitor typed in the body guide, and forgets it once booked", async () => {
+    sessionStorage.setItem("medicity.visitNote", "My back tooth hurts when I chew");
+    const user = userEvent.setup();
+    const { posts } = renderPage(() => json(201, APPOINTMENT));
+
+    const [first] = await screen.findAllByRole("button", { pressed: false });
+    await user.click(first!);
+    expect(screen.getByLabelText("What brings you in?")).toHaveValue("My back tooth hurts when I chew");
+    await user.click(screen.getByRole("button", { name: /^Confirm/ }));
+
+    await waitFor(() => expect(posts()).toHaveLength(1));
+    expect(posts()[0]!.body).toMatchObject({ reason: "My back tooth hurts when I chew" });
+    await waitFor(() => expect(sessionStorage.getItem("medicity.visitNote")).toBeNull());
+  });
+
   it("retries a network failure with the same Idempotency-Key", async () => {
     const user = userEvent.setup();
     const { posts } = renderPage((_call, attempt) => {

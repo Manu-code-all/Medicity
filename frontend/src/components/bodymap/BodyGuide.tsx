@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BodyMapCanvas } from "./BodyMapCanvas";
 import { ClinicalRecommendationCard } from "./ClinicalRecommendationCard";
 import { SymptomQualifierModal } from "./SymptomQualifierModal";
+import { saveVisitNote } from "../../lib/visitNote";
 import { BODY_TAXONOMY, recommend, regionsIn, type BodyView, type DurationId } from "./taxonomy";
 
 /**
@@ -13,6 +14,7 @@ export function BodyGuide() {
   const [view, setView] = useState<BodyView>("front");
   const [region, setRegion] = useState<string | null>(null);
   const [symptoms, setSymptoms] = useState<string[]>([]);
+  const [description, setDescription] = useState("");
   const [duration, setDuration] = useState<DurationId | null>(null);
   const [done, setDone] = useState(false);
   const [asList, setAsList] = useState(false);
@@ -20,6 +22,7 @@ export function BodyGuide() {
   function choose(id: string) {
     setRegion(id);
     setSymptoms([]);
+    setDescription("");
     setDuration(null);
     setDone(false);
   }
@@ -27,11 +30,13 @@ export function BodyGuide() {
   function restart() {
     setRegion(null);
     setSymptoms([]);
+    setDescription("");
     setDuration(null);
     setDone(false);
   }
 
   const chosen = region ? BODY_TAXONOMY[region] : null;
+  const answer = chosen ? recommend(chosen.id, symptoms, description) : null;
 
   return (
     <div className="bm-guide" data-stage={done ? "result" : chosen ? "qualify" : "map"}>
@@ -69,17 +74,23 @@ export function BodyGuide() {
           region={chosen}
           symptoms={symptoms}
           onToggle={(id) => setSymptoms((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))}
+          description={description}
+          onDescribe={setDescription}
           duration={duration}
           onDuration={setDuration}
-          onDone={() => setDone(true)}
+          onDone={() => {
+            // Carried to the booking form in session storage, not the URL: symptoms do not belong in addresses and logs.
+            saveVisitNote(answer?.emergency ? "" : description);
+            setDone(true);
+          }}
           onClose={restart}
         />
       )}
-      {chosen && done && (
+      {chosen && done && answer && (
         <ClinicalRecommendationCard
           regionId={chosen.id}
           duration={duration}
-          recommendation={recommend(chosen.id, symptoms)}
+          recommendation={answer}
           onRestart={restart}
         />
       )}
