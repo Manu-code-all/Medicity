@@ -647,3 +647,34 @@ export interface DoctorReview {
   reviewer: string;
   createdAt: string;
 }
+
+/** A doctor's walk-in line today. */
+export interface QueueStatus {
+  open: boolean;
+  closedReason: string | null;
+  waiting: number;
+  nowServing: number | null;
+  minutesPerPatient: number;
+  /** For someone joining now. */
+  estimatedWaitMinutes: number;
+}
+
+export interface QueueToken {
+  id: string;
+  tokenNo: number;
+  status: "WAITING" | "CALLED" | "SEEN" | "MISSED" | "LEFT";
+  doctorId: string;
+  doctorName: string;
+  specialization: string;
+  patientName: string;
+  reason: string | null;
+  ahead: number;
+  estimatedWaitMinutes: number;
+  joinedAt: string;
+  calledAt: string | null;
+}
+
+export interface QueueDesk {
+  status: QueueStatus;
+  tokens: QueueToken[];
+}

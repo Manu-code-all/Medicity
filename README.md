@@ -317,6 +317,14 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `GET` | `/api/v1/doctors/suggest?q=` | — | Search-box suggestions: specialisations, then up to five doctors |
 | `GET` | `/api/v1/doctors/{id}/slots` | — | Available slots |
 | `GET` | `/api/v1/doctors/{id}/reviews` | — | Latest reviews (first name and initial only) |
+| `GET` | `/api/v1/doctors/{id}/queue` | — | Today's walk-in line: open, waiting, now seeing, estimated wait |
+| `POST` | `/api/v1/doctors/{id}/queue` | PATIENT | Take a walk-in token for today (#101, #102, …) |
+| `GET` | `/api/v1/queue/mine` | PATIENT | Today's tokens for you and your family, with place and wait |
+| `POST` | `/api/v1/queue/tokens/{id}/leave` | owner | Give up a place |
+| `GET` | `/api/v1/doctors/me/queue` | DOCTOR | Front desk: today's line |
+| `POST` | `/api/v1/doctors/me/queue/next` | DOCTOR | Call the lowest waiting token (the patient is notified) |
+| `POST` | `/api/v1/doctors/me/queue/tokens/{id}/seen` · `/missed` | DOCTOR | Close a token |
+| `POST` | `/api/v1/doctors/me/queue/open` · `/close` | DOCTOR | Take or stop new walk-ins today |
 | `POST` | `/api/v1/appointments/{id}/review` | owner | Review a completed visit, once (1 to 5 stars, optional words) |
 | `POST` | `/api/v1/appointments` | PATIENT | **Book a slot** (optional `Idempotency-Key`) |
 | `POST` | `/api/v1/appointments/{id}/cancel` | owner | Cancel, releasing the slot |
@@ -520,6 +528,10 @@ subdirectory means `vercel.json` is never read.
     a signed-out visitor is asked to sign in (or create an account) first,
     told what they are signing in for, and then lands on the list already
     filtered to the speciality or name they picked.
+  - *Walk in today* (Door 2, for today without an appointment): take a
+    token for a doctor (#105), see how many are ahead and about how long,
+    and follow it live in "Walk-in tokens"; the patient is notified when
+    called. Tokens are given 7 am to 9 pm India time.
   - Each doctor's card shows their next three free times; tapping one opens
     booking with that time already chosen (or says it was just taken), and
     their rating from reviews. Only a patient who was seen can review, once
@@ -564,6 +576,10 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
   council and registration number, as on Practo. They can sign in and set
   hours at once, but are not listed or bookable until an administrator has
   checked the number (`/admin/doctors`).
+- **Front desk** (`/doctor/queue`) — today's walk-in line beside today's
+  bookings: "Call #103" calls the next token, then Seen or Did not come in;
+  the queue can be closed to new walk-ins. Try it as `dr.menon@medicity.demo`:
+  the demo opens each day with two waiting.
 - **Your hours** (`/doctor/hours`) — days, times and visit length. Saving
   opens bookable slots four weeks ahead; a nightly job adds each new day, and
   a slot someone booked is never removed.

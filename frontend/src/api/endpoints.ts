@@ -1,6 +1,9 @@
 import { request } from "./client";
 import type {
   DiagnosisCode,
+  QueueDesk,
+  QueueStatus,
+  QueueToken,
   DoctorReview,
   AnswerLineInput,
   Appointment,
@@ -303,4 +306,19 @@ export const reviews = {
       body: { rating, comment: comment.trim() || null },
     }),
   forDoctor: (doctorId: string) => request<DoctorReview[]>(`/api/v1/doctors/${doctorId}/reviews`),
+};
+
+/** Same-day walk-in tokens (Door 2). */
+export const queue = {
+  status: (doctorId: string) => request<QueueStatus>(`/api/v1/doctors/${doctorId}/queue`),
+  join: (doctorId: string, reason: string) =>
+    request<QueueToken>(`/api/v1/doctors/${doctorId}/queue`, { method: "POST", body: { reason: reason.trim() || null } }),
+  mine: () => request<QueueToken[]>("/api/v1/queue/mine"),
+  leave: (tokenId: string) => request<QueueToken>(`/api/v1/queue/tokens/${tokenId}/leave`, { method: "POST" }),
+  desk: () => request<QueueDesk>("/api/v1/doctors/me/queue"),
+  callNext: () => request<QueueToken>("/api/v1/doctors/me/queue/next", { method: "POST" }),
+  finish: (tokenId: string, seen: boolean) =>
+    request<QueueToken>(`/api/v1/doctors/me/queue/tokens/${tokenId}/${seen ? "seen" : "missed"}`, { method: "POST" }),
+  setOpen: (open: boolean) =>
+    request<QueueStatus>(`/api/v1/doctors/me/queue/${open ? "open" : "close"}`, { method: "POST" }),
 };

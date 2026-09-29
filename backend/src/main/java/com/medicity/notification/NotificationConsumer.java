@@ -52,6 +52,11 @@ public class NotificationConsumer implements OutboxConsumer {
                             + p.path("fromLabel").asText() + ".",
                     "/doctor", instant(p, "scheduledAt"));
 
+            case Outbox.QUEUE_CALLED -> notify(event, uuid(p, "patientUserId"),
+                    "Token #" + p.path("tokenNo").asInt() + ": your turn",
+                    p.path("doctorName").asText() + " is ready to see " + p.path("patientName").asText() + " now.",
+                    "/portal/queue", null);
+
             case Outbox.PRESCRIPTION_ISSUED -> notify(event, uuid(p, "patientUserId"),
                     "New prescription", p.path("doctorName").asText() + " prescribed for "
                             + p.path("diagnosis").asText() + ".",

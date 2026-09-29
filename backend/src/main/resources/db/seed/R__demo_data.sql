@@ -648,3 +648,37 @@ FROM (VALUES
 JOIN appointments a ON a.id = v.appointment_id::uuid AND a.status = 'COMPLETED'
 JOIN appointment_slots s ON s.id = a.slot_id
 ON CONFLICT DO NOTHING;
+
+
+-- ---------------------------------------------------------------------
+-- Today's walk-in line at Dr. Kavitha Menon's (general medicine), in India
+-- time (V25): Kavya was seen, Arjun has just been called, and two family
+-- members are waiting, so a visitor who takes a token gets #105 with two
+-- ahead. The nightly reset clears the lines and this opens today's.
+-- ---------------------------------------------------------------------
+INSERT INTO patients (id, user_id, guardian_user_id, full_name, relationship, date_of_birth, gender,
+                      blood_group, city) VALUES
+  ('bbbbbbbb-2222-4222-8222-bbbbbbbbbb13', NULL, '22222222-2222-4222-8222-222222222202',
+   'Rohit Mehta', 'CHILD', '2014-08-21', 'MALE', 'A+', 'Mumbai'),
+  ('bbbbbbbb-2222-4222-8222-bbbbbbbbbb14', NULL, '22222222-2222-4222-8222-222222222203',
+   'Padma Reddy', 'PARENT', '1966-01-30', 'FEMALE', 'B+', 'Hyderabad')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO queue_days (doctor_id, queue_date, last_token)
+VALUES ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa04', (now() AT TIME ZONE 'Asia/Kolkata')::date, 104)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO queue_tokens (doctor_id, queue_date, token_no, patient_id, status, reason, joined_at, called_at, finished_at)
+SELECT 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa04', d.queue_date, v.token_no, v.patient_id::uuid, v.status, v.reason,
+       now() - v.joined, CASE WHEN v.status IN ('CALLED', 'SEEN') THEN now() - v.joined + INTERVAL '20 minutes' END,
+       CASE WHEN v.status = 'SEEN' THEN now() - v.joined + INTERVAL '35 minutes' END
+FROM queue_days d
+CROSS JOIN (VALUES
+  (101, 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb03', 'SEEN',    'Fever since last night', INTERVAL '70 minutes'),
+  (102, 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb02', 'CALLED',  'Cough, 4 days',          INTERVAL '45 minutes'),
+  (103, 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb13', 'WAITING', 'Stomach ache',           INTERVAL '30 minutes'),
+  (104, 'bbbbbbbb-2222-4222-8222-bbbbbbbbbb14', 'WAITING', 'Blood pressure check',   INTERVAL '10 minutes')
+) AS v (token_no, patient_id, status, reason, joined)
+WHERE d.doctor_id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa04'
+  AND d.queue_date = (now() AT TIME ZONE 'Asia/Kolkata')::date
+ON CONFLICT DO NOTHING;
