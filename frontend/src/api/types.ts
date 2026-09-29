@@ -756,3 +756,11 @@ export interface Attachment {
   note: string | null;
   uploadedAt: string;
 }
+
+/** Whether a doctor is running on time today (an estimate). */
+export interface LiveStatus {
+  state: "ON_TIME" | "RUNNING_LATE";
+  delayMinutes: number;
+  visitInProgress: boolean;
+  asOf: string;
+}
