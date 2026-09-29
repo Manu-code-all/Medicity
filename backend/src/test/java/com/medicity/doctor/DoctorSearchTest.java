@@ -53,6 +53,8 @@ class DoctorSearchTest extends AbstractIntegrationTest {
     @Autowired SlotRepository slotRepository;
     @Autowired AppointmentRepository appointmentRepository;
 
+    private Doctor rao;
+
     @BeforeEach
     void setUp() {
         // Children before parents. The container is shared across test classes,
@@ -65,7 +67,7 @@ class DoctorSearchTest extends AbstractIntegrationTest {
         doctorRepository.deleteAll();
         userRepository.deleteAll();
 
-        persistDoctor("dr.rao@medicity.test", "Dr. Anjali Rao", "Cardiology");
+        rao = persistDoctor("dr.rao@medicity.test", "Dr. Anjali Rao", "Cardiology");
         persistDoctor("dr.iyer@medicity.test", "Dr. Suresh Iyer", "Neurology");
         persistDoctor("dr.khan@medicity.test", "Dr. Farah Khan", "Cardiology");
     }
@@ -169,9 +171,6 @@ class DoctorSearchTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("each card carries its doctor's next three bookable times: not too soon, not taken")
     void cardsCarryNextSlots() throws Exception {
-        Doctor rao = doctorRepository.findAll().stream()
-                .filter(d -> d.getSpecialization().equals("Cardiology") && d.getUser().getFullName().contains("Rao"))
-                .findFirst().orElseThrow();
         Instant hour = Instant.now().truncatedTo(ChronoUnit.HOURS).plus(1, ChronoUnit.DAYS);
         slot(rao, Instant.now().plus(10, ChronoUnit.MINUTES));  // inside the 30-minute notice: not offered
         AppointmentSlot taken = slot(rao, hour);
@@ -208,7 +207,7 @@ class DoctorSearchTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk());
     }
 
-    private void persistDoctor(String email, String name, String specialization) {
+    private Doctor persistDoctor(String email, String name, String specialization) {
         User user = User.builder()
                 .passwordHash("{noop}irrelevant")
                 .fullName(name)
@@ -218,7 +217,7 @@ class DoctorSearchTest extends AbstractIntegrationTest {
         user.setEmail(email);
         user = userRepository.save(user);
 
-        doctorRepository.save(Doctor.builder()
+        return doctorRepository.save(Doctor.builder()
                 .user(user)
                 .specialization(specialization)
                 .licenseNumber("LIC-" + UUID.randomUUID().toString().substring(0, 8))
