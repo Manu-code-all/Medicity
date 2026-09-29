@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.stereotype.Component;
@@ -62,7 +63,11 @@ public class VideoSignalling extends TextWebSocketHandler implements HandshakeIn
             attributes.put(VISIT, p.appointmentId());
             attributes.put(SIDE, p.side());
             return true;
-        }).orElse(false);
+        }).orElseGet(() -> {
+            // Say why, instead of the bare 200 a refused upgrade would otherwise get.
+            response.setStatusCode(HttpStatus.FORBIDDEN);
+            return false;
+        });
     }
 
     @Override
