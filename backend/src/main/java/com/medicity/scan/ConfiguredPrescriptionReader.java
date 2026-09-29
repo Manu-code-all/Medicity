@@ -1,6 +1,7 @@
 package com.medicity.scan;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,8 @@ public class ConfiguredPrescriptionReader implements PrescriptionReader {
 
     private final List<PrescriptionReader> readers;
 
+    /** {@code @Autowired}: with two constructors Spring cannot choose on its own (log entry 20). */
+    @Autowired
     public ConfiguredPrescriptionReader(ClaudePrescriptionReader claude, GeminiPrescriptionReader gemini) {
         this(List.of(claude, gemini));
     }
