@@ -45,6 +45,20 @@ async function pickFirstSlotAndConfirm(user: ReturnType<typeof userEvent.setup>,
 const keyOf = (call: RecordedCall | undefined) => call?.headers["Idempotency-Key"];
 
 describe("BookingPage", () => {
+  it("can book a video call instead of a clinic visit", async () => {
+    const user = userEvent.setup();
+    const { posts } = renderPage(() => json(201, { ...APPOINTMENT, visitType: "VIDEO" }));
+
+    const [first] = await screen.findAllByRole("button", { pressed: false });
+    await user.click(first!);
+    expect(screen.getByRole("radio", { name: "At the clinic" })).toBeChecked();
+    await user.click(screen.getByRole("radio", { name: "Video call" }));
+    await user.click(screen.getByRole("button", { name: /^Confirm/ }));
+
+    await waitFor(() => expect(posts()).toHaveLength(1));
+    expect(posts()[0]!.body).toMatchObject({ visitType: "VIDEO" });
+  });
+
   it("shows what patients said, with stars and a first name only", async () => {
     mockFetch((call) => {
       if (call.url.includes("/slots")) return json(200, SLOTS);

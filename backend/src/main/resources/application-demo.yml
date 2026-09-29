@@ -14,3 +14,8 @@ medicity:
   auth:
     otp:
       show-demo-codes: true
+  # The demo's video visit is today at a fixed time; a wide window lets a
+  # visitor try it at any hour. Real visits open 15 minutes before.
+  video:
+    join-before: PT14H
+    join-after: PT14H

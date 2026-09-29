@@ -39,6 +39,7 @@ import { VisitsPage } from "./pages/portal/VisitsPage";
 import { TokensPage } from "./pages/portal/TokensPage";
 import { WalkInPage } from "./pages/queue/WalkInPage";
 import { FrontDeskPage } from "./pages/doctor/FrontDeskPage";
+import { VideoRoomPage } from "./pages/VideoRoomPage";
 
 const HOME_LABEL: Record<Role, string> = {
   PATIENT: "My portal",
@@ -143,6 +144,7 @@ export function App() {
               <Route path="/admin/doctors" element={<PendingDoctorsPage />} />
               <Route path="/doctors/:doctorId/book" element={<BookingPage />} />
               <Route path="/doctors/:doctorId/walk-in" element={<WalkInPage />} />
+              <Route path="/visits/:appointmentId/video" element={<VideoRoomPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
             </Route>
             {/* The old URL, kept working for existing bookmarks. */}

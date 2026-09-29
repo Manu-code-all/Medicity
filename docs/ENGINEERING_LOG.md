@@ -1800,6 +1800,42 @@ they are called; the doctor's front desk calls tokens in order.
 The demo opens Dr. Menon's line each morning with one seen, one called and
 two waiting, so a visitor taking a token gets #105 with two ahead.
 
+## 43. Video visits, browser to browser
+
+A visit can now be booked as a video call, and the patient and doctor meet
+in the browser. The design keeps the server out of the call.
+
+- **WebRTC, with the server as a switchboard only.** Two browsers need to
+  swap a few messages to find each other: an offer, an answer, and network
+  candidates. A small WebSocket handler (`/ws/video`) relays those between
+  the two places in a visit's room, patient and doctor, and drops anything
+  else. Audio and video then flow directly between the browsers, encrypted
+  (DTLS-SRTP is mandatory in WebRTC); the API never sees or stores them.
+- **Tickets instead of tokens in the URL.** A browser cannot set headers on
+  a WebSocket, and putting the fifteen-minute access token in the query
+  string would write it into logs. An authenticated `POST .../video-ticket`
+  checks that the caller is this visit's patient (or their family account
+  holder) or its doctor, that it is a booked video visit, and that it is
+  within 15 minutes before to 30 minutes after its time; it returns 32
+  random bytes valid once, for 60 seconds. The handshake redeems it.
+- **No glare.** Whoever is in the room first makes the offer when the other
+  arrives ("peer-joined"), so the two sides never send offers at once.
+  Candidates that arrive before the description they belong to are held
+  until it is set. A reload replaces the old connection rather than adding
+  a third party to the room.
+- **Visit type is a column** (`visit_type`, V26, default `IN_PERSON`), set
+  at booking and carried through reschedules; booking's idempotency key
+  covers it, so switching to video is a new attempt, not a replay.
+
+The demo seeds a video visit between Meera and Dr. Rao each day and, in
+the demo profile only, opens rooms 14 hours either side, so the call can be
+tried at any time with two windows.
+
+Tests: tickets (both sides, single use, strangers, in-person, cancelled,
+days early), booking as video, and the relay itself with fake sockets
+(join notices, offer reaches only the other side, unknown messages
+dropped, leaving, rejoining replaces).
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -1810,6 +1846,12 @@ two waiting, so a visitor taking a token gets #105 with two ahead.
   a day cannot say so, and there is no way to mark leave or a holiday apart
   from removing that weekday. Doctors also cannot edit their fee or bio after
   signing up.
+- **Video calls use STUN only, and the relay is in one process.** Two
+  browsers behind strict firewalls or carrier-grade NAT may fail to connect
+  directly; that needs a TURN server (relayed media), which costs money to
+  run. The signalling rooms and tickets live in the API's memory, so a
+  second API instance would need them shared (Redis pub/sub). The call is
+  not recorded, and there is no in-call chat or screen sharing.
 - **The walk-in queue refreshes by polling, and has no receptionist role.**
   Places update every 10 seconds rather than being pushed; the doctor's
   account is the front desk, and there is no separate kiosk or receptionist

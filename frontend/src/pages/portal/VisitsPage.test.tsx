@@ -47,6 +47,17 @@ describe("VisitsPage", () => {
     });
   });
 
+  it("an upcoming video visit offers to join the call", async () => {
+    mockFetch(({ url }) => {
+      if (url.includes("/prescriptions")) return json(200, []);
+      return json(200, page(url.includes("scope=upcoming") ? [{ ...UPCOMING, visitType: "VIDEO" }] : []));
+    });
+    renderPage(<VisitsPage />);
+
+    expect(await screen.findByText("Video")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Join video" })).toHaveAttribute("href", "/visits/a1/video");
+  });
+
   it("a completed visit can be rated from history, once", async () => {
     let reviewed = false;
     const calls = mockFetch(({ url, method }) => {
