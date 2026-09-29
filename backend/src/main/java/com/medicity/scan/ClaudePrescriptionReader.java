@@ -94,7 +94,12 @@ public class ClaudePrescriptionReader implements PrescriptionReader {
                     .retrieve()
                     .body(JsonNode.class);
         } catch (RestClientException e) {
-            throw new ReadingFailed("The handwriting reader could not be reached", e);
+            if (e instanceof org.springframework.web.client.RestClientResponseException r) {
+                log.warn("Claude answered {}: {}", r.getStatusCode().value(),
+                        r.getResponseBodyAsString().length() > 300 ? r.getResponseBodyAsString().substring(0, 300)
+                                : r.getResponseBodyAsString());
+            }
+            throw ReadingParser.callFailed(e, "Claude", model);
         }
         return parse(response);
     }

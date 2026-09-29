@@ -2,6 +2,7 @@ package com.medicity.scan;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -26,6 +27,7 @@ import java.util.Map;
  * ({@link ReadingParser}).
  */
 @Component
+@Slf4j
 public class GeminiPrescriptionReader implements PrescriptionReader {
 
     private final RestClient http;
@@ -81,9 +83,16 @@ public class GeminiPrescriptionReader implements PrescriptionReader {
                     .retrieve()
                     .body(JsonNode.class);
         } catch (RestClientException e) {
-            throw new ReadingFailed("The handwriting reader could not be reached", e);
+            if (e instanceof org.springframework.web.client.RestClientResponseException r) {
+                log.warn("Gemini answered {}: {}", r.getStatusCode().value(), abbreviate(r.getResponseBodyAsString()));
+            }
+            throw ReadingParser.callFailed(e, "Gemini", model);
         }
         return parse(response);
+    }
+
+    private static String abbreviate(String s) {
+        return s == null ? "" : s.length() > 300 ? s.substring(0, 300) + "…" : s;
     }
 
     Reading parse(JsonNode response) {
