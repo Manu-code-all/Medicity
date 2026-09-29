@@ -4,6 +4,7 @@ import { dateTile, formatDayLong, formatTime } from "../../lib/format";
 import { ReviewForm } from "./ReviewForm";
 import { useState } from "react";
 import { FollowUpPanel } from "../../components/FollowUpPanel";
+import { AttachmentsPanel } from "../../components/AttachmentsPanel";
 
 /** How long after a visit ends its free follow-up questions stay open (mirrors the server). */
 const FOLLOW_UP_DAYS = 7;
@@ -27,6 +28,7 @@ interface Props {
 
 export function VisitCard({ visit, prescriptionId, onCancel, cancelling, canReview }: Props) {
   const [followUpOpen, setFollowUpOpen] = useState(false);
+  const [recordsOpen, setRecordsOpen] = useState(false);
   const followUpDaysLeft = Math.ceil(
     (new Date(visit.endsAt).getTime() + FOLLOW_UP_DAYS * 86_400_000 - Date.now()) / 86_400_000,
   );
@@ -70,6 +72,18 @@ export function VisitCard({ visit, prescriptionId, onCancel, cancelling, canRevi
           </button>
         )}
         {followUpOpen && <FollowUpPanel appointmentId={visit.id} side="PATIENT" />}
+
+        {onCancel && visit.status === "BOOKED" && !isPast && (
+          <button
+            type="button"
+            className="link"
+            aria-expanded={recordsOpen}
+            onClick={() => setRecordsOpen((o) => !o)}
+          >
+            <span aria-hidden="true">📎</span> Attach medical records
+          </button>
+        )}
+        {recordsOpen && <AttachmentsPanel appointmentId={visit.id} canEdit />}
 
         {canReview && visit.status === "COMPLETED" &&
           (visit.reviewed ? (

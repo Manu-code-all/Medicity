@@ -36,7 +36,11 @@ const NO_FOLLOWUPS = { messages: [], questionsLeft: 3, closesAt: "2030-01-08T06:
 
 /** The visit page's fake server: an empty follow-up thread unless a test answers it, then the test's answers. */
 const visitServer = (respond: Parameters<typeof mockFetch>[0]) =>
-  mockFetch((call) => (call.url.endsWith("/followups") && call.method === "GET" ? json(200, NO_FOLLOWUPS) : respond(call)));
+  mockFetch((call) => {
+    if (call.url.endsWith("/followups") && call.method === "GET") return json(200, NO_FOLLOWUPS);
+    if (call.url.endsWith("/attachments")) return json(200, []);
+    return respond(call);
+  });
 
 function renderVisit() {
   render(
@@ -146,6 +150,23 @@ describe("VisitPage", () => {
 
     expect(await screen.findByRole("heading", { name: "GERD, mild" })).toBeInTheDocument();
     expect(calls.find((c) => c.method === "POST")?.url).toBe("/api/v1/doctors/me/prescriptions/rx1/corrections");
+  });
+
+  it("lists the records the patient attached before the visit", async () => {
+    mockFetch(({ url }) => {
+      if (url.endsWith("/attachments")) {
+        return json(200, [{ id: "a1", fileName: "Blood test (May).pdf", contentType: "application/pdf", sizeBytes: 250_000, note: "From last month", uploadedAt: "2030-01-01T00:00:00Z" }]);
+      }
+      if (url.startsWith("/api/v1/pharmacy/medicines")) return json(200, MEDICINES);
+      return json(200, BOOKED);
+    });
+    renderVisit();
+
+    const list = await screen.findByRole("list", { name: "Attached records" });
+    expect(list).toHaveTextContent("Blood test (May).pdf");
+    expect(list).toHaveTextContent("245 KB · From last month");
+    expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Add a report/)).not.toBeInTheDocument();
   });
 
   it("answers a patient's follow-up question after the visit", async () => {

@@ -1961,6 +1961,29 @@ notified through the outbox.
 - **Who.** Only this visit's patient (or the family account holder) and its
   doctor can read or write; the server decides the side from the caller.
 
+## 49. Records attached before a visit
+
+Patients can attach lab reports and earlier prescriptions to an upcoming
+visit, right after booking or from the visit, and the doctor reads them on
+the visit page before the patient walks in.
+
+- **The type comes from the bytes.** The browser's Content-Type and the file
+  name are claims; the server reads the first bytes (`%PDF-`, JPEG, PNG,
+  WebP signatures) and refuses anything else, so a script renamed
+  "report.pdf" is a 422. The stored type is the sniffed one, the name is
+  cleaned (no path, safe characters, the extension of the real type), and
+  the file is served with `X-Content-Type-Options: nosniff`, `no-store` and
+  an inline disposition.
+- **Who.** The visit's patient (or the family account holder) uploads and
+  removes, while the visit is still to come; the patient and the visit's
+  doctor read; a doctor opening a file is written to the audit log, as any
+  access to a patient's record is. Another doctor gets 403.
+- **Limits under concurrency.** Five files per visit, counted with the
+  visit's row locked, the same pattern as the follow-up questions.
+- **Stored like the prescription photos** (BYTEA, V31), with the size capped
+  by a CHECK as well as by the upload limit. Object storage is the step
+  after this; see Known gaps.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -1982,6 +2005,9 @@ notified through the outbox.
   account is the front desk, and there is no separate kiosk or receptionist
   login. Arrivals for booked visits are listed beside the walk-ins, not
   merged into one numbered line.
+- **Attached records live in the database.** Like the prescription photos,
+  bounded (5 MB, 5 per visit) but not what object storage with signed URLs
+  would give at scale; there is no virus scan.
 - **Insurance is what the clinic says it accepts.** There is no policy or
   eligibility check with the insurer, and doctors cannot edit their insurers
   or price list yet (the demo seeds them).

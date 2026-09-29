@@ -333,6 +333,8 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `DELETE` | `/api/v1/doctors/{id}/waitlist?date=` | PATIENT | Stop waiting |
 | `GET` | `/api/v1/patients/me/waitlist` | PATIENT | Days you and your family are waiting for |
 | `GET` · `POST` | `/api/v1/appointments/{id}/followups` | the visit's patient or doctor | Free follow-up thread: 3 questions within 7 days of a completed visit; the doctor answers |
+| `POST` · `GET` | `/api/v1/appointments/{id}/attachments` | patient (upload) · patient or doctor (read) | Reports attached to an upcoming visit: PDF/JPEG/PNG/WebP by content, 5 MB, 5 per visit |
+| `GET` · `DELETE` | `/api/v1/appointments/{id}/attachments/{fileId}` | patient or doctor · patient | One file (doctor reads audited); remove before the visit |
 | `POST` | `/api/v1/appointments/{id}/reschedule` | owner | Move to another time with the same doctor; both halves or neither |
 | `POST` | `/api/v1/appointments/{id}/video-ticket` | the visit's patient or doctor | One-time, 60-second ticket for the video room's signalling socket |
 | `WS` | `/ws/video?ticket=` | ticket | Relays offer, answer, candidates and hang-up between the two browsers |
@@ -569,6 +571,9 @@ subdirectory means `vercel.json` is never read.
     transaction, so a time taken meanwhile leaves the visit as it was.
     For 7 days after a completed visit, "Free follow-up" lets the patient
     ask the doctor up to 3 questions; the doctor answers from the visit page.
+    Before a visit, "Attach medical records" adds lab reports or earlier
+    prescriptions (PDF or photo) for the doctor to read beforehand; the
+    booking page offers the same right after booking.
   - *Prescriptions*: dose, frequency and duration per medicine. Prescriptions are
     append-only; a correction supersedes the original, and only the current
     version is shown, so a patient never sees two conflicting sets of instructions.
