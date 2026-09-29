@@ -85,6 +85,43 @@ describe("VisitPage", () => {
     });
   });
 
+  it("finds an ICD-10 code from an everyday word and sends it with the prescription", async () => {
+    let visit: DoctorVisitDetail = { ...BOOKED, status: "COMPLETED" };
+    const calls = mockFetch(({ url, method }) => {
+      if (url.startsWith("/api/v1/pharmacy/medicines")) return json(200, MEDICINES);
+      if (url.startsWith("/api/v1/diagnoses")) {
+        return json(200, [
+          { code: "K21.9", title: "Gastro-esophageal reflux disease without esophagitis" },
+          { code: "K29.70", title: "Gastritis, unspecified, without bleeding" },
+        ]);
+      }
+      if (method === "POST") {
+        visit = { ...visit, prescription: { ...RX, diagnosis: "Gastro-esophageal reflux disease without esophagitis", diagnosisCode: "K21.9" } };
+        return json(201, visit);
+      }
+      return json(200, visit);
+    });
+    renderVisit();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Write prescription" }));
+    const field = await screen.findByRole("combobox", { name: "Diagnosis" });
+    await userEvent.type(field, "acidity");
+    expect(await screen.findByRole("option", { name: /K21.9/ })).toBeInTheDocument();
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+
+    expect(field).toHaveValue("Gastro-esophageal reflux disease without esophagitis");
+    expect(screen.getByText("K21.9", { selector: "strong" })).toBeInTheDocument();
+    expect(calls.some((c) => c.url === "/api/v1/diagnoses?q=acidity")).toBe(true);
+
+    await userEvent.selectOptions(screen.getByLabelText("Medicine"), "m6");
+    await userEvent.type(screen.getByLabelText("Dose"), "20mg");
+    await userEvent.type(screen.getByLabelText("How often"), "Once daily");
+    await userEvent.click(screen.getByRole("button", { name: "Issue prescription" }));
+
+    expect(await screen.findByText("ICD-10 K21.9")).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST")?.body).toMatchObject({ diagnosisCode: "K21.9" });
+  });
+
   it("a correction starts from the issued prescription and replaces it", async () => {
     const calls = mockFetch(({ url, method }) => {
       if (url.startsWith("/api/v1/pharmacy/medicines")) return json(200, MEDICINES);

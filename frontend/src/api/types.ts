@@ -128,6 +128,8 @@ export interface Prescription {
   doctorName: string;
   specialization: string;
   diagnosis: string;
+  /** ICD-10, when the doctor chose one. */
+  diagnosisCode?: string | null;
   notes: string | null;
   /** True when this prescription corrects an earlier one, which it replaces. */
   revised: boolean;
@@ -194,6 +196,7 @@ export interface PrescriptionDraftItem {
 
 export interface PrescriptionDraft {
   diagnosis: string;
+  diagnosisCode?: string | null;
   notes: string;
   items: PrescriptionDraftItem[];
   /** The photographed slip this was typed from, when the doctor started from one. */
@@ -626,3 +629,8 @@ export interface HoursSaved {
   slotsOpened: number;
 }
 
+/** An ICD-10 code from the prescription writer's search. */
+export interface DiagnosisCode {
+  code: string;
+  title: string;
+}

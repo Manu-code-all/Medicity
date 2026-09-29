@@ -60,6 +60,7 @@ export function PatientHistoryPage() {
                 {rx.revised && " · revised"}
               </p>
               <strong>{rx.diagnosis}</strong>
+              {rx.diagnosisCode && <span className="muted small"> · ICD-10 {rx.diagnosisCode}</span>}
               <ul>
                 {rx.items.map((item) => (
                   <li key={item.medicine}>

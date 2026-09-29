@@ -220,6 +220,53 @@ class DoctorWorkspaceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("diagnosis search: by code, by title words, by everyday words; doctors only")
+    void diagnosisSearch() throws Exception {
+        mvc.perform(get("/api/v1/diagnoses").param("q", "gerd").header("Authorization", bearer(raoUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].code").value("K21.9"));
+        mvc.perform(get("/api/v1/diagnoses").param("q", "i10").header("Authorization", bearer(raoUser)))
+                .andExpect(jsonPath("$[0].code").value("I10"))
+                .andExpect(jsonPath("$[0].title").value("Essential (primary) hypertension"));
+        mvc.perform(get("/api/v1/diagnoses").param("q", "back pain").header("Authorization", bearer(raoUser)))
+                .andExpect(jsonPath("$[?(@.code == 'M54.50')]").exists());
+        // Every word must match: "knee left" finds the left knee only.
+        mvc.perform(get("/api/v1/diagnoses").param("q", "knee left").header("Authorization", bearer(raoUser)))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].code").value("M25.562"));
+        // A LIKE wildcard typed by the user is taken literally.
+        mvc.perform(get("/api/v1/diagnoses").param("q", "%%").header("Authorization", bearer(raoUser)))
+                .andExpect(jsonPath("$", hasSize(0)));
+        mvc.perform(get("/api/v1/diagnoses").param("q", "gerd").header("Authorization", bearer(patientUser)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("a prescription keeps the chosen code beside the doctor's words; an unknown code is refused")
+    void prescriptionCarriesDiagnosisCode() throws Exception {
+        Appointment started = visit(rao, patient, now.minus(10, ChronoUnit.MINUTES));
+        visitService.complete(started.getId(), rao.getId());
+        String body = """
+                {"diagnosis":"Acid reflux after meals","diagnosisCode":"%s","items":[
+                  {"medicineId":"%s","dosage":"20mg","frequency":"Once daily","durationDays":14,"quantity":14}]}
+                """;
+
+        mvc.perform(post(visitUrl(started) + "/prescriptions").header("Authorization", bearer(raoUser))
+                        .contentType(MediaType.APPLICATION_JSON).content(body.formatted("Z99.999", omeprazole.getId())))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("UNKNOWN_DIAGNOSIS_CODE"));
+
+        mvc.perform(post(visitUrl(started) + "/prescriptions").header("Authorization", bearer(raoUser))
+                        .contentType(MediaType.APPLICATION_JSON).content(body.formatted("k21.9", omeprazole.getId())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.prescription.diagnosis").value("Acid reflux after meals"))
+                .andExpect(jsonPath("$.prescription.diagnosisCode").value("K21.9"));
+
+        mvc.perform(get("/api/v1/patients/me/prescriptions").header("Authorization", bearer(patientUser)))
+                .andExpect(jsonPath("$[0].diagnosisCode").value("K21.9"));
+    }
+
+    @Test
     @DisplayName("the doctor's per-medicine 'cheaper brand is OK' reaches the patient; absent means no")
     void substitutionChoiceIsKept() throws Exception {
         Appointment started = visit(rao, patient, now.minus(10, ChronoUnit.MINUTES));

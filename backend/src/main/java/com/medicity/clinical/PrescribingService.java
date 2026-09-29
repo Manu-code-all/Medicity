@@ -62,6 +62,7 @@ public class PrescribingService {
     private final Outbox outbox;
     private final DispensationRepository dispensationRepository;
     private final ScanService scanService;
+    private final DiagnosisCodes diagnosisCodes;
     private final Clock clock;
 
     /** The first prescription for a completed visit. */
@@ -125,6 +126,12 @@ public class PrescribingService {
 
     private Prescription build(Appointment visit, UUID doctorId, UUID supersedes, PrescriptionDraft draft, UUID scanId) {
         requireDistinctMedicines(draft);
+        String code = draft.diagnosisCode() == null || draft.diagnosisCode().isBlank()
+                ? null : draft.diagnosisCode().trim().toUpperCase(java.util.Locale.ROOT);
+        if (code != null && !diagnosisCodes.exists(code)) {
+            throw new ValidationException("UNKNOWN_DIAGNOSIS_CODE",
+                    "%s is not a diagnosis code Medicity knows".formatted(code));
+        }
 
         Map<UUID, Medicine> medicines = medicineRepository.findAllById(
                         draft.items().stream().map(PrescriptionDraft.Item::medicineId).toList()).stream()
@@ -136,6 +143,7 @@ public class PrescribingService {
                 .doctor(doctor)
                 .patient(visit.getPatient())
                 .diagnosis(draft.diagnosis().trim())
+                .diagnosisCode(code)
                 .notes(draft.notes() == null || draft.notes().isBlank() ? null : draft.notes().trim())
                 .supersedesId(supersedes)
                 .scanId(scanId)
@@ -199,9 +207,14 @@ public class PrescribingService {
      * {@code scanId}: the photo this was typed from, when the doctor started
      * from a photographed slip; ignored for corrections.
      */
-    public record PrescriptionDraft(String diagnosis, String notes, List<Item> items, UUID scanId) {
+    public record PrescriptionDraft(String diagnosis, String notes, List<Item> items, UUID scanId,
+                                    String diagnosisCode) {
         public PrescriptionDraft(String diagnosis, String notes, List<Item> items) {
-            this(diagnosis, notes, items, null);
+            this(diagnosis, notes, items, null, null);
+        }
+
+        public PrescriptionDraft(String diagnosis, String notes, List<Item> items, UUID scanId) {
+            this(diagnosis, notes, items, scanId, null);
         }
 
         public record Item(UUID medicineId, String dosage, String frequency, int durationDays, int quantity,

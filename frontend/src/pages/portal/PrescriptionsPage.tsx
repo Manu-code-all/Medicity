@@ -54,6 +54,7 @@ export function PrescriptionsPage() {
                 {formatDate(rx.issuedAt)} · {rx.doctorName} · {rx.specialization}
               </p>
               <h2>{rx.diagnosis}</h2>
+              {rx.diagnosisCode && <p className="muted small">ICD-10 {rx.diagnosisCode}</p>}
             </div>
             <div className="rx__badges">
               {rx.revised && (
