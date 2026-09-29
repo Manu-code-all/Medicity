@@ -36,10 +36,18 @@ public interface DoctorRepository extends JpaRepository<Doctor, UUID> {
               AND (cast(:nameQuery as String) IS NULL
                    OR lower(u.fullName) LIKE lower(concat('%', cast(:nameQuery as String), '%'))
                    OR lower(d.specialization) LIKE lower(concat('%', cast(:nameQuery as String), '%')))
+              AND (cast(:insurance as String) IS NULL
+                   OR EXISTS (SELECT 1 FROM DoctorInsurance i
+                              WHERE i.doctorId = d.id AND i.insurer = cast(:insurance as String)))
             """)
     Page<Doctor> search(@Param("specialization") String specialization,
                         @Param("nameQuery") String nameQuery,
-                        Pageable pageable);
+                        @Param("insurance") String insurance, Pageable pageable);
+
+    /** Without the insurance filter. */
+    default Page<Doctor> search(String specialization, String nameQuery, Pageable pageable) {
+        return search(specialization, nameQuery, null, pageable);
+    }
 
     /** Every specialisation with at least one doctor who can be booked, and how many. */
     @Query("""

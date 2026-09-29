@@ -1,6 +1,7 @@
 import { request } from "./client";
 import type {
   DiagnosisCode,
+  Insurer,
   WaitlistEntry,
   Intake,
   VideoTicket,
@@ -87,15 +88,19 @@ export const auth = {
 };
 
 export const doctors = {
-  search: (specialization?: string, nameQuery?: string) => {
+  search: (specialization?: string, nameQuery?: string, insurance?: string) => {
     const params = new URLSearchParams();
     if (specialization) params.set("specialization", specialization);
     if (nameQuery) params.set("q", nameQuery);
+    if (insurance) params.set("insurance", insurance);
     return request<Page<Doctor>>(`/api/v1/doctors?${params}`);
   },
 
   /** Specialisations someone can be booked in, with how many doctors practise each. */
   specialties: () => request<Specialty[]>("/api/v1/doctors/specialties"),
+
+  /** Insurers and schemes the directory can filter by. */
+  insurers: () => request<Insurer[]>("/api/v1/doctors/insurers"),
 
   /** For the search box: specialisations and up to five doctors matching `q`. */
   suggest: (q: string) => request<DoctorSuggestions>(`/api/v1/doctors/suggest?q=${encodeURIComponent(q)}`),

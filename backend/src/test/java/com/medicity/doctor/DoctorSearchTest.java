@@ -52,6 +52,7 @@ class DoctorSearchTest extends AbstractIntegrationTest {
     @Autowired PatientRepository patientRepository;
     @Autowired SlotRepository slotRepository;
     @Autowired AppointmentRepository appointmentRepository;
+    @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     private Doctor rao;
 
@@ -198,6 +199,36 @@ class DoctorSearchTest extends AbstractIntegrationTest {
     private AppointmentSlot slot(Doctor doctor, Instant start) {
         return slotRepository.save(AppointmentSlot.builder()
                 .doctor(doctor).startsAt(start).endsAt(start.plus(30, ChronoUnit.MINUTES)).build());
+    }
+
+    @Test
+    @DisplayName("insurance filters the directory; each card lists its insurers and prices, every-visit charges first")
+    void insuranceAndPrices() throws Exception {
+        jdbc.update("INSERT INTO doctor_insurance (doctor_id, insurer) VALUES (?, 'Star Health'), (?, 'CGHS')",
+                rao.getId(), rao.getId());
+        jdbc.update("""
+                INSERT INTO doctor_procedure_prices (doctor_id, procedure, price_inr, every_visit)
+                VALUES (?, 'ECG', 350, FALSE), (?, 'Registration', 100, TRUE)
+                """, rao.getId(), rao.getId());
+
+        mvc.perform(get("/api/v1/doctors").param("insurance", "Star Health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].fullName").value("Dr. Anjali Rao"))
+                .andExpect(jsonPath("$.content[0].insurers", contains("CGHS", "Star Health")))
+                .andExpect(jsonPath("$.content[0].prices[0].procedure").value("Registration"))
+                .andExpect(jsonPath("$.content[0].prices[0].everyVisit").value(true))
+                .andExpect(jsonPath("$.content[1]").doesNotExist());
+        mvc.perform(get("/api/v1/doctors").param("insurance", "Niva Bupa"))
+                .andExpect(jsonPath("$.content", hasSize(0)));
+        mvc.perform(get("/api/v1/doctors").param("insurance", "Star Health").param("specialization", "Neurology"))
+                .andExpect(jsonPath("$.content", hasSize(0)));
+        mvc.perform(get("/api/v1/doctors"))
+                .andExpect(jsonPath("$.content", hasSize(3)));
+        mvc.perform(get("/api/v1/doctors/insurers"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].kind").value("PRIVATE"))
+                .andExpect(jsonPath("$[?(@.name == 'Ayushman Bharat (PM-JAY)')].kind").value("GOVERNMENT"));
     }
 
     @Test

@@ -312,7 +312,8 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/auth/otp/verify` | — | Mobile number and code for a token pair |
 | `POST` | `/api/v1/auth/refresh` | — | Rotate: spend a refresh token for a new pair (reuse ends the session) |
 | `POST` | `/api/v1/auth/logout` | — | End the session the refresh token belongs to |
-| `GET` | `/api/v1/doctors` | — | Search doctors, each with their next three open times |
+| `GET` | `/api/v1/doctors` | — | Search doctors (`specialization`, `q`, `insurance`), each with next open times, rating, accepted insurers and price list |
+| `GET` | `/api/v1/doctors/insurers` | — | Insurers and schemes the directory filters by |
 | `GET` | `/api/v1/doctors/specialties` | — | Specialisations someone can be booked in, with doctor counts |
 | `GET` | `/api/v1/doctors/suggest?q=` | — | Search-box suggestions: specialisations, then up to five doctors |
 | `GET` | `/api/v1/doctors/{id}/slots` | — | Available slots |
@@ -546,7 +547,9 @@ subdirectory means `vercel.json` is never read.
     called. Tokens are given 7 am to 9 pm India time.
   - Each doctor's card shows their next three free times; tapping one opens
     booking with that time already chosen (or says it was just taken), and
-    their rating from reviews. A full day? "Notify me if a time opens" puts
+    their rating from reviews, the insurance their clinic accepts (a filter
+    covers Star Health, CGHS, Ayushman Bharat and others), and a price list:
+    consultation, any charge added to every visit, and procedures. A full day? "Notify me if a time opens" puts
     the patient on that day's waiting list; a cancellation or a move that day
     notifies everyone waiting, and the first to book gets the time. Only a patient who was seen can review, once
     per visit, from their history ("Rate this visit").

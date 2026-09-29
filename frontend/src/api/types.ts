@@ -33,6 +33,10 @@ export interface Doctor {
   /** Average of reviews from completed visits; null when there are none. */
   rating?: number | null;
   reviewCount?: number;
+  /** Insurers and schemes the clinic accepts. */
+  insurers?: string[];
+  /** Charges beyond the consultation fee; "every visit" ones are added to it. */
+  prices?: ProcedurePrice[];
 }
 
 export interface Specialty {
@@ -714,4 +718,15 @@ export interface WaitlistEntry {
   /** YYYY-MM-DD, India time. */
   date: string;
   status: "ACTIVE" | "NOTIFIED" | "FULFILLED" | "LEFT";
+}
+
+export interface ProcedurePrice {
+  procedure: string;
+  priceInr: number;
+  everyVisit: boolean;
+}
+
+export interface Insurer {
+  name: string;
+  kind: "PRIVATE" | "PUBLIC" | "GOVERNMENT";
 }
