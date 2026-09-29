@@ -590,10 +590,14 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
   opens bookable slots four weeks ahead; a nightly job adds each new day, and
   a slot someone booked is never removed.
 
-- **Handwritten prescriptions** — photograph the slip; Claude reads it into a
-  draft the doctor checks line by line and confirms. The model's output is never
-  a prescription by itself. Without `ANTHROPIC_API_KEY` the doctor types, and the
-  photo is still attached for the patient and the stores.
+- **Handwritten prescriptions** — photograph the slip; a vision model reads it
+  into a draft the doctor checks line by line and confirms. The model's output
+  is never a prescription by itself. Set `ANTHROPIC_API_KEY` (Claude) or
+  `GEMINI_API_KEY` (Google Gemini, which has a free tier; get a key at
+  aistudio.google.com), or both: Claude reads first and Gemini is the fallback.
+  With neither, the doctor types, and the photo is still attached for the
+  patient and the stores. Gemini's free tier may use requests to improve
+  Google's products, so real patients' slips need a paid key.
 
 ## The chemist network
 
