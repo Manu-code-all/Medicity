@@ -1,6 +1,7 @@
 import { request } from "./client";
 import type {
   DiagnosisCode,
+  DoctorReview,
   AnswerLineInput,
   Appointment,
   CodeSent,
@@ -292,4 +293,14 @@ export const doctorAccount = {
 /** ICD-10 codes for the prescription writer (doctors only). */
 export const diagnoses = {
   search: (q: string) => request<DiagnosisCode[]>(`/api/v1/diagnoses?${new URLSearchParams({ q })}`),
+};
+
+/** Reviews: written only for a completed visit, read by anyone. */
+export const reviews = {
+  submit: (appointmentId: string, rating: number, comment: string) =>
+    request<void>(`/api/v1/appointments/${appointmentId}/review`, {
+      method: "POST",
+      body: { rating, comment: comment.trim() || null },
+    }),
+  forDoctor: (doctorId: string) => request<DoctorReview[]>(`/api/v1/doctors/${doctorId}/reviews`),
 };

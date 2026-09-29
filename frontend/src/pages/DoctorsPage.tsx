@@ -116,6 +116,14 @@ export function DoctorsPage() {
               <p className="muted">
                 {doctor.specialization} · {doctor.yearsExperience} yrs
               </p>
+              {doctor.reviewCount ? (
+                <p className="rating">
+                  <span aria-hidden="true">★</span> {doctor.rating?.toFixed(1)}{" "}
+                  <Link to={`/doctors/${doctor.id}/book#reviews`} className="muted">
+                    {doctor.reviewCount} review{doctor.reviewCount > 1 ? "s" : ""} from visits
+                  </Link>
+                </p>
+              ) : null}
               {doctor.bio && <p>{doctor.bio}</p>}
             </div>
             <div className="doctor__action">

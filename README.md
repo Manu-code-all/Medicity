@@ -316,6 +316,8 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `GET` | `/api/v1/doctors/specialties` | — | Specialisations someone can be booked in, with doctor counts |
 | `GET` | `/api/v1/doctors/suggest?q=` | — | Search-box suggestions: specialisations, then up to five doctors |
 | `GET` | `/api/v1/doctors/{id}/slots` | — | Available slots |
+| `GET` | `/api/v1/doctors/{id}/reviews` | — | Latest reviews (first name and initial only) |
+| `POST` | `/api/v1/appointments/{id}/review` | owner | Review a completed visit, once (1 to 5 stars, optional words) |
 | `POST` | `/api/v1/appointments` | PATIENT | **Book a slot** (optional `Idempotency-Key`) |
 | `POST` | `/api/v1/appointments/{id}/cancel` | owner | Cancel, releasing the slot |
 | `POST` | `/api/v1/appointments/{id}/reschedule` | owner | Move to another time with the same doctor; both halves or neither |
@@ -519,7 +521,9 @@ subdirectory means `vercel.json` is never read.
     told what they are signing in for, and then lands on the list already
     filtered to the speciality or name they picked.
   - Each doctor's card shows their next three free times; tapping one opens
-    booking with that time already chosen (or says it was just taken).
+    booking with that time already chosen (or says it was just taken), and
+    their rating from reviews. Only a patient who was seen can review, once
+    per visit, from their history ("Rate this visit").
 - **Sign-in pages** (`/login`, `/login/doctor`, `/login/chemist`) — one frame,
   one coloured line per role (teal, indigo, marigold), each with a one-click
   sign-in as that role's demo account. Mobile number and a one-time code, or

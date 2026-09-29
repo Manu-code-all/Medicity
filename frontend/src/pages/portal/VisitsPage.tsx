@@ -94,6 +94,7 @@ export function VisitsPage() {
             visit={visit}
             prescriptionId={rxByAppointment.get(visit.id)}
             onCancel={scope === "upcoming" ? cancel : undefined}
+            canReview={scope === "past"}
             cancelling={cancelling}
           />
         ))}

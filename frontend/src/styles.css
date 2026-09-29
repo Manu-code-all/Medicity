@@ -163,6 +163,24 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .doctor h2 { margin: 0 0 2px; font-size: 1.05rem; }
 .doctor__action, .appointment__action { display: flex; align-items: center; gap: 12px; }
 .fee { font-weight: 700; margin: 0; }
+.rating { margin: 2px 0 0; font-weight: 600; font-size: 0.92rem; }
+.rating > span { color: #d99a00; }
+.review-form { display: grid; gap: 8px; margin-top: 8px; }
+.review-form textarea { width: 100%; }
+.review-form__actions { display: flex; gap: 12px; align-items: center; }
+.stars { border: 0; margin: 0; padding: 0; display: flex; align-items: center; gap: 2px; }
+.stars legend { font-weight: 600; margin-bottom: 4px; padding: 0; }
+.star { position: relative; cursor: pointer; font-size: 1.6rem; line-height: 1; color: var(--border); }
+.star input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.star--on { color: #d99a00; }
+.star:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.stars__word { margin-left: 8px; font-size: 0.9rem; }
+.reviews { margin-top: 32px; }
+.reviews ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
+.review { border-top: 1px solid var(--border); padding-top: 12px; }
+.review p { margin: 4px 0 0; }
+.review__stars { color: #d99a00; letter-spacing: 2px; }
+.review__stars-off { color: var(--border); }
 .dx { position: relative; display: grid; gap: 4px; }
 .dx__list {
   position: absolute;

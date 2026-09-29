@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { Visit } from "../../api/types";
 import { dateTile, formatDayLong, formatTime } from "../../lib/format";
+import { ReviewForm } from "./ReviewForm";
 
 const STATUS_LABEL: Record<Visit["status"], string> = {
   BOOKED: "Booked",
@@ -15,9 +16,11 @@ interface Props {
   prescriptionId?: string | undefined;
   onCancel?: ((visit: Visit) => void) | undefined;
   cancelling?: boolean | undefined;
+  /** Offer "Rate this visit" on a completed visit not yet reviewed. */
+  canReview?: boolean | undefined;
 }
 
-export function VisitCard({ visit, prescriptionId, onCancel, cancelling }: Props) {
+export function VisitCard({ visit, prescriptionId, onCancel, cancelling, canReview }: Props) {
   const tile = dateTile(visit.scheduledAt);
   // A past visit still marked BOOKED was never closed by the clinic; calling
   // it "Booked" in the history list would read as if it were still coming up.
@@ -44,6 +47,13 @@ export function VisitCard({ visit, prescriptionId, onCancel, cancelling }: Props
         {visit.status === "CANCELLED" && visit.cancelReason && (
           <p className="muted visit__note">Cancelled: {visit.cancelReason}</p>
         )}
+
+        {canReview && visit.status === "COMPLETED" &&
+          (visit.reviewed ? (
+            <p className="muted small">You reviewed this visit. Thank you.</p>
+          ) : (
+            <ReviewForm visitId={visit.id} doctorName={visit.doctorName} />
+          ))}
 
         {(prescriptionId || onCancel) && (
           <div className="visit__actions">

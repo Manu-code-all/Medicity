@@ -23,12 +23,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import com.medicity.review.ReviewService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.UUID;
 
@@ -52,6 +54,7 @@ public class PatientPortalController {
     private final PrescriptionRepository prescriptionRepository;
     private final DispensationRepository dispensationRepository;
     private final ReservationService reservations;
+    private final ReviewService reviewService;
     private final Clock clock;
 
     @GetMapping
@@ -95,7 +98,8 @@ public class PatientPortalController {
         Page<Appointment> result = Scope.parse(scope) == Scope.UPCOMING
                 ? appointmentRepository.findUpcomingForPatient(patientId, now, pageable)
                 : appointmentRepository.findPastForPatient(patientId, now, pageable);
-        return result.map(VisitResponse::from);
+        Set<UUID> reviewed = reviewService.reviewedAmong(result.map(Appointment::getId).getContent());
+        return result.map(a -> VisitResponse.from(a, reviewed.contains(a.getId())));
     }
 
     @GetMapping("/prescriptions")
@@ -180,14 +184,20 @@ public class PatientPortalController {
             String doctorName,
             String specialization,
             Instant cancelledAt,
-            String cancelReason
+            String cancelReason,
+            /** The patient has already reviewed this visit. */
+            boolean reviewed
     ) {
         public static VisitResponse from(Appointment a) {
+            return from(a, false);
+        }
+
+        public static VisitResponse from(Appointment a, boolean reviewed) {
             Doctor d = a.getSlot().getDoctor();
             return new VisitResponse(
                     a.getId(), a.getStatus().name(), a.getScheduledAt(), a.getSlot().getEndsAt(),
                     a.getReason(), d.getId(), d.getUser().getFullName(), d.getSpecialization(),
-                    a.getCancelledAt(), a.getCancelReason());
+                    a.getCancelledAt(), a.getCancelReason(), reviewed);
         }
     }
 

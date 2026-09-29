@@ -30,6 +30,9 @@ export interface Doctor {
   bio: string | null;
   /** The next few open times, soonest first (empty in search-box suggestions). */
   nextSlots: Slot[];
+  /** Average of reviews from completed visits; null when there are none. */
+  rating?: number | null;
+  reviewCount?: number;
 }
 
 export interface Specialty {
@@ -96,6 +99,8 @@ export interface Visit {
   specialization: string;
   cancelledAt: string | null;
   cancelReason: string | null;
+  /** The patient has already reviewed this visit. */
+  reviewed?: boolean;
 }
 
 export interface PortalSummary {
@@ -633,4 +638,12 @@ export interface HoursSaved {
 export interface DiagnosisCode {
   code: string;
   title: string;
+}
+
+/** A review from a completed visit; the reviewer is a first name and an initial. */
+export interface DoctorReview {
+  rating: number;
+  comment: string | null;
+  reviewer: string;
+  createdAt: string;
 }

@@ -1735,6 +1735,34 @@ The search box is a combobox in the ARIA sense (arrows, Enter, Escape,
 `aria-activedescendant`), and the list is chosen on mousedown so the
 input's blur does not close it first.
 
+## 41. Reviews only from visits that happened
+
+Anyone-can-review ratings are easy to fake. Here a review belongs to a
+completed appointment, written by the account that owns it (the patient,
+or the family member's account holder), and nothing else can create one.
+
+- **Once per visit, in the schema.** `doctor_reviews.appointment_id` is
+  unique (V24). A double submit or two tabs race to the index, and the
+  loser gets `409 ALREADY_REVIEWED`; there is no read-then-write check to
+  slip past.
+- **Aggregated on read, not kept as totals.** The directory asks for the
+  average and count of every doctor on the page in one `GROUP BY` query.
+  A running total on `doctors` would be faster to read but can drift: the
+  demo's nightly reset deletes visits, and their reviews cascade away with
+  them, which a total column would not notice. At this scale the index on
+  `(doctor_id, created_at)` makes the aggregate cheap; a materialised
+  total is the step for when it is not.
+- **Privacy.** Reviews are public, like the directory, but name the
+  reviewer as a first name and an initial ("Meera N."), never the full name
+  or which visit.
+- **Portal.** History marks each visit reviewed or not with one query for
+  the page (no N+1); completed, unreviewed visits offer "Rate this visit":
+  radio-button stars (keyboard and screen-reader usable) and optional words.
+  The booking page shows "What patients said".
+
+The demo seeds four reviews and leaves two of Meera's completed visits
+unreviewed so a visitor can try it.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

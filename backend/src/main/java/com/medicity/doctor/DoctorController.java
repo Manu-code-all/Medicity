@@ -1,5 +1,6 @@
 package com.medicity.doctor;
 
+import com.medicity.review.ReviewService;
 import com.medicity.scheduling.AppointmentSlot;
 import com.medicity.scheduling.BookingService;
 import com.medicity.scheduling.SlotRepository;
@@ -48,6 +49,7 @@ public class DoctorController {
 
     private final DoctorRepository doctorRepository;
     private final SlotRepository slotRepository;
+    private final ReviewService reviewService;
 
     /** Specialisations for the filter and the quick chips: only ones someone can be booked in. */
     @GetMapping("/specialties")
@@ -71,7 +73,7 @@ public class DoctorController {
         return new Suggestions(
                 doctorRepository.specialties(q).stream().map(SpecialtyResponse::from).toList(),
                 doctorRepository.search(null, q, PageRequest.of(0, 5, Sort.by("specialization")))
-                        .map(d -> DoctorResponse.from(d, List.of())).getContent());
+                        .map(d -> DoctorResponse.from(d, List.of(), null)).getContent());
     }
 
     @GetMapping
@@ -91,8 +93,10 @@ public class DoctorController {
                 Sort.by("specialization"));
 
         Page<Doctor> doctors = doctorRepository.search(blankToNull(specialization), blankToNull(nameQuery), pageable);
-        Map<UUID, List<SlotResponse>> next = nextSlots(doctors.map(Doctor::getId).getContent());
-        return doctors.map(d -> DoctorResponse.from(d, next.getOrDefault(d.getId(), List.of())));
+        List<UUID> ids = doctors.map(Doctor::getId).getContent();
+        Map<UUID, List<SlotResponse>> next = nextSlots(ids);
+        Map<UUID, ReviewService.Rating> ratings = reviewService.ratings(ids);
+        return doctors.map(d -> DoctorResponse.from(d, next.getOrDefault(d.getId(), List.of()), ratings.get(d.getId())));
     }
 
     /**
@@ -149,9 +153,12 @@ public class DoctorController {
             int yearsExperience,
             String bio,
             /** The next few open times, soonest first; empty in suggestions. */
-            List<SlotResponse> nextSlots
+            List<SlotResponse> nextSlots,
+            /** Average of reviews from completed visits, to one decimal; null when there are none. */
+            Double rating,
+            int reviewCount
     ) {
-        static DoctorResponse from(Doctor d, List<SlotResponse> nextSlots) {
+        static DoctorResponse from(Doctor d, List<SlotResponse> nextSlots, ReviewService.Rating rating) {
             return new DoctorResponse(
                     d.getId(),
                     d.getUser().getFullName(),
@@ -159,7 +166,9 @@ public class DoctorController {
                     d.getConsultationFee(),
                     d.getYearsExperience(),
                     d.getBio(),
-                    nextSlots);
+                    nextSlots,
+                    rating == null ? null : rating.average(),
+                    rating == null ? 0 : rating.count());
         }
     }
 
