@@ -20,6 +20,7 @@ import { lazyPage } from "./lib/lazyPage";
 // <Suspense> each page loads inside, so the navigation never blinks.
 const BookingPage = lazyPage(() => import("./pages/BookingPage"), "BookingPage");
 const HoursPage = lazyPage(() => import("./pages/doctor/HoursPage"), "HoursPage");
+const PracticePage = lazyPage(() => import("./pages/doctor/PracticePage"), "PracticePage");
 const PatientHistoryPage = lazyPage(() => import("./pages/doctor/PatientHistoryPage"), "PatientHistoryPage");
 const SchedulePage = lazyPage(() => import("./pages/doctor/SchedulePage"), "SchedulePage");
 const VisitPage = lazyPage(() => import("./pages/doctor/VisitPage"), "VisitPage");
@@ -129,6 +130,7 @@ export function App() {
               <Route path="visits/:visitId" element={<VisitPage />} />
               <Route path="patients/:patientId" element={<PatientHistoryPage />} />
               <Route path="hours" element={<HoursPage />} />
+              <Route path="practice" element={<PracticePage />} />
               <Route path="queue" element={<FrontDeskPage />} />
             </Route>
             <Route path="/store" element={<StoreLayout />}>

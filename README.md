@@ -324,6 +324,7 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/auth/register/doctor` | — | A doctor signs up; unlisted and unbookable until verified |
 | `GET`/`PUT` | `/api/v1/doctors/me/hours` | DOCTOR | Weekly hours, up to three sessions a day; saving opens slots four weeks ahead |
 | `GET`/`POST` | `/api/v1/doctors/me/leave` | DOCTOR | Days off: no slots, no walk-in tokens; booked visits kept and counted |
+| `GET`/`PUT` | `/api/v1/doctors/me/practice` | DOCTOR | Fee, bio, years, insurers and other charges, as the directory shows them |
 | `GET` | `/api/v1/doctors/me/profile` | DOCTOR | The doctor's profile and whether it is verified |
 | `GET` | `/api/v1/admin/doctors/pending` | ADMIN | Doctors waiting for their registration check |
 | `POST` | `/api/v1/admin/doctors/{id}/verify` | ADMIN | Registration checked: the doctor becomes bookable |
@@ -631,6 +632,8 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
   Saving opens bookable slots four weeks ahead; a nightly job adds each new
   day, and a slot someone booked is never removed. **Days off** close that day
   to bookings and walk-ins; visits already booked are kept and counted.
+- **Fees and insurance** (`/doctor/practice`) — the fee, bio, insurers
+  accepted and other charges the directory shows; changes show at once.
 
 - **Handwritten prescriptions** — photograph the slip; a vision model reads it
   into a draft the doctor checks line by line and confirms. The model's output

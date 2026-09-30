@@ -2,6 +2,8 @@ import { request } from "./client";
 import type {
   Attachment,
   DoctorLeave,
+  Practice,
+  PracticeUpdate,
   LiveStatus,
   DiagnosisCode,
   FollowUpThread,
@@ -303,6 +305,13 @@ export const doctorAccount = {
   profile: () => request<DoctorProfile>("/api/v1/doctors/me/profile"),
 
   hours: () => request<HoursWindow[]>("/api/v1/doctors/me/hours"),
+
+  /** Fee, bio, insurers and prices, with every insurer that can be chosen. */
+  practice: () => request<Practice>("/api/v1/doctors/me/practice"),
+
+  /** Replaces all of it; a price left out is withdrawn. */
+  savePractice: (update: PracticeUpdate) =>
+    request<Practice>("/api/v1/doctors/me/practice", { method: "PUT", body: update }),
 
   /** Replaces the week; unbooked future slots are replaced, booked ones kept. */
   saveHours: (days: HoursWindow[]) =>
