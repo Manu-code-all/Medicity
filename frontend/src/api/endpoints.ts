@@ -1,6 +1,7 @@
 import { request } from "./client";
 import type {
   Attachment,
+  DoctorLeave,
   LiveStatus,
   DiagnosisCode,
   FollowUpThread,
@@ -306,6 +307,15 @@ export const doctorAccount = {
   /** Replaces the week; unbooked future slots are replaced, booked ones kept. */
   saveHours: (days: HoursWindow[]) =>
     request<HoursSaved>("/api/v1/doctors/me/hours", { method: "PUT", body: { days } }),
+
+  /** Upcoming days off, each with the visits already booked on it. */
+  leave: () => request<DoctorLeave[]>("/api/v1/doctors/me/leave"),
+
+  addLeave: (day: string, note: string) =>
+    request<DoctorLeave>("/api/v1/doctors/me/leave", { method: "POST", body: { day, note: note || null } }),
+
+  /** The day's appointments open again. */
+  removeLeave: (day: string) => request<HoursSaved>(`/api/v1/doctors/me/leave/${day}`, { method: "DELETE" }),
 };
 
 /** ICD-10 codes for the prescription writer (doctors only). */

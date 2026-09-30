@@ -322,7 +322,8 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/auth/login` | — | Obtain a token pair |
 | `POST` | `/api/v1/auth/otp/send` | — | Send a sign-in code to a mobile number (same reply for every number) |
 | `POST` | `/api/v1/auth/register/doctor` | — | A doctor signs up; unlisted and unbookable until verified |
-| `GET`/`PUT` | `/api/v1/doctors/me/hours` | DOCTOR | Weekly hours; saving opens slots four weeks ahead |
+| `GET`/`PUT` | `/api/v1/doctors/me/hours` | DOCTOR | Weekly hours, up to three sessions a day; saving opens slots four weeks ahead |
+| `GET`/`POST` | `/api/v1/doctors/me/leave` | DOCTOR | Days off: no slots, no walk-in tokens; booked visits kept and counted |
 | `GET` | `/api/v1/doctors/me/profile` | DOCTOR | The doctor's profile and whether it is verified |
 | `GET` | `/api/v1/admin/doctors/pending` | ADMIN | Doctors waiting for their registration check |
 | `POST` | `/api/v1/admin/doctors/{id}/verify` | ADMIN | Registration checked: the doctor becomes bookable |
@@ -625,9 +626,11 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
   bookings: "Call #103" calls the next token, then Seen or Did not come in;
   the queue can be closed to new walk-ins. Try it as `dr.menon@medicity.demo`:
   the demo opens each day with two waiting.
-- **Your hours** (`/doctor/hours`) — days, times and visit length. Saving
-  opens bookable slots four weeks ahead; a nightly job adds each new day, and
-  a slot someone booked is never removed.
+- **Your hours** (`/doctor/hours`) — days, times and visit length, in up to
+  three sessions a day (a lunch break, a morning and an evening clinic).
+  Saving opens bookable slots four weeks ahead; a nightly job adds each new
+  day, and a slot someone booked is never removed. **Days off** close that day
+  to bookings and walk-ins; visits already booked are kept and counted.
 
 - **Handwritten prescriptions** — photograph the slip; a vision model reads it
   into a draft the doctor checks line by line and confirms. The model's output

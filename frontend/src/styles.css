@@ -748,5 +748,14 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .form__row > div { display: flex; flex-direction: column; gap: 6px; }
 .hours input[type="time"], .hours select { width: auto; }
 .hours tr.is-off td:not(:first-child) { opacity: 0.45; }
+.hours tr.hours__more td { border-top: 0; padding-top: 0; }
+.hours__actions { white-space: nowrap; }
+.hours__actions button.link + button.link { margin-left: 10px; }
+.days-off { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.days-off li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.days-off__warn { color: var(--danger); }
+.days-off__form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.days-off__form label { display: grid; gap: 4px; flex: 1 1 180px; }
+.days-off__form button { flex: 0 0 auto; }
 a.tab { text-decoration: none; border-radius: 7px; }
 a.tab.is-active { background: var(--accent-soft); color: var(--text); }

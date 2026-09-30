@@ -2162,16 +2162,51 @@ fetched the first time it is opened.
 What remains in the main script is mostly React, React DOM, the router,
 TanStack Query and the landing page itself.
 
+## 56. Sessions and days off
+
+Hours were one window per weekday, so a doctor with a lunch break, or a
+morning clinic and an evening one, could not say so, and there was no way to
+take a day off short of deleting that weekday (listed in Known gaps).
+
+- **Up to three sessions a day.** V33 re-keys `doctor_hours` from (doctor,
+  weekday) to (doctor, weekday, start). The service sorts each day's
+  sessions and refuses overlaps (`SESSIONS_OVERLAP`) and a fourth session
+  (`TOO_MANY_SESSIONS`). Slot generation already looped over windows, so
+  a Monday of 09:00–11:00 and 14:00–15:00 at 30 minutes simply opens six
+  slots and none in the gap. The screen adds "+ Session", starting an hour
+  after the previous one ends.
+- **Days off.** `doctor_leave (doctor_id, day)`. Marking a day removes its
+  open slots that nobody booked, and the nightly top-up and any later
+  save skip it. The walk-in queue says "The doctor is not in today" and gives
+  no tokens. Removing the day reopens its slots.
+- **Booked visits are kept, and counted.** A day off does not cancel
+  anyone's visit by itself: which patients to call, move or see anyway is
+  the doctor's call. The answer and the list both say "2 visits are still
+  booked that day", in red.
+- **A query that assumed one row per day.** The queue's minutes-per-patient
+  estimate read `slot_minutes` with a scalar sub-select on (doctor,
+  weekday), which would raise "more than one row returned" the first time a
+  doctor saved two sessions. It now takes the shortest session's length.
+  Only a search for every reader of `doctor_hours` found it; no test would
+  have failed until a doctor used the feature.
+
+**Verified by.** `DoctorSignUpTest`: two sessions open exactly the six
+expected times; overlaps and a fourth session are refused; a day off removes
+three open slots and keeps the booked one, survives the nightly top-up, and
+reopens three when removed; a past day is refused. `QueueTest`: on a leave
+day the status says so and joining is refused. Frontend: the second session
+defaults to after lunch and is sent; days off list their booked visits.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
   registration number against the council's register by hand; there is no
   certificate upload and no automatic check (the National Medical
   Commission's register has no public API).
-- **Hours are one window a day.** A doctor with a lunch break or two clinics
-  a day cannot say so, and there is no way to mark leave or a holiday apart
-  from removing that weekday. Doctors also cannot edit their fee or bio after
-  signing up.
+- **Doctors cannot edit their fee or bio after signing up.**
+- **A day off does not tell booked patients.** Marking leave keeps visits
+  already booked and shows the doctor how many; contacting those patients,
+  or cancelling, is left to the doctor.
 - **Video calls use STUN only, and the relay is in one process.** Two
   browsers behind strict firewalls or carrier-grade NAT may fail to connect
   directly; that needs a TURN server (relayed media), which costs money to

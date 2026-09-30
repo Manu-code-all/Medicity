@@ -79,7 +79,8 @@ public class QueueService {
                 """, Map.of("doctor", doctorId, "today", today));
         int waiting = row.get("waiting") == null ? 0 : ((Number) row.get("waiting")).intValue();
         Integer serving = row.get("serving") == null ? null : ((Number) row.get("serving")).intValue();
-        String closedReason = Boolean.TRUE.equals(row.get("closed")) ? "The doctor has closed today's queue."
+        String closedReason = onLeave(doctorId, today) ? "The doctor is not in today."
+                : Boolean.TRUE.equals(row.get("closed")) ? "The doctor has closed today's queue."
                 : outsideHours() ? "Walk-in tokens are given between 7 am and 9 pm." : null;
         return new Status(closedReason == null, closedReason, waiting, serving, minutes, waiting * minutes);
     }
@@ -101,6 +102,9 @@ public class QueueService {
             throw new ValidationException("QUEUE_CLOSED", "Walk-in tokens are given between 7 am and 9 pm.");
         }
         LocalDate today = today();
+        if (onLeave(doctorId, today)) {
+            throw new ValidationException("DOCTOR_ON_LEAVE", "The doctor is not in today.");
+        }
         var day = new MapSqlParameterSource().addValue("doctor", doctorId).addValue("today", today);
         jdbc.update("""
                 INSERT INTO queue_days (doctor_id, queue_date) VALUES (:doctor, :today)
@@ -234,7 +238,7 @@ public class QueueService {
                    (SELECT count(*) FROM queue_tokens a
                      WHERE a.doctor_id = t.doctor_id AND a.queue_date = t.queue_date
                        AND a.status = 'WAITING' AND a.token_no < t.token_no) AS ahead,
-                   COALESCE((SELECT h.slot_minutes FROM doctor_hours h
+                   COALESCE((SELECT min(h.slot_minutes) FROM doctor_hours h
                      WHERE h.doctor_id = t.doctor_id AND h.weekday = EXTRACT(ISODOW FROM t.queue_date)), %d) AS minutes
             FROM queue_tokens t
             JOIN doctors d ON d.id = t.doctor_id
@@ -280,9 +284,15 @@ public class QueueService {
 
     private int minutesPerPatient(UUID doctorId, LocalDate day) {
         List<Integer> m = jdbc.queryForList(
-                "SELECT slot_minutes FROM doctor_hours WHERE doctor_id = :doctor AND weekday = :weekday",
+                "SELECT min(slot_minutes) FROM doctor_hours WHERE doctor_id = :doctor AND weekday = :weekday HAVING count(*) > 0",
                 Map.of("doctor", doctorId, "weekday", day.getDayOfWeek().getValue()), Integer.class);
         return m.isEmpty() ? DEFAULT_MINUTES : m.get(0);
+    }
+
+    private boolean onLeave(UUID doctorId, LocalDate day) {
+        return Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT EXISTS (SELECT 1 FROM doctor_leave WHERE doctor_id = :doctor AND day = :day)",
+                Map.of("doctor", doctorId, "day", day), Boolean.class));
     }
 
     private LocalDate today() {

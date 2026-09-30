@@ -116,6 +116,18 @@ class QueueTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("on the doctor's day off the queue says so and gives no tokens")
+    void noTokensOnLeave() {
+        jdbc.update("INSERT INTO doctor_leave (doctor_id, day) VALUES (?, ?)", menon.getId(),
+                LocalDate.now(QueueService.CLINIC_ZONE));
+
+        assertThat(queue.status(menon.getId()).closedReason()).isEqualTo("The doctor is not in today.");
+        assertThatThrownBy(() -> join(patient("Meera Nair")))
+                .isInstanceOf(com.medicity.common.ValidationException.class)
+                .hasMessageContaining("not in today");
+    }
+
+    @Test
     @DisplayName("ten patients joining at the same moment get #101 to #110: no duplicates, no gaps")
     void concurrentJoinsAreNumberedInOrder() throws Exception {
         List<Patient> patients = new ArrayList<>();

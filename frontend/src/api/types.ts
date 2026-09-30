@@ -637,6 +637,13 @@ export interface HoursWindow {
   slotMinutes: number;
 }
 
+/** A doctor's day off (a date in India), and the visits already booked on it. */
+export interface DoctorLeave {
+  day: string;
+  note: string | null;
+  bookedVisits: number;
+}
+
 export interface HoursSaved {
   hours: HoursWindow[];
   slotsOpened: number;
