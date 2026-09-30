@@ -1,45 +1,54 @@
 import { useQuery } from "@tanstack/react-query";
+import { Suspense } from "react";
 import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { notifications } from "./api/endpoints";
 import type { Role } from "./api/types";
 import { homeFor, useAuth } from "./auth/context";
+import { PageLoading } from "./components/PageLoading";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { BookingPage } from "./pages/BookingPage";
 import { DoctorLayout } from "./pages/doctor/DoctorLayout";
-import { HoursPage } from "./pages/doctor/HoursPage";
-import { PatientHistoryPage } from "./pages/doctor/PatientHistoryPage";
-import { SchedulePage } from "./pages/doctor/SchedulePage";
-import { VisitPage } from "./pages/doctor/VisitPage";
-import { DoctorsPage } from "./pages/DoctorsPage";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
-import { NOTIFICATIONS_KEY, NotificationsPage } from "./pages/NotificationsPage";
-import { PendingDoctorsPage } from "./pages/admin/PendingDoctorsPage";
-import { PendingStoresPage } from "./pages/admin/PendingStoresPage";
-import { ChemistsPage } from "./pages/portal/ChemistsPage";
-import { FamilyPage } from "./pages/portal/FamilyPage";
-import { MedicinesPage } from "./pages/portal/MedicinesPage";
-import { RequestPage } from "./pages/portal/RequestPage";
-import { RequestsPage } from "./pages/portal/RequestsPage";
-import { QuestionPage } from "./pages/store/QuestionPage";
-import { InsightsPage } from "./pages/store/InsightsPage";
-import { QueuePage } from "./pages/store/QueuePage";
-import { StockPage } from "./pages/store/StockPage";
-import { ReservationsPage } from "./pages/store/ReservationsPage";
+import { NOTIFICATIONS_KEY } from "./lib/notifications";
 import { StoreLayout } from "./pages/store/StoreLayout";
-import { StoreProfilePage } from "./pages/store/StoreProfilePage";
-import { StoreRegisterPage } from "./pages/store/StoreRegisterPage";
-import { RegisterDoctorPage } from "./pages/RegisterDoctorPage";
-import { RegisterPage } from "./pages/RegisterPage";
-import { OverviewPage } from "./pages/portal/OverviewPage";
 import { PortalLayout } from "./pages/portal/PortalLayout";
-import { PrescriptionsPage } from "./pages/portal/PrescriptionsPage";
-import { ProfilePage } from "./pages/portal/ProfilePage";
-import { VisitsPage } from "./pages/portal/VisitsPage";
-import { TokensPage } from "./pages/portal/TokensPage";
-import { WalkInPage } from "./pages/queue/WalkInPage";
-import { FrontDeskPage } from "./pages/doctor/FrontDeskPage";
-import { VideoRoomPage } from "./pages/VideoRoomPage";
+import { lazyPage } from "./lib/lazyPage";
+
+// Every page but the landing and sign-in pages is loaded when first opened,
+// so a visitor downloads the patient portal, not the doctor, chemist and
+// admin workspaces too. Layouts stay in the main bundle: they hold the
+// <Suspense> each page loads inside, so the navigation never blinks.
+const BookingPage = lazyPage(() => import("./pages/BookingPage"), "BookingPage");
+const HoursPage = lazyPage(() => import("./pages/doctor/HoursPage"), "HoursPage");
+const PatientHistoryPage = lazyPage(() => import("./pages/doctor/PatientHistoryPage"), "PatientHistoryPage");
+const SchedulePage = lazyPage(() => import("./pages/doctor/SchedulePage"), "SchedulePage");
+const VisitPage = lazyPage(() => import("./pages/doctor/VisitPage"), "VisitPage");
+const DoctorsPage = lazyPage(() => import("./pages/DoctorsPage"), "DoctorsPage");
+const NotificationsPage = lazyPage(() => import("./pages/NotificationsPage"), "NotificationsPage");
+const PendingDoctorsPage = lazyPage(() => import("./pages/admin/PendingDoctorsPage"), "PendingDoctorsPage");
+const PendingStoresPage = lazyPage(() => import("./pages/admin/PendingStoresPage"), "PendingStoresPage");
+const ChemistsPage = lazyPage(() => import("./pages/portal/ChemistsPage"), "ChemistsPage");
+const FamilyPage = lazyPage(() => import("./pages/portal/FamilyPage"), "FamilyPage");
+const MedicinesPage = lazyPage(() => import("./pages/portal/MedicinesPage"), "MedicinesPage");
+const RequestPage = lazyPage(() => import("./pages/portal/RequestPage"), "RequestPage");
+const RequestsPage = lazyPage(() => import("./pages/portal/RequestsPage"), "RequestsPage");
+const QuestionPage = lazyPage(() => import("./pages/store/QuestionPage"), "QuestionPage");
+const InsightsPage = lazyPage(() => import("./pages/store/InsightsPage"), "InsightsPage");
+const QueuePage = lazyPage(() => import("./pages/store/QueuePage"), "QueuePage");
+const StockPage = lazyPage(() => import("./pages/store/StockPage"), "StockPage");
+const ReservationsPage = lazyPage(() => import("./pages/store/ReservationsPage"), "ReservationsPage");
+const StoreProfilePage = lazyPage(() => import("./pages/store/StoreProfilePage"), "StoreProfilePage");
+const StoreRegisterPage = lazyPage(() => import("./pages/store/StoreRegisterPage"), "StoreRegisterPage");
+const RegisterDoctorPage = lazyPage(() => import("./pages/RegisterDoctorPage"), "RegisterDoctorPage");
+const RegisterPage = lazyPage(() => import("./pages/RegisterPage"), "RegisterPage");
+const OverviewPage = lazyPage(() => import("./pages/portal/OverviewPage"), "OverviewPage");
+const PrescriptionsPage = lazyPage(() => import("./pages/portal/PrescriptionsPage"), "PrescriptionsPage");
+const ProfilePage = lazyPage(() => import("./pages/portal/ProfilePage"), "ProfilePage");
+const VisitsPage = lazyPage(() => import("./pages/portal/VisitsPage"), "VisitsPage");
+const TokensPage = lazyPage(() => import("./pages/portal/TokensPage"), "TokensPage");
+const WalkInPage = lazyPage(() => import("./pages/queue/WalkInPage"), "WalkInPage");
+const FrontDeskPage = lazyPage(() => import("./pages/doctor/FrontDeskPage"), "FrontDeskPage");
+const VideoRoomPage = lazyPage(() => import("./pages/VideoRoomPage"), "VideoRoomPage");
 
 const HOME_LABEL: Record<Role, string> = {
   PATIENT: "My portal",
@@ -179,7 +188,9 @@ function NotificationsLink() {
 function Contained() {
   return (
     <div className="content">
-      <Outlet />
+      <Suspense fallback={<PageLoading />}>
+        <Outlet />
+      </Suspense>
     </div>
   );
 }

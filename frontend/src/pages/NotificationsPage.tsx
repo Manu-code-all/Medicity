@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { notifications } from "../api/endpoints";
 import type { AppNotification } from "../api/types";
 import { formatDate, formatDayLong, formatTime } from "../lib/format";
-
-export const NOTIFICATIONS_KEY = ["notifications"] as const;
+import { NOTIFICATIONS_KEY } from "../lib/notifications";
 
 export function NotificationsPage() {
   const queryClient = useQueryClient();

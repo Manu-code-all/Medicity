@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { PageLoading } from "../../components/PageLoading";
 import { useQuery } from "@tanstack/react-query";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { doctorAccount } from "../../api/endpoints";
@@ -60,7 +62,9 @@ export function DoctorLayout() {
             open the moment you are verified.
           </p>
         )}
-        <Outlet />
+        <Suspense fallback={<PageLoading />}>
+          <Outlet />
+        </Suspense>
       </div>
     </div>
   );

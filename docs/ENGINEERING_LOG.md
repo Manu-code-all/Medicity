@@ -2133,6 +2133,35 @@ The first run failed the new "contiguous tokens" check. The code was right
 and the check was wrong: numbering starts at 101 (the counter's default is
 100, so tokens read like a clinic's), and the check had assumed 1.
 
+## 55. Each page loads when it is first opened
+
+The web app was one 466 KB script (139 KB gzipped): a patient opening the
+landing page downloaded the doctor's prescription writer, the chemist's stock
+screen, the admin queues and the video room too. Now only the landing and
+sign-in pages are in the main bundle; every other page is its own chunk,
+fetched the first time it is opened.
+
+| | Before | After |
+|---|---:|---:|
+| Main script | 466 KB (139 KB gzipped) | 334 KB (104 KB gzipped) |
+| Largest page chunk | n/a | Visit page, 14 KB (5 KB gzipped) |
+
+- **`lazyPage(() => import("./pages/X"), "X")`.** Pages are named exports
+  and `React.lazy` wants a default one, so a small helper picks the export
+  by name and keeps the pages as they were.
+- **The layouts stay in the main bundle and hold the `<Suspense>`.** The
+  portal, doctor and store sidebars do not blink while a page loads; only the
+  content area waits.
+- **Navigation is a transition** (`v7_startTransition`). While the next
+  page's code downloads, the current page stays on screen instead of a
+  "Loading…" message; the message appears only on a cold first load.
+- **A shared constant was pulling a page in.** `NOTIFICATIONS_KEY` lived in
+  `NotificationsPage`, and the header's bell imports it, which would have
+  kept that page in the main bundle. It moved to `lib/notifications.ts`.
+
+What remains in the main script is mostly React, React DOM, the router,
+TanStack Query and the landing page itself.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

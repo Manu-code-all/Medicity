@@ -29,7 +29,9 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      {/* Navigation as a transition: while the next page's code downloads,
+          the current page stays on screen instead of a loading message. */}
+      <BrowserRouter future={{ v7_startTransition: true }}>
         <AuthProvider>
           <App />
         </AuthProvider>
