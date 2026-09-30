@@ -2197,13 +2197,43 @@ reopens three when removed; a past day is refused. `QueueTest`: on a leave
 day the status says so and joining is refused. Frontend: the second session
 defaults to after lunch and is sent; days off list their booked visits.
 
+## 57. Doctors keep their fee, insurers and prices current
+
+The fee and bio were fixed at sign-up, and insurers and prices existed only
+in the demo seed (entry 44), so a real doctor could not list either. "Fees
+and insurance" (`/doctor/practice`, `GET`/`PUT /api/v1/doctors/me/practice`)
+edits all of it on one screen: fee, years in practice, bio, insurers from
+Medicity's list (grouped private, public sector, government schemes), and up
+to 20 other charges, each marked "every visit" or not.
+
+- **Replaced whole, like hours and stock.** The form shows everything, so it
+  sends everything back; a charge left out is withdrawn, an insurer unticked
+  stops finding the doctor under that filter. There is no per-line
+  add/remove API to get out of step with the screen.
+- **Validated against what exists.** An insurer not in the `insurers` table is
+  `UNKNOWN_INSURER` (the directory filter is an exact match, so a typo would
+  silently hide the doctor). Procedure names are compared ignoring case and
+  spacing, so "ECG" and " ecg" are `DUPLICATE_PROCEDURE`, not two lines.
+- **Unnamed rows are dropped, not refused.** An empty "+ Add a charge" row is
+  an unfinished thought, not an error worth a red message.
+- **Visits already booked are not affected.** Medicity shows the fee in the
+  directory and the booking page; it does not store or charge it per visit,
+  so there is nothing to rewrite. The change is audited
+  (`DOCTOR_PRACTICE_UPDATED`, old and new fee).
+
+**Verified by.** `DoctorPracticeTest`: saving shows in the directory's
+insurance filter, fee, years and "every visit" ordering at once; a later save
+without an insurer or price withdraws it; an unknown insurer, a duplicate
+procedure and a negative fee are refused with nothing changed; patients get
+403 and the signed-out 401. Frontend: the form sends the whole practice and
+drops unnamed charges; a refusal shows the server's reason.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
   registration number against the council's register by hand; there is no
   certificate upload and no automatic check (the National Medical
   Commission's register has no public API).
-- **Doctors cannot edit their fee or bio after signing up.**
 - **A day off does not tell booked patients.** Marking leave keeps visits
   already booked and shows the doctor how many; contacting those patients,
   or cancelling, is left to the doctor.
@@ -2225,8 +2255,8 @@ defaults to after lunch and is sent; days off list their booked visits.
   bounded (5 MB, 5 per visit) but not what object storage with signed URLs
   would give at scale; there is no virus scan.
 - **Insurance is what the clinic says it accepts.** There is no policy or
-  eligibility check with the insurer, and doctors cannot edit their insurers
-  or price list yet (the demo seeds them).
+  eligibility check with the insurer, and a doctor can only choose from
+  Medicity's list of insurers, not add one.
 - **ICD-10 is a curated subset.** About 130 common outpatient codes from
   ICD-10-CM (public domain), not the full classification; a condition
   outside it can still be written in words, just without a code. Loading
