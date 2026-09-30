@@ -68,11 +68,11 @@ export function StoreRegisterPage() {
         type="password"
         autoComplete="new-password"
         required
-        minLength={12}
+        minLength={5}
         value={account.password}
         onChange={update("password")}
       />
-      <small className="muted">At least 12 characters.</small>
+      <small className="muted">At least 5 characters.</small>
       {fieldErrors.password && <small className="error">{fieldErrors.password}</small>}
 
       <StoreFields value={store} onChange={setStore} fieldErrors={fieldErrors} errorPrefix="store." />

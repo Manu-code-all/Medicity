@@ -245,7 +245,7 @@ The `EXCLUDE` constraint uses a half-open range `'[)'`, so 10:00–10:30 and
 - **No cross-account cache bleed.** The web client clears its query cache on
   sign-in and sign-out, so on a shared computer the next person to sign in never
   sees the previous patient's records, even for a frame.
-- **BCrypt cost 12** (~250 ms/hash) and a 12-character minimum password with no
+- **BCrypt cost 12** (~250 ms/hash) and a 5-character minimum password (a product choice) with no
   composition rules, following NIST SP 800-63B.
 
 ---

@@ -68,12 +68,12 @@ public class AuthController {
     public record RegisterRequest(
             @NotBlank @Email @Size(max = 254) String email,
 
-            // Length is the single strongest password control. Composition rules
+            // Length is the single strongest password control (the floor is a product choice: 5). Composition rules
             // ("must contain a symbol") push users toward predictable patterns
             // without adding real entropy, so they are deliberately omitted —
             // this follows NIST SP 800-63B rather than folklore.
-            @NotBlank @Size(min = 12, max = 128,
-                    message = "Password must be at least 12 characters") String password,
+            @NotBlank @Size(min = 5, max = 128,
+                    message = "Password must be at least 5 characters") String password,
 
             @NotBlank @Size(max = 120) String fullName,
 

@@ -89,7 +89,7 @@ public class StoreController {
 
     public record ChemistRegistration(
             @NotBlank @Email @Size(max = 254) String email,
-            @NotBlank @Size(min = 12, max = 128, message = "Password must be at least 12 characters") String password,
+            @NotBlank @Size(min = 5, max = 128, message = "Password must be at least 5 characters") String password,
             @NotBlank @Size(max = 120) String fullName,
             @NotNull @Valid StoreRequest store
     ) {}
