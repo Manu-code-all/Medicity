@@ -41,7 +41,7 @@ Every demo account uses the password `demo-password-2026`. The demo resets each 
 | **Walk-in queue** | 300 simultaneous joins get tokens #101 to #400, no gap, no repeat; 8 desk tabs calling "next" call each once |
 | **Hot queries at 120,000 slots** | Every one under 1 ms and index-served; a CI test fails the build if one starts reading a large table whole |
 | **Tests** | About 230 backend integration tests against real PostgreSQL 18 (Testcontainers, never H2) and about 126 frontend tests |
-| **First load** | 104 KB of gzipped JavaScript; every other page loads when first opened |
+| **First load** | 104 KB of gzipped JavaScript; every other page loads when first opened. Lighthouse on the live landing page: 100 performance on desktop, 63–91 on the emulated slow phone (it varies between runs on shared CI machines), 96 accessibility, 100 best practices |
 
 The [engineering log](docs/ENGINEERING_LOG.md) explains every decision behind these, in order, including what went wrong.
 
