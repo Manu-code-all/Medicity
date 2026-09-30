@@ -1,6 +1,7 @@
 package com.medicity.doctor;
 
 import com.medicity.common.NotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 import com.medicity.review.ReviewService;
 import com.medicity.scheduling.AppointmentSlot;
 import com.medicity.scheduling.BookingService;
@@ -127,6 +128,8 @@ public class DoctorController {
     }
 
     @GetMapping("/{doctorId}")
+    // The doctor's user row is read lazily for the name; keep the session open until the response is built.
+    @Transactional(readOnly = true)
     @Operation(summary = "One listed doctor, as the directory shows them",
             description = "A doctor still waiting for registration checks is not listed, so is not found.")
     public DoctorResponse one(@PathVariable UUID doctorId) {
