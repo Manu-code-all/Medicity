@@ -14,6 +14,37 @@ below follows from it.
 
 [![CI](https://github.com/Manu-code-all/Medicity/actions/workflows/ci.yml/badge.svg)](https://github.com/Manu-code-all/Medicity/actions/workflows/ci.yml)
 
+**Live:** [medicity-coral.vercel.app](https://medicity-coral.vercel.app) ·
+API reference: [/swagger-ui.html](https://medicity-production.up.railway.app/swagger-ui.html) ·
+Java 21 · Spring Boot 3 · PostgreSQL 18 · React 18 + TypeScript
+
+![Medicity landing page: a body guide on the left, doctor search on the right](docs/images/landing.png)
+
+### Try it in two minutes
+
+Every demo account uses the password `demo-password-2026`. The demo resets each night.
+
+| Sign in as | To see |
+|---|---|
+| `patient@medicity.demo` (Meera) | Book a doctor, reschedule, join a walk-in queue, ask a follow-up, attach a report, send a prescription to every chemist nearby and reserve at one |
+| `dr.rao@medicity.demo` | The day's schedule, closing a visit, writing a prescription (or photographing a handwritten one), a video visit |
+| `dr.menon@medicity.demo` | The front desk: call the next walk-in token |
+| `chemist@medicity.demo` | A patient's question waiting to be answered, reservations, a pickup code |
+| `admin@medicity.demo` | Verifying new doctors and stores, the audit trail |
+
+### By the numbers
+
+| | |
+|---|---|
+| **Double bookings under load** | 0: 200 patients tapping "Book" on 20 slots at once get exactly 20 bookings and 180 clean `409`s (k6, database checked after every run) |
+| **Booking latency** | p95 15 ms at 40 bookings/s with browsing traffic alongside; 150 bookings/s holds p95 at 31 ms |
+| **Walk-in queue** | 300 simultaneous joins get tokens #101 to #400, no gap, no repeat; 8 desk tabs calling "next" call each once |
+| **Hot queries at 120,000 slots** | Every one under 1 ms and index-served; a CI test fails the build if one starts reading a large table whole |
+| **Tests** | About 230 backend integration tests against real PostgreSQL 18 (Testcontainers, never H2) and about 126 frontend tests |
+| **First load** | 104 KB of gzipped JavaScript; every other page loads when first opened |
+
+The [engineering log](docs/ENGINEERING_LOG.md) explains every decision behind these, in order, including what went wrong.
+
 ---
 
 ## The problem worth solving
@@ -120,25 +151,39 @@ an atomic `UPDATE ... SET qty = qty - :n WHERE qty >= :n`.
 
 ```mermaid
 flowchart TB
-    subgraph client [Client]
-        WEB["React 18 + TypeScript<br/>Vite · TanStack Query"]
+    subgraph client [Client · Vercel]
+        WEB["React 18 + TypeScript<br/>Vite · TanStack Query<br/>pages loaded on first visit"]
     end
 
-    subgraph api [Spring Boot 3 · Java 21]
-        SEC["Security filter chain<br/>JWT · BCrypt · RBAC"]
+    subgraph api [Spring Boot 3 · Java 21 · Railway]
+        SEC["Security filter chain<br/>JWT · refresh rotation · RBAC · login throttle"]
         CTL["REST controllers<br/>/api/v1"]
-        SVC["Domain services<br/>Booking · Visits · Prescribing · Dispensing"]
+        SVC["Domain services<br/>Booking · Queue · Visits · Prescribing<br/>Chemist network · Reviews · Waitlist"]
         AUD["AuditLog<br/>append-only"]
-        REPO["Spring Data JPA"]
+        OUT["Outbox relay<br/>SKIP LOCKED · retries"]
+        JOBS["Scheduled jobs<br/>slot top-up · unclosed visits · reminders · demo reset"]
+        SIG["/ws/video<br/>WebRTC signalling"]
     end
 
     subgraph data [Data]
         PG[("PostgreSQL 18<br/>constraints as invariants")]
     end
 
+    subgraph ext [Outside services]
+        AI["Claude / Gemini<br/>read handwritten prescriptions"]
+        SMS["MSG91<br/>sign-in codes"]
+    end
+
     WEB -->|"Bearer JWT"| SEC
-    SEC --> CTL --> SVC --> REPO --> PG
+    WEB <-->|"one-time ticket"| SIG
+    SEC --> CTL --> SVC --> PG
     SVC --> AUD --> PG
+    SVC -->|"event, same transaction"| PG
+    OUT -->|"poll due events"| PG
+    OUT -->|"notifications"| PG
+    JOBS --> PG
+    SVC -.-> AI
+    SVC -.-> SMS
 
     style PG fill:#1a5f3f,color:#fff
     style SEC fill:#7a3b1f,color:#fff
