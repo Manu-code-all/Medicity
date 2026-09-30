@@ -58,13 +58,17 @@ public class UnclosedVisitsJob {
         if (!lock.tryAcquire("unclosed-visits")) {
             return 0;
         }
+        // "scheduled_at < cutoff" is implied by "ends_at < cutoff" (a visit ends
+        // after it starts). It is there for idx_appointments_booked_time, so the
+        // job reads only past visits still BOOKED rather than every visit (V32).
+        Timestamp cutoff = Timestamp.from(clock.instant().minus(GRACE));
         List<UUID> closed = jdbc.queryForList("""
                 UPDATE appointments a
                 SET status = 'NO_SHOW', version = a.version + 1, updated_at = ?
                 FROM appointment_slots s
-                WHERE s.id = a.slot_id AND a.status = 'BOOKED' AND s.ends_at < ?
+                WHERE s.id = a.slot_id AND a.status = 'BOOKED' AND a.scheduled_at < ? AND s.ends_at < ?
                 RETURNING a.id
-                """, UUID.class, Timestamp.from(clock.instant()), Timestamp.from(clock.instant().minus(GRACE)));
+                """, UUID.class, Timestamp.from(clock.instant()), cutoff, cutoff);
 
         // Same transaction as the update: the visits and their audit rows
         // commit together or not at all.

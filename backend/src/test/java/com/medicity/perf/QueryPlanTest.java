@@ -74,14 +74,15 @@ class QueryPlanTest extends AbstractIntegrationTest {
     private static Map<String, String> queries(UUID doctor, UUID patient, UUID patientUser, String page) {
         Map<String, String> q = new LinkedHashMap<>();
         q.put("Directory: next 3 free slots for a page of 20 doctors", """
-                SELECT id FROM (
-                    SELECT s.id, row_number() OVER (PARTITION BY s.doctor_id ORDER BY s.starts_at) AS n
-                    FROM appointment_slots s
-                    JOIN doctors d ON d.id = s.doctor_id AND d.verified_at IS NOT NULL
-                    WHERE s.doctor_id IN (%s) AND s.status = 'OPEN'
+                SELECT free.id FROM doctors d
+                CROSS JOIN LATERAL (
+                    SELECT s.id FROM appointment_slots s
+                    WHERE s.doctor_id = d.id AND s.status = 'OPEN'
                       AND s.starts_at >= now() AND s.starts_at < now() + interval '14 days'
                       AND NOT EXISTS (SELECT 1 FROM appointments a WHERE a.slot_id = s.id AND a.status <> 'CANCELLED')
-                ) numbered WHERE n <= 3
+                    ORDER BY s.starts_at LIMIT 3
+                ) free
+                WHERE d.id IN (%s) AND d.verified_at IS NOT NULL
                 """.formatted(page));
         q.put("Booking page: a doctor's free slots for a day", """
                 SELECT s.* FROM appointment_slots s JOIN doctors d ON d.id = s.doctor_id
@@ -126,7 +127,8 @@ class QueryPlanTest extends AbstractIntegrationTest {
                 """.formatted(doctor));
         q.put("Hourly job: visits never closed", """
                 SELECT a.id FROM appointments a JOIN appointment_slots s ON s.id = a.slot_id
-                WHERE a.status = 'BOOKED' AND s.ends_at < now() - interval '12 hours'
+                WHERE a.status = 'BOOKED' AND a.scheduled_at < now() - interval '12 hours'
+                  AND s.ends_at < now() - interval '12 hours'
                 """);
         q.put("Bell: latest notifications", """
                 SELECT * FROM notifications WHERE user_id = '%s' ORDER BY created_at DESC LIMIT 20
