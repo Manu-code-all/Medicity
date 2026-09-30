@@ -3,7 +3,7 @@
 -- to clinics and chemists can be worked out without asking every time. All
 -- optional: a person can skip every question and fill them in later.
 ALTER TABLE patients
-    ADD COLUMN height_cm           SMALLINT,
+    ADD COLUMN height_cm           INTEGER,
     ADD COLUMN weight_kg           NUMERIC(5, 1),
     ADD COLUMN allergies           TEXT,
     ADD COLUMN chronic_conditions  TEXT,

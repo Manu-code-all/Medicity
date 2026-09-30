@@ -163,7 +163,7 @@ class PatientPortalTest extends AbstractIntegrationTest {
     void refusesBadProfiles() throws Exception {
         mvc.perform(put("/api/v1/patients/me").header("Authorization", "Bearer " + meeraToken)
                         .contentType("application/json").content("{\"homeLatitude\":12.9}"))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("LOCATION_INCOMPLETE"));
         mvc.perform(put("/api/v1/patients/me").header("Authorization", "Bearer " + meeraToken)
                         .contentType("application/json").content("{\"heightCm\":900}"))
