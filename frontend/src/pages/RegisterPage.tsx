@@ -66,11 +66,11 @@ export function RegisterPage() {
         type="password"
         autoComplete="new-password"
         required
-        minLength={12}
+        minLength={5}
         value={form.password}
         onChange={update("password")}
       />
-      <small className="muted">At least 12 characters. Length beats symbols.</small>
+      <small className="muted">At least 5 characters. Length beats symbols.</small>
       {fieldErrors.password && <small className="error">{fieldErrors.password}</small>}
 
       <label htmlFor="dateOfBirth">Date of birth</label>

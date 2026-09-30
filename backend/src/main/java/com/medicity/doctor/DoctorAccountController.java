@@ -117,7 +117,7 @@ public class DoctorAccountController {
 
     public record DoctorRegistration(
             @NotBlank @Email @Size(max = 254) String email,
-            @NotBlank @Size(min = 12, max = 128, message = "Password must be at least 12 characters") String password,
+            @NotBlank @Size(min = 5, max = 128, message = "Password must be at least 5 characters") String password,
             @NotBlank @Size(max = 120) String fullName,
             @NotBlank @Pattern(regexp = "^\\+?[0-9 ]{10,16}$", message = "Mobile number must be 10 digits") String phone,
             @NotBlank String specialization,

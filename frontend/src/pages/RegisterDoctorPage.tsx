@@ -104,11 +104,11 @@ export function RegisterDoctorPage() {
         type="password"
         autoComplete="new-password"
         required
-        minLength={12}
+        minLength={5}
         value={form.password}
         onChange={set("password")}
       />
-      <small className="muted">At least 12 characters.</small>
+      <small className="muted">At least 5 characters.</small>
       {fieldError("password")}
 
       <label htmlFor="d-spec">Speciality</label>
