@@ -2387,6 +2387,31 @@ visitors.
 Six new tests (the map for each role, refusal, signed out, the capsule, the
 removals); all 132 frontend tests pass.
 
+## 62. Two bugs found by using it: sign-in landing on the old page, and the family switch
+
+Both were reported after a person actually used the portal.
+
+- **Signing in opened the page that was open when the last sign-out
+  happened.** Signing out from "Walk-in tokens" and back in landed on
+  "Walk-in tokens". Cause: `logout()` cleared the session first, so the
+  protected page re-rendered signed out and redirected to `/login` with
+  itself remembered as the place to return to (a feature for deep links,
+  such as "book this doctor" sent to sign in first); the `navigate("/")`
+  that followed was too late to matter. Both sign-out buttons now leave
+  first and clear the session second, so nothing is remembered. A genuine
+  redirect to sign in, from a link or an expired session, still returns
+  the person where they were headed. A test signs out from a protected page
+  with the real provider and checks the sign-in page is never shown.
+- **Switching to a family member kept showing the account holder.** The
+  switcher removed the previous person's cached answers, but a page already
+  on screen kept its data until it was reopened (so Overview showed Meera
+  under Lalitha's name until clicked), and the greeting read the signed-in
+  account's name, never the chosen person's. Switching now resets the
+  cache (mounted pages refetch for the new person at once), opens that
+  person's overview, and the greeting and its subtitle use their name.
+  The test switches person from the visits page and checks the overview,
+  the greeting, and the `X-Patient-Id` header on the refetch.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

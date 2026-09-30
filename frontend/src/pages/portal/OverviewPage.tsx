@@ -4,6 +4,7 @@ import { ArrowRight, MapPin, Pill, Stethoscope } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { portal } from "../../api/endpoints";
 import { useAuth } from "../../auth/context";
+import { useViewedPerson } from "../../lib/useViewedPerson";
 import { dateTile, firstName, formatDate, formatDayLong, formatTime, greeting, relativeFromNow } from "../../lib/format";
 import { VisitCard } from "./VisitCard";
 import { LiveStatusPill } from "../../components/LiveStatusPill";
@@ -11,6 +12,8 @@ import { isLaterToday } from "../../lib/format";
 
 export function OverviewPage() {
   const { session } = useAuth();
+  const viewed = useViewedPerson();
+  const name = viewed.fullName ?? session?.fullName;
 
   const summary = useQuery({ queryKey: ["portal", "summary"], queryFn: portal.summary });
   const recent = useQuery({
@@ -30,9 +33,11 @@ export function OverviewPage() {
     <div className="stack">
       <header>
         <h1 className="portal__title">
-          {greeting()}, {session ? firstName(session.fullName) : "there"}
+          {greeting()}, {name ? firstName(name) : "there"}
         </h1>
-        <p className="muted">Here is everything about your care, in one place.</p>
+        <p className="muted">
+          {viewed.isSelf || !name ? "Here is everything about your care, in one place." : `Here is everything about ${firstName(name)}'s care, in one place.`}
+        </p>
       </header>
 
       {summary.isError && <p className="error">Could not load your summary.</p>}

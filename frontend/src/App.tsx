@@ -73,8 +73,9 @@ export function App() {
   const Shell = ownChrome ? "div" : "main";
 
   function signOut() {
-    logout();
+    // Leave first, so a protected page does not remember itself as the place to return to.
     navigate("/", { replace: true });
+    logout();
   }
 
   return (
