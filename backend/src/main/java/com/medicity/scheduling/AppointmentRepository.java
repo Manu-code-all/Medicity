@@ -89,13 +89,18 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
         long getTotal();
     }
 
+    /**
+     * A doctor's visits, newest first. Filtered and ordered by the slot's
+     * start rather than the appointment's copy of it, so the (doctor_id,
+     * starts_at) index serves both; the two are always equal.
+     */
     @Query("""
             SELECT a FROM Appointment a
             JOIN FETCH a.patient p
             LEFT JOIN FETCH p.user
             JOIN FETCH a.slot s
             WHERE s.doctor.id = :doctorId
-            ORDER BY a.scheduledAt DESC
+            ORDER BY s.startsAt DESC
             """)
     Page<Appointment> findForDoctor(@Param("doctorId") UUID doctorId, Pageable pageable);
 
@@ -136,8 +141,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             JOIN FETCH a.patient p
             LEFT JOIN FETCH p.user
             WHERE s.doctor.id = :doctorId
-              AND a.scheduledAt >= :from AND a.scheduledAt < :to
-            ORDER BY a.scheduledAt ASC
+              AND s.startsAt >= :from AND s.startsAt < :to
+            ORDER BY s.startsAt ASC
             """)
     List<Appointment> findForDoctorBetween(@Param("doctorId") UUID doctorId,
                                            @Param("from") Instant from,

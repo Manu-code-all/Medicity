@@ -58,13 +58,20 @@ public class UnclosedVisitsJob {
         if (!lock.tryAcquire("unclosed-visits")) {
             return 0;
         }
+        // Reads only past visits still BOOKED, never the whole table:
+        //  - "scheduled_at < cutoff" is implied by the slot ending before it (a
+        //    visit ends after it starts); it is there for the partial index
+        //    idx_appointments_booked_time (V32);
+        //  - the slot's end is a lookup per candidate, not a join, so the
+        //    planner cannot choose to hash every slot (QueryPlanTest).
+        Timestamp cutoff = Timestamp.from(clock.instant().minus(GRACE));
         List<UUID> closed = jdbc.queryForList("""
                 UPDATE appointments a
                 SET status = 'NO_SHOW', version = a.version + 1, updated_at = ?
-                FROM appointment_slots s
-                WHERE s.id = a.slot_id AND a.status = 'BOOKED' AND s.ends_at < ?
+                WHERE a.status = 'BOOKED' AND a.scheduled_at < ?
+                  AND (SELECT s.ends_at FROM appointment_slots s WHERE s.id = a.slot_id) < ?
                 RETURNING a.id
-                """, UUID.class, Timestamp.from(clock.instant()), Timestamp.from(clock.instant().minus(GRACE)));
+                """, UUID.class, Timestamp.from(clock.instant()), cutoff, cutoff);
 
         // Same transaction as the update: the visits and their audit rows
         // commit together or not at all.
