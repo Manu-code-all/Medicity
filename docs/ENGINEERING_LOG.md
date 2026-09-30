@@ -2298,6 +2298,49 @@ bundle confirms.
 Behaviour, copy and routes are unchanged: all 126 frontend tests pass
 untouched. Checked at desktop and phone width in both themes.
 
+## 60. A premium pass: elevation, rhythm and home screens that lead
+
+A review of the signed-in screens against the products people hold up as
+the bar (Linear, Apple Health, One Medical) found a consistent set of
+weaknesses, all of them structural rather than cosmetic.
+
+- **No elevation ladder.** Every box was a flat bordered card with the same
+  weight, so nothing led. There are now four steps and nothing between:
+  the ground is flat, a panel or tile rests on it (`--e1`), what is under a
+  pointer lifts (`--e2`), the ticket floats (`--shadow`), a menu covers
+  (`--e4`). The diagnosis menu moved onto the top step.
+- **Type without tension.** Headings shared one letter-spacing whatever
+  their size. They now tighten as they grow, mono figures tighten further,
+  and paragraphs use `text-wrap: pretty` so a line never ends on one word.
+  Table headers dropped to 12px with more room beneath, rows gained a
+  hover tint.
+- **A home screen was a list of equal things.** Each role now opens to one
+  lead item and the figures around it on a twelve column grid: the patient
+  sees the ticket, three shortcuts to the three jobs (book, ask the
+  chemists, find a store) and what they are taking, with a warning tile when
+  a course runs out; the doctor sees the visit to act on (the oldest still
+  open, else the next one) with still-to-come, to-close and seen counts;
+  the chemist sees questions waiting, reservations to keep aside and the
+  median minutes to answer, each linking to its page. The lead tile takes
+  the role's tint, so the one thing to act on is the only tinted thing.
+- **Wasted space.** The content column was pinned against the rail on wide
+  screens; it is now centred with more air (48px gutters, 32px between
+  sections). Lists sit in one panel with a head and ruled rows instead of
+  a card per row; detail lists got ruled rows.
+- **A bug the tint exposed.** A custom property is resolved where it is
+  declared, so `--accent-soft` computed at the root stayed teal inside the
+  doctor and chemist roles. It is restated per role.
+
+Adapted rather than copied from the brief: the stack stays React and plain
+CSS, and the type stays Manrope with Geist Mono for exact values, because
+the system already carries an identity (one line colour per role) that a
+generic blue and white would erase. "Booking a hospital" is not a Medicity
+flow, so nothing was invented for it.
+
+No behaviour, route or copy changes; the schedule test now expects the
+lead tile and the line to both name the visit. All 126 frontend tests pass.
+Checked at desktop and phone width.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

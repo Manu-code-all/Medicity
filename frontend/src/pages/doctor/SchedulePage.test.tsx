@@ -29,11 +29,15 @@ describe("SchedulePage", () => {
     mockFetch(() => json(200, VISITS));
     renderSchedule();
 
-    expect(await screen.findByText("Meera Nair")).toBeInTheDocument();
+    // Once in the "needs closing" tile that opens the day, once on the line.
+    expect(await screen.findAllByText("Meera Nair")).toHaveLength(2);
     expect(screen.getByText(/2 visits · 1 waiting to be closed/)).toBeInTheDocument();
     expect(screen.getByText("Waiting to be closed")).toBeInTheDocument();
     expect(screen.getByText("Prescribed · dispensed")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Meera Nair/ })).toHaveAttribute("href", "/doctor/visits/v1");
+    for (const link of screen.getAllByRole("link", { name: /Meera Nair/ })) {
+      expect(link).toHaveAttribute("href", "/doctor/visits/v1");
+    }
+    expect(screen.getByText("Needs closing")).toBeInTheDocument();
   });
 
   it("asks for exactly the next day, midnight to midnight, when moving forward", async () => {

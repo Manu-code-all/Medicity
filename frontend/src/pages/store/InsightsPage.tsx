@@ -20,22 +20,22 @@ export function InsightsPage() {
         </p>
       </header>
 
-      <div className="stats">
-        <div className="card stat">
-          <strong>{summary.questionsReceived}</strong>
-          <span className="muted">questions</span>
+      <div className="bento">
+        <div className="tile b-3">
+          <strong className="tile__figure">{summary.questionsReceived}</strong>
+          <span className="tile__label">questions</span>
         </div>
-        <div className="card stat">
-          <strong>{summary.answered}</strong>
-          <span className="muted">answered{summary.answeredAutomatically > 0 && ` (${summary.answeredAutomatically} automatic)`}</span>
+        <div className="tile b-3">
+          <strong className="tile__figure">{summary.answered}</strong>
+          <span className="tile__label">answered{summary.answeredAutomatically > 0 && ` (${summary.answeredAutomatically} automatic)`}</span>
         </div>
-        <div className="card stat">
-          <strong>{summary.reservations}</strong>
-          <span className="muted">reserved with you</span>
+        <div className="tile b-3">
+          <strong className="tile__figure">{summary.reservations}</strong>
+          <span className="tile__label">reserved with you</span>
         </div>
-        <div className="card stat">
-          <strong>{summary.medianMinutesToAnswer ?? "–"}</strong>
-          <span className="muted">minutes to answer (median)</span>
+        <div className="tile b-3">
+          <strong className="tile__figure">{summary.medianMinutesToAnswer ?? "–"}</strong>
+          <span className="tile__label">minutes to answer (median)</span>
         </div>
       </div>
 

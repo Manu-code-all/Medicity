@@ -32,6 +32,11 @@
   --font: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --shadow: 0 2px 4px rgba(16, 32, 43, 0.04), 0 12px 32px rgba(16, 32, 43, 0.08);
+  /* The ladder: rest (a panel on the ground), lift (under a pointer), float
+     (--shadow: the ticket), overlay (menus that cover other content). */
+  --e1: 0 1px 2px rgba(16, 32, 43, 0.05);
+  --e2: 0 1px 2px rgba(16, 32, 43, 0.06), 0 6px 16px rgba(16, 32, 43, 0.08);
+  --e4: 0 4px 8px rgba(16, 32, 43, 0.06), 0 24px 56px rgba(16, 32, 43, 0.16);
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
   --radius: 12px;
   --gutter: 16px;
@@ -58,6 +63,12 @@
     --doctor-line: #8e92f5;  --doctor-text: #a9acf8;
     --chemist-text: #f5b82e;
     --shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.35);
+  --e1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --e2: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 16px rgba(0, 0, 0, 0.35);
+  --e4: 0 4px 8px rgba(0, 0, 0, 0.4), 0 24px 56px rgba(0, 0, 0, 0.5);
+    --e1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --e2: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 16px rgba(0, 0, 0, 0.35);
+    --e4: 0 4px 8px rgba(0, 0, 0, 0.4), 0 24px 56px rgba(0, 0, 0, 0.5);
     color-scheme: dark;
   }
 }
@@ -89,12 +100,18 @@
   --accent-contrast: #ffffff;
   --accent-text: var(--doctor-text);
   --line: var(--doctor-line);
+  /* Restated: a custom property is resolved where it is declared, so the
+     root's tint would stay teal. */
+  --accent-soft: color-mix(in srgb, var(--line) 12%, var(--surface));
 }
 [data-role="chemist"] {
   --accent: var(--chemist-band);
   --accent-contrast: #10202b;
   --accent-text: var(--chemist-text);
   --line: var(--chemist-line);
+  /* Restated: a custom property is resolved where it is declared, so the
+     root's tint would stay teal. */
+  --accent-soft: color-mix(in srgb, var(--line) 12%, var(--surface));
 }
 
 * { box-sizing: border-box; }
@@ -310,7 +327,7 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(16, 32, 43, 0.12);
+  box-shadow: var(--e4);
   max-height: 280px;
   overflow-y: auto;
 }
@@ -761,6 +778,7 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .family-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .family-member { display: flex; align-items: center; gap: 12px; margin: 0; }
 .family-member > div { flex: 1; }
+.family-member > .avatar { flex: none; }
 .family-member p { margin: 0; }
 .acting-banner { background: var(--warn-soft); color: var(--warn); border-radius: var(--radius); padding: 8px 12px; font-weight: 600; }
 
