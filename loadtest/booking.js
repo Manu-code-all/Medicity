@@ -112,6 +112,8 @@ export const options = {
     "http_req_duration{scenario:booking_throughput}": ["p(95)<500"],
     "http_req_duration{scenario:reads}": ["p(95)<300"],
     queue_unexpected: ["count==0"],
+    "http_req_duration{scenario:queue_join}": ["p(95)<2000"],
+    "http_req_duration{scenario:queue_call}": ["p(95)<2000"],
   },
   summaryTrendStats: ["avg", "med", "p(90)", "p(95)", "p(99)", "max"],
 };
@@ -266,7 +268,7 @@ export function handleSummary(data) {
     `| Booking p95 / p99 (throughput) | ${ms("http_req_duration{scenario:booking_throughput}", "p(95)")} / ${ms("http_req_duration{scenario:booking_throughput}", "p(99)")} |`,
     `| Read p95 / p99 | ${ms("http_req_duration{scenario:reads}", "p(95)")} / ${ms("http_req_duration{scenario:reads}", "p(99)")} |`,
     `| Walk-in: 300 patients join one queue at once | ${v("queue_tokens_given", "count")} tokens given, p95 ${ms("http_req_duration{scenario:queue_join}", "p(95)")} |`,
-    `| Walk-in: 8 desk tabs call next together | ${v("queue_tokens_called", "count")} tokens called |`,
+    `| Walk-in: 8 desk tabs call next together | ${v("queue_tokens_called", "count")} tokens called, p95 ${ms("http_req_duration{scenario:queue_call}", "p(95)")} |`,
     `| Unexpected queue responses | ${v("queue_unexpected", "count")} |`,
     `| Requests / second (overall) | ${v("http_reqs", "rate").toFixed(1)} |`,
     `| Failed requests | ${(v("http_req_failed", "rate") * 100).toFixed(2)}% |`,
