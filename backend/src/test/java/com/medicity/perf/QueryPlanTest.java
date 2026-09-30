@@ -126,9 +126,9 @@ class QueryPlanTest extends AbstractIntegrationTest {
                   AND s.starts_at <= now() AND s.ends_at > now() - interval '90 minutes'
                 """.formatted(doctor));
         q.put("Hourly job: visits never closed", """
-                SELECT a.id FROM appointments a JOIN appointment_slots s ON s.id = a.slot_id
+                SELECT a.id FROM appointments a
                 WHERE a.status = 'BOOKED' AND a.scheduled_at < now() - interval '12 hours'
-                  AND s.ends_at < now() - interval '12 hours'
+                  AND (SELECT s.ends_at FROM appointment_slots s WHERE s.id = a.slot_id) < now() - interval '12 hours'
                 """);
         q.put("Bell: latest notifications", """
                 SELECT * FROM notifications WHERE user_id = '%s' ORDER BY created_at DESC LIMIT 20
