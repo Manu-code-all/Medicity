@@ -2228,6 +2228,34 @@ procedure and a negative fee are refused with nothing changed; patients get
 403 and the signed-out 401. Frontend: the form sends the whole practice and
 drops unnamed charges; a refusal shows the server's reason.
 
+## 58. The first screen of the README, and a Lighthouse check
+
+A reviewer gives a repository about a minute and a half. The README opened
+with the concurrency argument, which is the point, but a reader had to scroll
+past the architecture to find the live link, and further to find a demo
+login. The first screen now carries the live app and API reference, a
+screenshot, the five demo accounts with what to try as each, and a table of
+measured numbers, each traceable to a test or a load-test run in this log.
+The architecture diagram, drawn before the outbox, the scheduled jobs, the
+video relay and the prescription readers existed, now shows them.
+
+**Lighthouse**, run by a new workflow (weekly, on demand, and on changes to
+itself) against the live landing page, because a score measured on a local
+build says nothing about Vercel's edge:
+
+| Profile | Performance | Accessibility | Best practices | SEO |
+|---|---:|---:|---:|---:|
+| Desktop | 100 | 96 | 100 | 91 |
+| Mobile (emulated slow phone) | 63 and 91 in two runs | 96 | 100 | 91 |
+
+The mobile score moved 28 points between two runs minutes apart, all of it
+total blocking time (2 s, then 0). The shared runner's CPU explains that, not
+the page, so the README quotes the range and not the better number. The
+workflow now prints where the phone profile spends main-thread time, so a
+real regression can be told apart from noise. The one change made on the
+evidence was loading Google Fonts without blocking the first paint
+(`preload` swapped to a stylesheet on load, with a `<noscript>` fallback).
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
