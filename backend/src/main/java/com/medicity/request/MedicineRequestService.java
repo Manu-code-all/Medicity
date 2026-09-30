@@ -99,6 +99,9 @@ public class MedicineRequestService {
                 WHERE prescription_id = ? AND status = 'OPEN' AND expires_at <= ?
                 """, Timestamp.from(now), prescriptionId, Timestamp.from(now));
 
+        // Lock the patient, so two questions sent at once cannot both pass a
+        // count of four and make six.
+        jdbc.query("SELECT id FROM patients WHERE id = ? FOR UPDATE", rs -> {}, patient.getId());
         Integer open = jdbc.queryForObject("""
                 SELECT count(*) FROM medicine_requests
                 WHERE patient_id = ? AND status = 'OPEN' AND expires_at > ?
