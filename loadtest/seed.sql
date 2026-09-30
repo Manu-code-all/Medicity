@@ -9,6 +9,7 @@
 --     scenario. Their grids start 7, 14 and 21 minutes past the hot grid,
 --     so no two slots anywhere start at the same instant and one patient can
 --     hold many of them without tripping uq_patient_active_at_time.
+--   * 1 walk-in doctor (5), whose queue all 300 patients join at once.
 --   * 300 patients and 1 admin. Passwords are hashed by pgcrypto at BCrypt
 --     cost 4 instead of the application's 12: login is not what this test
 --     measures, and 300 logins at ~250 ms each would dominate setup.
@@ -23,13 +24,13 @@ SELECT ('00000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid,
        crypt(:'password', gen_salt('bf', 4)),
        'Load Doctor ' || n,
        'DOCTOR'
-FROM generate_series(1, 4) n;
+FROM generate_series(1, 5) n;
 
 INSERT INTO doctors (id, user_id, specialization, license_number, consultation_fee, years_experience)
 SELECT ('d0000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid,
        ('00000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid,
        'Load Testing', 'LT-' || n, 500.00, 5
-FROM generate_series(1, 4) n;
+FROM generate_series(1, 5) n;
 
 -- Hot: 20 consecutive slots for doctor 1, starting tomorrow.
 INSERT INTO appointment_slots (doctor_id, starts_at, ends_at, status)
