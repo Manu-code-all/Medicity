@@ -757,5 +757,9 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .days-off__form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .days-off__form label { display: grid; gap: 4px; flex: 1 1 180px; }
 .days-off__form button { flex: 0 0 auto; }
+.practice__row { display: flex; flex-wrap: wrap; gap: 12px; }
+.practice__row label { display: grid; gap: 4px; flex: 1 1 180px; }
+.practice__insurers { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.practice__insurers legend { font-weight: 600; margin-bottom: 6px; width: 100%; }
 a.tab { text-decoration: none; border-radius: 7px; }
 a.tab.is-active { background: var(--accent-soft); color: var(--text); }

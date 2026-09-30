@@ -738,6 +738,19 @@ export interface Insurer {
   kind: "PRIVATE" | "PUBLIC" | "GOVERNMENT";
 }
 
+/** What a doctor edits about their practice. */
+export interface PracticeUpdate {
+  consultationFee: number;
+  bio: string | null;
+  yearsExperience: number;
+  insurers: string[];
+  prices: ProcedurePrice[];
+}
+
+export interface Practice extends PracticeUpdate {
+  availableInsurers: Insurer[];
+}
+
 export interface FollowUpMessage {
   id: string;
   sender: "PATIENT" | "DOCTOR";
