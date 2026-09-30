@@ -804,3 +804,19 @@ INSERT INTO doctor_procedure_prices (doctor_id, procedure, price_inr, every_visi
   ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa14', 'Root canal (per tooth)', 5500, FALSE),
   ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa14', 'Extraction', 800, FALSE)
 ON CONFLICT DO NOTHING;
+
+-- Where each demo doctor sees patients, around the demo patient's area.
+UPDATE doctors SET clinic_name = 'Rao Heart Clinic', clinic_address = '12, 100 Feet Road, Indiranagar, Bengaluru', clinic_latitude = 12.9784, clinic_longitude = 77.6408 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa01';
+UPDATE doctors SET clinic_name = 'NeuroCare Centre', clinic_address = '3rd Cross, HAL 2nd Stage, Bengaluru', clinic_latitude = 12.9611, clinic_longitude = 77.6387 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa02';
+UPDATE doctors SET clinic_name = 'Little Steps Children''s Clinic', clinic_address = '80 Feet Road, Koramangala, Bengaluru', clinic_latitude = 12.9352, clinic_longitude = 77.6245 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa03';
+UPDATE doctors SET clinic_name = 'Family Health Clinic', clinic_address = '5th Main, Indiranagar, Bengaluru', clinic_latitude = 12.9716, clinic_longitude = 77.6412 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa04';
+UPDATE doctors SET clinic_name = 'Gut and Liver Clinic', clinic_address = 'CMH Road, Indiranagar, Bengaluru', clinic_latitude = 12.979, clinic_longitude = 77.639 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa05';
+UPDATE doctors SET clinic_name = 'Joint and Spine Centre', clinic_address = 'Old Airport Road, Domlur, Bengaluru', clinic_latitude = 12.9609, clinic_longitude = 77.6387 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa06';
+UPDATE doctors SET clinic_name = 'Ear Nose Throat Clinic', clinic_address = 'Church Street, Bengaluru', clinic_latitude = 12.9753, clinic_longitude = 77.6066 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa07';
+UPDATE doctors SET clinic_name = 'Skin and Hair Studio', clinic_address = '12th Main, HAL 2nd Stage, Bengaluru', clinic_latitude = 12.9698, clinic_longitude = 77.6381 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa08';
+UPDATE doctors SET clinic_name = 'Chest and Allergy Clinic', clinic_address = 'Jeevan Bima Nagar, Bengaluru', clinic_latitude = 12.9688, clinic_longitude = 77.66 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa09';
+UPDATE doctors SET clinic_name = 'Urology Centre', clinic_address = 'Richmond Road, Bengaluru', clinic_latitude = 12.966, clinic_longitude = 77.5985 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa10';
+UPDATE doctors SET clinic_name = 'Women''s Health Clinic', clinic_address = 'Koramangala 4th Block, Bengaluru', clinic_latitude = 12.9352, clinic_longitude = 77.6245 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa11';
+UPDATE doctors SET clinic_name = 'Kidney Care Centre', clinic_address = 'Whitefield Main Road, Bengaluru', clinic_latitude = 12.9698, clinic_longitude = 77.7499 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa12';
+UPDATE doctors SET clinic_name = 'Surgical Clinic', clinic_address = 'MG Road, Bengaluru', clinic_latitude = 12.9756, clinic_longitude = 77.6097 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa13';
+UPDATE doctors SET clinic_name = 'Smile Dental Studio', clinic_address = '100 Feet Road, Indiranagar, Bengaluru', clinic_latitude = 12.98, clinic_longitude = 77.64 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa14';

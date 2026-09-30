@@ -40,8 +40,11 @@ public class DoctorPracticeService {
     private final DoctorOffers offers;
     private final AuditLog auditLog;
 
+    public record Clinic(String name, String address, Double latitude, Double longitude) {}
+
     public record Practice(BigDecimal consultationFee, String bio, int yearsExperience, List<String> insurers,
-                           List<DoctorOffers.Price> prices, List<DoctorOffers.Insurer> availableInsurers) {}
+                           List<DoctorOffers.Price> prices, List<DoctorOffers.Insurer> availableInsurers,
+                           Clinic clinic) {}
 
     @Transactional(readOnly = true)
     public Practice practice(UUID doctorUserId) {
@@ -49,13 +52,17 @@ public class DoctorPracticeService {
         return new Practice(d.getConsultationFee(), d.getBio(), d.getYearsExperience(),
                 offers.insurersOf(List.of(d.getId())).getOrDefault(d.getId(), List.of()),
                 offers.pricesOf(List.of(d.getId())).getOrDefault(d.getId(), List.of()),
-                offers.insurers());
+                offers.insurers(),
+                new Clinic(d.getClinicName(), d.getClinicAddress(), d.getClinicLatitude(), d.getClinicLongitude()));
     }
 
     @Transactional
     public Practice update(UUID doctorUserId, BigDecimal fee, String bio, int yearsExperience,
-                           List<String> insurers, List<DoctorOffers.Price> prices) {
+                           List<String> insurers, List<DoctorOffers.Price> prices, Clinic clinic) {
         Doctor d = requireDoctor(doctorUserId);
+        if (clinic != null && (clinic.latitude() == null) != (clinic.longitude() == null)) {
+            throw new ValidationException("LOCATION_INCOMPLETE", "Send both latitude and longitude, or neither");
+        }
 
         Set<String> known = offers.insurers().stream().map(DoctorOffers.Insurer::name).collect(Collectors.toSet());
         Set<String> chosen = new HashSet<>(insurers);
@@ -79,6 +86,10 @@ public class DoctorPracticeService {
         d.setConsultationFee(fee);
         d.setBio(bio == null || bio.isBlank() ? null : bio.trim());
         d.setYearsExperience(yearsExperience);
+        d.setClinicName(clinic == null ? null : blankToNull(clinic.name()));
+        d.setClinicAddress(clinic == null ? null : blankToNull(clinic.address()));
+        d.setClinicLatitude(clinic == null ? null : clinic.latitude());
+        d.setClinicLongitude(clinic == null ? null : clinic.longitude());
         doctors.save(d);
 
         var id = new MapSqlParameterSource("doctor", d.getId());
@@ -99,6 +110,10 @@ public class DoctorPracticeService {
         auditLog.recordChange("DOCTOR_PRACTICE_UPDATED", "DOCTOR", d.getId(), Map.of(
                 "feeFrom", oldFee, "feeTo", fee, "insurers", new HashSet<>(insurers).size(), "prices", byName.size()));
         return practice(doctorUserId);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private Doctor requireDoctor(UUID doctorUserId) {

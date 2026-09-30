@@ -95,6 +95,35 @@ class DoctorPracticeTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("a doctor sets where they see patients; the directory and the single-doctor view carry it, and half a location is refused")
+    void clinicLocation() throws Exception {
+        save("""
+                {"consultationFee":900,"bio":null,"yearsExperience":11,"insurers":[],"prices":[],
+                 "clinic":{"name":" Rao Heart Clinic ","address":"12, 100 Feet Road","latitude":12.9784,"longitude":77.6408}}
+                """).andExpect(status().isOk())
+                .andExpect(jsonPath("$.clinic.name").value("Rao Heart Clinic"));
+
+        mvc.perform(get("/api/v1/doctors/" + rao.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.clinicAddress").value("12, 100 Feet Road"))
+                .andExpect(jsonPath("$.clinicLatitude").value(12.9784));
+        mvc.perform(get("/api/v1/doctors").param("specialization", "Cardiology"))
+                .andExpect(jsonPath("$.content[0].clinicName").value("Rao Heart Clinic"));
+
+        save("""
+                {"consultationFee":900,"bio":null,"yearsExperience":11,"insurers":[],"prices":[],
+                 "clinic":{"name":"x","address":"y","latitude":12.9,"longitude":null}}
+                """).andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("LOCATION_INCOMPLETE"));
+
+        // Leaving the clinic out clears it.
+        save("{\"consultationFee\":900,\"bio\":null,\"yearsExperience\":11,\"insurers\":[],\"prices\":[]}")
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/doctors/" + rao.getId())).andExpect(jsonPath("$.clinicLatitude").doesNotExist());
+        mvc.perform(get("/api/v1/doctors/" + UUID.randomUUID())).andExpect(status().isNotFound());
+    }
+
+    @Test
     @DisplayName("an unknown insurer, a procedure listed twice, or a negative fee is refused, and nothing changes")
     void refusals() throws Exception {
         save(body("[\"Made Up Insurance\"]", "[]", 900)).andExpect(status().isUnprocessableEntity())
