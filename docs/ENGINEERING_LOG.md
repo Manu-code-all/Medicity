@@ -2059,6 +2059,50 @@ worth in stock, the first question hears yes; after Meera reserves, the next
 hears no; after she cancels, yes; after a reservation is collected, no; after
 the store sends its list again, yes.
 
+## 53. Query plans at scale, checked in CI
+
+On demo data every query is fast, because PostgreSQL rightly reads a
+few-dozen-row table whole. That says nothing about a clinic network a year
+in. `QueryPlanTest` seeds a realistic volume inside one rolled-back
+transaction (200 doctors, 120,000 slots, 60,000 visits, 10,000 patients,
+100,000 notifications, 50,000 outbox events), runs `ANALYZE`, then
+`EXPLAIN ANALYZE`s the eleven hottest queries the way the application sends
+them. A sequential scan of any large table fails the build, and the table of
+timings and full plans goes to the CI job summary.
+
+It found two queries that read a whole table:
+
+| Query | Before | After | Fix |
+|---|---:|---:|---|
+| Directory: next three free slots for a page of 20 doctors | 17.9 ms, all 60,000 visits read | 0.5 ms | `LATERAL … LIMIT 3` per doctor instead of a window function |
+| Hourly job: visits never closed | 28.5 ms, all visits and all slots read | 13.8 ms, reading only the 600 seeded never-closed visits | Partial index `(scheduled_at) WHERE status = 'BOOKED'` (V32) and a per-candidate slot lookup |
+
+- **Why the directory query degraded.** The window function numbered every
+  open slot in the next two weeks for all 20 doctors (about 6,000), then
+  checked each against appointments. For that many probes PostgreSQL
+  preferred hashing the whole appointments table, which is fine at 60 rows
+  and grows with every visit ever booked. With `CROSS JOIN LATERAL (…
+  ORDER BY starts_at LIMIT 3)`, each doctor's slots are walked in index order
+  and the walk stops at the third free one: about 60 probes a page,
+  whatever the table size.
+- **Why the job did.** It filtered on the slot's end time, which no index on
+  appointments can serve. Only a handful of rows are ever BOOKED and in the
+  past (the job keeps it so), so a partial index on exactly those is tiny.
+  The job adds `scheduled_at < cutoff`, which is implied by the slot ending
+  before the cutoff, so the index can be used. The slot's end then becomes
+  a scalar sub-select, so the planner looks up each candidate's slot by key
+  rather than hashing all 120,000.
+- **The doctor's schedule** filtered and sorted on the appointment's copy of
+  the start time; it now uses the slot's, which the `(doctor_id, starts_at)`
+  index already serves. The two are always equal.
+
+The job's time now grows with the visits it has to close (in production, the
+last hour's), not with every visit ever booked.
+
+Everything else was already index-served: patient visit lists, the day's
+schedule, "running late", notifications, the outbox poll. Each now has a
+test that says so.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

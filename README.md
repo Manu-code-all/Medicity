@@ -291,6 +291,14 @@ break silently: one token refresh for many simultaneous 401s, handing over a
 token another tab already refreshed instead of spending the old one, and
 booking retries that reuse the same `Idempotency-Key`.
 
+**At scale** (`QueryPlanTest`, in every CI run): the eleven hottest queries are
+`EXPLAIN ANALYZE`d against 120,000 slots, 60,000 visits and 100,000
+notifications, and the build fails if any reads a large table whole. It found
+two that did: the directory's "next free slots" went from 17.9 ms (reading every
+visit) to 0.6 ms with a `LATERAL … LIMIT 3` per doctor, and the hourly
+unclosed-visits job now reads only its candidates through a partial index.
+Every other query runs in under 1 ms.
+
 **Under load** (`.github/workflows/load-test.yml`, k6 against the real image
 and PostgreSQL 18 on one GitHub-hosted runner): 200 simultaneous attempts on 20
 slots yield exactly 20 bookings and 180 `409`s. 150 bookings/s holds p95 at
