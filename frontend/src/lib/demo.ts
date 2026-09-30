@@ -52,11 +52,13 @@ export const DEMO_STORES: MapStore[] = [
     answer: { kind: "waiting" } },
 ];
 
-/** Kilometres per degree near Bengaluru's latitude. */
-const KM_PER_DEG_LAT = 111.0;
-const KM_PER_DEG_LNG = 108.4;
+/** Kilometres per degree of latitude. */
+const KM_PER_DEG = 111.0;
 
-/** Offset from the demo home in kilometres (east and north positive). */
-export function offsetKm(lat: number, lng: number) {
-  return { x: (lng - DEMO_HOME.lng) * KM_PER_DEG_LNG, y: (lat - DEMO_HOME.lat) * KM_PER_DEG_LAT };
+/** Offset from an origin in kilometres (east and north positive). */
+export function offsetKm(lat: number, lng: number, origin: { lat: number; lng: number } = DEMO_HOME) {
+  return {
+    x: (lng - origin.lng) * KM_PER_DEG * Math.cos((origin.lat * Math.PI) / 180),
+    y: (lat - origin.lat) * KM_PER_DEG,
+  };
 }

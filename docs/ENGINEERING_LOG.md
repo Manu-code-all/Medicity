@@ -2341,6 +2341,52 @@ No behaviour, route or copy changes; the schedule test now expects the
 lead tile and the line to both name the visit. All 126 frontend tests pass.
 Checked at desktop and phone width.
 
+## 61. The landing page: a capsule that turns, matching doors, a map of where you are
+
+Feedback after walking the live landing page: the navigation repeated what
+the page already said, the two doors did not line up, the map named one
+neighbourhood and one person, and two "try the demo" links and a section of
+role descriptions added noise to a page whose job is to start a search.
+
+- **One capsule, one way in.** The "Find a doctor" and "How it works" links
+  are gone. The floating capsule is larger and holds the brand, the two
+  lines the page used to open with turning one after the other ("Find the
+  right doctor, then your medicines nearby." then "From prescription to
+  medicines in hand, near you."), and a single Sign in button (Open my
+  account once signed in). It turns every five seconds, holds still while a
+  pointer or the keyboard is on it, does not turn at all under reduced
+  motion, and each page has a station dot to choose it. Both lines stay in
+  the page as headings for screen readers. The phone menu and burger went
+  with the links: there was nothing left to put in them, so on a phone the
+  capsule becomes two rows.
+- **Matching doors.** The grid was 1.1 : 1 with both doors top aligned, so
+  the shorter search door ended well above the body guide. The columns are
+  equal, the doors stretch, the ledes share a minimum height so the content
+  starts on one line, and the speciality tiles take whatever height is left,
+  so both doors end together.
+- **A map that is about the viewer.** The label "Meera, Indiranagar" and the
+  note "Demo data from Indiranagar" are gone. Signed out it is labelled as
+  an example. Signed in, as a patient, doctor or chemist alike, it asks the
+  browser for the person's position once when the map is first seen and
+  draws the verified chemists within 3 km of it from the same directory the
+  app searches (any signed-in role may read it). No answers or prices are
+  drawn for real stores, because nobody has asked them anything, so it says
+  open now or closed now instead. If location is refused it falls back to
+  the example and says how to allow it. The position is not stored or sent
+  anywhere but the nearby search.
+- **Removed.** Both "Try the demo" links, and the "Three lines, one
+  prescription" section, whose sign-in and registration links now live in
+  the footer (with "Join as a doctor", which only that section carried).
+
+Decision worth recording: the permission prompt appears when a signed-in
+person scrolls to the map, not on page load and not behind a button. They
+have signed in, so a location question next to a map of nearby chemists is
+expected, and a button would have meant the map stays generic for most
+visitors.
+
+Six new tests (the map for each role, refusal, signed out, the capsule, the
+removals); all 132 frontend tests pass.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

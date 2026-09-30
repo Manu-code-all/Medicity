@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthContext, type AuthContextValue } from "../auth/context";
@@ -24,7 +25,7 @@ describe("LandingPage", () => {
     vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("reduce"), media: query }));
   });
 
-  it("leads with the two doors, then shows the demo chemists' real answers on the map", () => {
+  it("leads with the two doors, then shows the example chemists' answers on the map", () => {
     renderLanding();
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Find the right doctor, then your medicines nearby.");
@@ -40,17 +41,35 @@ describe("LandingPage", () => {
     expect(screen.getByText("5 chemists asked for 14 omeprazole capsules · 3 answered")).toBeInTheDocument();
     expect(screen.getAllByText("Lakshmi Medical Stores").length).toBeGreaterThan(0);
     expect(screen.getByText("Cheapest", { selector: ".lm-map__tag" })).toBeInTheDocument();
+    // Signed out, the map says it is an example and names no neighbourhood or person.
+    expect(screen.getByText("An example. Sign in to see the chemists around you.")).toBeInTheDocument();
+    expect(screen.queryByText(/Indiranagar/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Meera/)).not.toBeInTheDocument();
   });
 
-  it("keeps the top navigation to finding a doctor and signing in", () => {
+  it("puts the two pages in the capsule beside one way in, with no page links", async () => {
     renderLanding();
 
     const nav = screen.getByRole("navigation", { name: "Main" });
-    expect(within(nav).getByRole("link", { name: "Find a doctor" })).toHaveAttribute("href", "/doctors");
     expect(within(nav).getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
-    for (const gone of ["For doctors", "For chemists", "Book a visit"]) {
+    for (const gone of ["Find a doctor", "How it works", "For doctors", "For chemists", "Book a visit"]) {
       expect(within(nav).queryByRole("link", { name: gone })).not.toBeInTheDocument();
     }
+    expect(within(nav).getByText("Find the right doctor, then your medicines nearby.")).toBeInTheDocument();
+    expect(within(nav).getByText("From prescription to medicines in hand, near you.")).toBeInTheDocument();
+
+    // Each page can be chosen; the current one is marked.
+    await userEvent.click(within(nav).getByRole("button", { name: "Page 2 of 2" }));
+    expect(within(nav).getByRole("button", { name: "Page 2 of 2" })).toHaveAttribute("aria-current", "true");
+    expect(within(nav).getByRole("button", { name: "Page 1 of 2" })).toHaveAttribute("aria-current", "false");
+  });
+
+  it("no longer carries the demo links or the three lines section", () => {
+    renderLanding();
+
+    expect(screen.queryByText("Try the demo")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Three lines/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Your next prescription/ })).toBeInTheDocument();
   });
 
   it("walks the five stations and points each role to its own sign-in", () => {
@@ -60,8 +79,10 @@ describe("LandingPage", () => {
       expect(screen.getByRole("heading", { level: 3, name: station })).toBeInTheDocument();
     }
     expect(screen.getByText("Ask them all at once, compare the answers")).toBeInTheDocument();
-    for (const link of screen.getAllByRole("link", { name: /Doctor sign in/ })) expect(link).toHaveAttribute("href", "/login/doctor");
-    for (const link of screen.getAllByRole("link", { name: /Chemist sign in/ })) expect(link).toHaveAttribute("href", "/login/chemist");
+    // Each role's own sign-in and registration sit in the footer.
+    expect(screen.getByRole("link", { name: "Doctor sign in" })).toHaveAttribute("href", "/login/doctor");
+    expect(screen.getByRole("link", { name: "Chemist sign in" })).toHaveAttribute("href", "/login/chemist");
+    expect(screen.getByRole("link", { name: "Join as a doctor" })).toHaveAttribute("href", "/register/doctor");
     expect(screen.getByLabelText("Pick up code 482913")).toBeInTheDocument();
   });
 });
