@@ -29,7 +29,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -122,6 +124,53 @@ class PatientPortalTest extends AbstractIntegrationTest {
         // reference appointments, so leaving them behind would break those
         // suites with an FK violation that depends on test order.
         cleanUp();
+    }
+
+    @Test
+    @DisplayName("a patient fills in their health details and home location; the body replaces what was there")
+    void updatesHealthProfile() throws Exception {
+        String body = """
+                {"bloodGroup":"B+","heightCm":168,"weightKg":62.5,"allergies":"Penicillin",
+                 "chronicConditions":"Asthma","currentMedications":"Salbutamol inhaler",
+                 "emergencyContact":"9876500111","addressLine":"12, 100 Feet Road","city":"Bengaluru",
+                 "homeLatitude":12.9719,"homeLongitude":77.6412}""";
+        mvc.perform(put("/api/v1/patients/me").header("Authorization", "Bearer " + meeraToken)
+                        .contentType("application/json").content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bloodGroup").value("B+"))
+                .andExpect(jsonPath("$.allergies").value("Penicillin"))
+                .andExpect(jsonPath("$.heightCm").value(168))
+                .andExpect(jsonPath("$.homeLatitude").value(12.9719));
+        mvc.perform(get("/api/v1/patients/me").header("Authorization", "Bearer " + meeraToken))
+                .andExpect(jsonPath("$.currentMedications").value("Salbutamol inhaler"));
+
+        // Another patient's record is untouched.
+        mvc.perform(get("/api/v1/patients/me").header("Authorization", "Bearer " + otherPatientToken))
+                .andExpect(jsonPath("$.allergies").doesNotExist())
+                .andExpect(jsonPath("$.homeLatitude").doesNotExist());
+
+        // Sending less clears the rest: the form shows everything, so the body is all of it.
+        mvc.perform(put("/api/v1/patients/me").header("Authorization", "Bearer " + meeraToken)
+                        .contentType("application/json").content("{\"bloodGroup\":\"O-\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bloodGroup").value("O-"))
+                .andExpect(jsonPath("$.allergies").doesNotExist())
+                .andExpect(jsonPath("$.homeLatitude").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("refuses half a location, an impossible height and a doctor's token")
+    void refusesBadProfiles() throws Exception {
+        mvc.perform(put("/api/v1/patients/me").header("Authorization", "Bearer " + meeraToken)
+                        .contentType("application/json").content("{\"homeLatitude\":12.9}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("LOCATION_INCOMPLETE"));
+        mvc.perform(put("/api/v1/patients/me").header("Authorization", "Bearer " + meeraToken)
+                        .contentType("application/json").content("{\"heightCm\":900}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put("/api/v1/patients/me").header("Authorization", "Bearer " + doctorToken)
+                        .contentType("application/json").content("{}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

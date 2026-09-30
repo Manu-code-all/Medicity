@@ -89,7 +89,29 @@ export interface PatientProfile {
   addressLine: string | null;
   city: string | null;
   emergencyContact: string | null;
+  heightCm: number | null;
+  weightKg: number | null;
+  allergies: string | null;
+  chronicConditions: string | null;
+  currentMedications: string | null;
+  homeLatitude: number | null;
+  homeLongitude: number | null;
   memberSince: string;
+}
+
+/** What the profile form sends: the whole form, since the server replaces the record with it. */
+export interface ProfileUpdate {
+  bloodGroup: string | null;
+  heightCm: number | null;
+  weightKg: number | null;
+  allergies: string | null;
+  chronicConditions: string | null;
+  currentMedications: string | null;
+  emergencyContact: string | null;
+  addressLine: string | null;
+  city: string | null;
+  homeLatitude: number | null;
+  homeLongitude: number | null;
 }
 
 export interface Visit {

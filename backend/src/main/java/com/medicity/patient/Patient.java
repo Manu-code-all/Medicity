@@ -5,6 +5,7 @@ import com.medicity.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -66,6 +67,29 @@ public class Patient extends BaseEntity {
 
     @Column(name = "emergency_contact", length = 20)
     private String emergencyContact;
+
+    @Column(name = "height_cm")
+    private Integer heightCm;
+
+    @Column(name = "weight_kg", precision = 5, scale = 1)
+    private BigDecimal weightKg;
+
+    /** Free text, as the patient would tell a nurse. Never parsed. */
+    @Column(name = "allergies", columnDefinition = "text")
+    private String allergies;
+
+    @Column(name = "chronic_conditions", columnDefinition = "text")
+    private String chronicConditions;
+
+    @Column(name = "current_medications", columnDefinition = "text")
+    private String currentMedications;
+
+    /** Where the person is based, for distances to clinics and chemists; both or neither. */
+    @Column(name = "home_latitude")
+    private Double homeLatitude;
+
+    @Column(name = "home_longitude")
+    private Double homeLongitude;
 
     public boolean isFamilyMember() {
         return guardianUserId != null;

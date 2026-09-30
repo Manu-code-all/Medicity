@@ -2412,6 +2412,41 @@ Both were reported after a person actually used the portal.
   The test switches person from the visits page and checks the overview,
   the greeting, and the `X-Patient-Id` header on the refetch.
 
+## 63. What a clinic asks: a health profile and a saved location
+
+Signing up asked for a name, an email, a password and a date of birth, and
+nothing a clinic asks before it sees someone (blood group, allergies,
+long-term conditions, medicines taken now), and never asked where the person
+is, so nothing could be measured against it later.
+
+- **Sign-up has a second step.** After the account exists, `/welcome` asks
+  for blood group, height, weight, allergies, long-term conditions, current
+  medicines, an address, an emergency contact, and offers to save the
+  person's current location. Every question is optional and the whole step
+  can be skipped. It sits after account creation, not inside the sign-up
+  form, so a long form never stands between a person and an account, and a
+  failed health field cannot lose the account. Gender, which the API already
+  accepted but the form never asked, is now on the sign-up form.
+- **One form, two places.** The same `HealthForm` is on the profile page
+  behind "Edit health and location", so the answers can be completed or
+  corrected later, and for a family member when their portal is open (the
+  route acts for whoever is being viewed, as the rest of the portal does).
+- **The location is a choice, and it is stored as a choice.** It is asked
+  for with a button, not on page load, it can be removed, and the browser's
+  answer is saved as two numbers on the patient row (migration V34, with
+  both-or-neither and range checks in the database as well as the API), not
+  as a trail. Distances to clinics and chemists are worked out from it.
+- **`PUT /api/v1/patients/me` replaces the whole record.** The form shows
+  every field, so the body is all of it and an omitted field is cleared;
+  half a location is refused (`LOCATION_INCOMPLETE`), as is an impossible
+  height. A doctor's token gets 403, and a test checks another patient's
+  record is untouched. Health text is free text and never parsed, as a nurse
+  would write it down.
+
+Two backend tests (update and replace; refusals) and two frontend tests
+(the form sends the whole body with the saved location; skipping sends
+nothing).
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
