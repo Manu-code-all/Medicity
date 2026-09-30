@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, CalendarCheck, Clock, Package, Prescription, Storefront } from "@phosphor-icons/react";
-import { useAuth } from "../auth/context";
 import { BodyGuide } from "../components/bodymap/BodyGuide";
 import { IslandNav } from "../components/IslandNav";
 import { LineMap } from "../components/LineMap";
@@ -14,7 +13,6 @@ import "../landing.css";
 const API_DOCS_URL = `${import.meta.env.VITE_API_BASE_URL ?? ""}/swagger-ui/index.html`;
 
 export function LandingPage() {
-  const { session } = useAuth();
   const location = useLocation();
 
   // React Router does not scroll to #fragments by itself.
@@ -31,9 +29,9 @@ export function LandingPage() {
 
       <main id="main">
         <section className="lm-doors" aria-labelledby="doors-title">
-          <h1 id="doors-title" className="lm-doors__title">
-            Find the right doctor,
-            <br /> then your medicines nearby.
+          {/* The capsule above shows this line; the page keeps it as its heading. */}
+          <h1 id="doors-title" className="lm-sr">
+            Find the right doctor, then your medicines nearby.
           </h1>
           <div className="lm-doors__grid">
             <section className="lm-door" aria-labelledby="door-guide">
@@ -62,10 +60,8 @@ export function LandingPage() {
 
         <section className="lm-hero" aria-labelledby="hero-title">
           <div className="lm-hero__copy">
-            <h2 id="hero-title" className="lm-hero__title">
-              From prescription
-              <br /> to medicines
-              <br /> in hand, near you.
+            <h2 id="hero-title" className="lm-sr">
+              From prescription to medicines in hand, near you.
             </h2>
             <p className="lm-hero__lede">
               Book a specialist, keep every prescription in one place, then ask every verified chemist within 3&nbsp;km who
@@ -74,10 +70,6 @@ export function LandingPage() {
             <div className="lm-hero__actions">
               <Link to="/doctors" className="lm-button">
                 Book a visit
-              </Link>
-              <Link to={session ? "/portal" : "/login"} className="lm-text-link">
-                {session ? "Open my account" : "Try the demo"}
-                <ArrowRight size={16} weight="bold" aria-hidden="true" />
               </Link>
             </div>
             <p className="lm-hero__proof">Free for doctors and chemists. No stock list to keep, no fee per prescription.</p>
@@ -91,8 +83,6 @@ export function LandingPage() {
           lines={["Your prescription already knows the way.", "Every verified chemist within 3 km hears it at once."]}
         />
 
-        <Lines />
-
         <Faq />
 
         <section className="lm-close" aria-labelledby="close-title">
@@ -103,10 +93,6 @@ export function LandingPage() {
           <div className="lm-hero__actions">
             <Link to="/doctors" className="lm-button">
               Book a visit
-            </Link>
-            <Link to="/login" className="lm-text-link">
-              Try the demo
-              <ArrowRight size={16} weight="bold" aria-hidden="true" />
             </Link>
           </div>
         </section>
@@ -124,6 +110,7 @@ export function LandingPage() {
               <li><Link to="/login">Patient sign in</Link></li>
               <li><Link to="/login/doctor">Doctor sign in</Link></li>
               <li><Link to="/login/chemist">Chemist sign in</Link></li>
+              <li><Link to="/register/doctor">Join as a doctor</Link></li>
               <li><Link to="/register/store">Register your store</Link></li>
               <li><a href={API_DOCS_URL} target="_blank" rel="noreferrer">API docs</a></li>
               <li><a href="https://github.com/Manu-code-all/Medicity" target="_blank" rel="noreferrer">Source on GitHub</a></li>
@@ -403,74 +390,6 @@ function TaglineReveal({ lines }: { lines: string[] }) {
           </span>
         ))}
       </p>
-    </section>
-  );
-}
-
-/* ---------- Three lines for three people ---------- */
-
-function Lines() {
-  return (
-    <section className="lm-lines" aria-labelledby="lines-title">
-      <h2 id="lines-title" className="lm-h2">
-        Three lines,
-        <br /> one prescription
-      </h2>
-      <div className="lm-line" data-role="patient">
-        <div className="lm-line__band" aria-hidden="true" />
-        <div className="lm-line__head">
-          <h3>For patients and their families</h3>
-          <p>Book, keep every prescription, and find your medicines nearby, for you, your parents and your children.</p>
-        </div>
-        <ul className="lm-line__stops">
-          <li>Up to 8 family members under your account</li>
-          <li>A reminder a few days before tablets run out</li>
-          <li>Instructions you can share on WhatsApp</li>
-        </ul>
-        <Link to="/login" className="lm-text-link">
-          Patient sign in <ArrowRight size={16} weight="bold" aria-hidden="true" />
-        </Link>
-      </div>
-      <div className="lm-line" data-role="doctor">
-        <div className="lm-line__band" aria-hidden="true" />
-        <div className="lm-line__head">
-          <h3>For doctors, free</h3>
-          <p>Your day's schedule and each patient's history. Type a prescription, or photograph your handwritten slip and confirm the draft.</p>
-        </div>
-        <ul className="lm-line__stops">
-          <li>Mark where a cheaper brand is fine, per medicine</li>
-          <li>Corrections replace the old prescription</li>
-          <li>Registration number checked before patients can book</li>
-        </ul>
-        <div className="lm-line__links">
-          <Link to="/login/doctor" className="lm-text-link">
-            Doctor sign in <ArrowRight size={16} weight="bold" aria-hidden="true" />
-          </Link>
-          <Link to="/register/doctor" className="lm-text-link">
-            Join as a doctor <ArrowRight size={16} weight="bold" aria-hidden="true" />
-          </Link>
-        </div>
-      </div>
-      <div className="lm-line" data-role="chemist">
-        <div className="lm-line__band" aria-hidden="true" />
-        <div className="lm-line__head">
-          <h3>For chemists, free</h3>
-          <p>Answer yes, partly or no to patients nearby. No stock list to keep up to date, and every question comes from a doctor's prescription.</p>
-        </div>
-        <ul className="lm-line__stops">
-          <li>Hold medicines, hand over against a code</li>
-          <li>See what people nearby asked for this week</li>
-          <li>Licence checked by a person before you go live</li>
-        </ul>
-        <div className="lm-line__links">
-          <Link to="/login/chemist" className="lm-text-link">
-            Chemist sign in <ArrowRight size={16} weight="bold" aria-hidden="true" />
-          </Link>
-          <Link to="/register/store" className="lm-text-link">
-            Register your store <ArrowRight size={16} weight="bold" aria-hidden="true" />
-          </Link>
-        </div>
-      </div>
     </section>
   );
 }
