@@ -1,0 +1,56 @@
+name: Lighthouse
+
+# Scores the live landing page (the only page a visitor sees before signing
+# in) on a phone and a desktop profile. Manual, or weekly: it measures the
+# deployed site and Vercel's edge as much as the code, so it is a trend to
+# watch, not a gate on every change.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 3 * * 1"
+  pull_request:
+    paths:
+      - .github/workflows/lighthouse.yml
+
+jobs:
+  lighthouse:
+    name: Landing page
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Lighthouse
+        run: |
+          for preset in mobile desktop; do
+            flag=""
+            [ "$preset" = desktop ] && flag="--preset=desktop"
+            npx -y lighthouse@12 https://medicity-coral.vercel.app/ $flag --quiet \
+              --chrome-flags="--headless=new --no-sandbox" \
+              --only-categories=performance,accessibility,best-practices,seo \
+              --output=json --output=html --output-path="./lh-$preset"
+          done
+
+      - name: Write summary
+        run: |
+          node -e '
+            const fs = require("fs");
+            const rows = ["mobile", "desktop"].map((p) => {
+              const r = JSON.parse(fs.readFileSync(`lh-${p}.report.json`, "utf8"));
+              const c = r.categories, a = r.audits;
+              const s = (k) => Math.round(c[k].score * 100);
+              return `| ${p} | ${s("performance")} | ${s("accessibility")} | ${s("best-practices")} | ${s("seo")} | ${a["largest-contentful-paint"].displayValue} | ${a["total-blocking-time"].displayValue} | ${a["cumulative-layout-shift"].displayValue} |`;
+            });
+            const md = ["### Lighthouse: landing page", "",
+              "| Profile | Performance | Accessibility | Best practices | SEO | LCP | TBT | CLS |",
+              "|---|---:|---:|---:|---:|---:|---:|---:|", ...rows, ""].join("\n");
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+            console.log(md);
+          '
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: lh-*.report.*
