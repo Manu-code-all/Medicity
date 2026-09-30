@@ -64,6 +64,11 @@ export function App() {
   // The landing and sign-in pages carry their own navigation.
   const { pathname } = useLocation();
   const ownChrome = pathname === "/" || pathname.startsWith("/login");
+  // The three workspaces bring their own rail; the top bar is for the pages
+  // in between (the directory, booking, notifications, sign-up).
+  const inWorkspace = /^\/(portal|doctor|store)(\/|$)/.test(pathname);
+  // One line colour per role: the role repaints every accent below the root.
+  const role = session?.role === "DOCTOR" ? "doctor" : session?.role === "CHEMIST" ? "chemist" : "patient";
   // Those pages hold their own <main>; landmarks must not nest.
   const Shell = ownChrome ? "div" : "main";
 
@@ -73,12 +78,12 @@ export function App() {
   }
 
   return (
-    <div className="app">
-      {!ownChrome && (
+    <div className={ownChrome ? "app" : "app in"} data-role={role}>
+      {!ownChrome && !inWorkspace && (
         <header className="topbar">
           <div className="topbar__inner">
             <Link to="/" className="brand">
-              <span className="brand__mark" aria-hidden="true">+</span>
+              <span className="brand__mark" aria-hidden="true" />
               Medicity
             </Link>
             <nav>

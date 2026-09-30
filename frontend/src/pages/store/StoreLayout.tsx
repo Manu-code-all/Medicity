@@ -1,6 +1,5 @@
-import { Suspense } from "react";
-import { PageLoading } from "../../components/PageLoading";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { WorkspaceShell } from "../../components/WorkspaceShell";
 import { useAuth } from "../../auth/context";
 import { initials } from "../../lib/format";
 
@@ -30,10 +29,11 @@ export function StoreLayout() {
   }
 
   return (
-    <div className="portal">
-      <aside className="portal__nav">
-        {session && (
-          <div className="portal__who">
+    <WorkspaceShell
+      label="Store workspace"
+      who={
+        session && (
+          <div className="ws__who">
             <div className="avatar avatar--sm" aria-hidden="true">
               {initials(session.fullName)}
             </div>
@@ -42,25 +42,9 @@ export function StoreLayout() {
               <span className="muted">Chemist</span>
             </div>
           </div>
-        )}
-        <nav aria-label="Store workspace">
-          {SECTIONS.map((s) => (
-            <NavLink
-              key={s.to}
-              to={s.to}
-              end={s.end}
-              className={({ isActive }) => (isActive ? "portal__link is-active" : "portal__link")}
-            >
-              {s.label}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
-      <div className="portal__main">
-        <Suspense fallback={<PageLoading />}>
-          <Outlet />
-        </Suspense>
-      </div>
-    </div>
+        )
+      }
+      stations={SECTIONS}
+    />
   );
 }

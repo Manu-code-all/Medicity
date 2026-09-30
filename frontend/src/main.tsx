@@ -6,6 +6,7 @@ import { ApiError } from "./api/client";
 import { AuthProvider } from "./auth/AuthContext";
 import { App } from "./App";
 import "./styles.css";
+import "./workspace.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,7 +27,14 @@ const queryClient = new QueryClient({
   },
 });
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+// `npm run preview:ui` shows the signed-in screens from recorded demo data,
+// with no backend. The branch is removed from production builds.
+const ready =
+  import.meta.env.DEV && import.meta.env.VITE_PREVIEW
+    ? import("./dev/preview").then((m) => m.install())
+    : Promise.resolve();
+
+void ready.then(() => ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       {/* Navigation as a transition: while the next page's code downloads,
@@ -38,4 +46,4 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>,
-);
+));

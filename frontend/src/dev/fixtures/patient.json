@@ -1,0 +1,1792 @@
+{
+ "session": {
+  "userId": "22222222-2222-4222-8222-222222222201",
+  "fullName": "Meera Nair",
+  "role": "PATIENT"
+ },
+ "responses": {
+  "/api/v1/patients/me": {
+   "patientId": "bbbbbbbb-2222-4222-8222-bbbbbbbbbb01",
+   "relationship": null,
+   "fullName": "Meera Nair",
+   "email": "patient@medicity.demo",
+   "phone": "+919876500101",
+   "dateOfBirth": "1994-08-12",
+   "gender": "FEMALE",
+   "bloodGroup": "O+",
+   "addressLine": null,
+   "city": "Bengaluru",
+   "emergencyContact": null,
+   "memberSince": "2026-09-25T17:14:07.894708Z"
+  },
+  "/api/v1/patients/me/summary": {
+   "upcoming": 1,
+   "completed": 3,
+   "cancelled": 1,
+   "missed": 1,
+   "prescriptions": 3,
+   "nextVisit": {
+    "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee06",
+    "status": "BOOKED",
+    "scheduledAt": "2026-10-05T10:00:00Z",
+    "endsAt": "2026-10-05T10:30:00Z",
+    "reason": "Six-week headache review",
+    "doctorId": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa02",
+    "doctorName": "Dr. Suresh Iyer",
+    "specialization": "Neurology",
+    "cancelledAt": null,
+    "cancelReason": null,
+    "reviewed": false,
+    "visitType": "IN_PERSON"
+   }
+  },
+  "/api/v1/patients/me/prescriptions": [
+   {
+    "id": "ffffffff-6666-4666-8666-ffffffffff04",
+    "appointmentId": "eeeeeeee-5555-4555-8555-eeeeeeeeee05",
+    "issuedAt": "2026-09-18T05:20:00Z",
+    "doctorName": "Dr. Anjali Rao",
+    "specialization": "Cardiology",
+    "diagnosis": "Palpitations resolved; reflux controlled",
+    "diagnosisCode": null,
+    "notes": "Stop omeprazole after this course. Annual cardiac check-up recommended.",
+    "revised": false,
+    "dispensedAt": null,
+    "collectedAt": null,
+    "collectedFrom": null,
+    "hasPhoto": false,
+    "items": [
+     {
+      "medicineId": "cccccccc-3333-4333-8333-cccccccccc06",
+      "medicine": "Omeprazole",
+      "strength": "20mg",
+      "form": "CAPSULE",
+      "dosage": "20mg",
+      "frequency": "Once daily, before breakfast",
+      "durationDays": 14,
+      "quantity": 14,
+      "genericName": "Omeprazole",
+      "substitutionAllowed": true
+     }
+    ]
+   },
+   {
+    "id": "ffffffff-6666-4666-8666-ffffffffff03",
+    "appointmentId": "eeeeeeee-5555-4555-8555-eeeeeeeeee02",
+    "issuedAt": "2026-07-31T06:25:00Z",
+    "doctorName": "Dr. Suresh Iyer",
+    "specialization": "Neurology",
+    "diagnosis": "Tension-type headache",
+    "diagnosisCode": null,
+    "notes": "Revised: paracetamol changed from fixed to as-needed dosing to avoid medication-overuse headache. Keep a headache diary.",
+    "revised": true,
+    "dispensedAt": "2026-07-31T07:05:00Z",
+    "collectedAt": null,
+    "collectedFrom": null,
+    "hasPhoto": false,
+    "items": [
+     {
+      "medicineId": "cccccccc-3333-4333-8333-cccccccccc01",
+      "medicine": "Paracetamol",
+      "strength": "500mg",
+      "form": "TABLET",
+      "dosage": "500mg",
+      "frequency": "As needed, at most 3 a day",
+      "durationDays": 10,
+      "quantity": 15,
+      "genericName": "Acetaminophen",
+      "substitutionAllowed": false
+     }
+    ]
+   },
+   {
+    "id": "ffffffff-6666-4666-8666-ffffffffff01",
+    "appointmentId": "eeeeeeee-5555-4555-8555-eeeeeeeeee01",
+    "issuedAt": "2026-05-29T05:25:00Z",
+    "doctorName": "Dr. Anjali Rao",
+    "specialization": "Cardiology",
+    "diagnosis": "Benign sinus palpitations; gastro-oesophageal reflux",
+    "diagnosisCode": null,
+    "notes": "ECG and echo normal. Cut caffeine after noon. Review in 3 months, sooner if palpitations come with dizziness.",
+    "revised": false,
+    "dispensedAt": "2026-05-29T06:05:00Z",
+    "collectedAt": "2026-09-05T03:20:00.007075Z",
+    "collectedFrom": "Sri Sai Medicals",
+    "hasPhoto": false,
+    "items": [
+     {
+      "medicineId": "cccccccc-3333-4333-8333-cccccccccc06",
+      "medicine": "Omeprazole",
+      "strength": "20mg",
+      "form": "CAPSULE",
+      "dosage": "20mg",
+      "frequency": "Once daily, before breakfast",
+      "durationDays": 28,
+      "quantity": 28,
+      "genericName": "Omeprazole",
+      "substitutionAllowed": false
+     }
+    ]
+   }
+  ],
+  "/api/v1/patients/me/courses": [
+   {
+    "prescriptionItemId": "7a69892b-8b7b-4afc-8e03-2aa55c3935f6",
+    "prescriptionId": "ffffffff-6666-4666-8666-ffffffffff01",
+    "patientUserId": "22222222-2222-4222-8222-222222222201",
+    "medicine": "Omeprazole",
+    "strength": "20mg",
+    "frequency": "Once daily, before breakfast",
+    "durationDays": 28,
+    "issuedAt": "2026-05-29T05:25:00Z",
+    "startedAt": "2026-09-05T03:20:00.007075Z",
+    "startedWhere": "Sri Sai Medicals",
+    "firstDay": "2026-09-05",
+    "lastDay": "2026-10-02",
+    "daysLeft": 2,
+    "ongoing": true,
+    "status": "RUNNING_OUT",
+    "forName": ""
+   },
+   {
+    "prescriptionItemId": "412c8d94-c16b-442b-bbd1-7bf922ce42d1",
+    "prescriptionId": "ffffffff-6666-4666-8666-ffffffffff04",
+    "patientUserId": "22222222-2222-4222-8222-222222222201",
+    "medicine": "Omeprazole",
+    "strength": "20mg",
+    "frequency": "Once daily, before breakfast",
+    "durationDays": 14,
+    "issuedAt": "2026-09-18T05:20:00Z",
+    "startedAt": null,
+    "startedWhere": null,
+    "firstDay": null,
+    "lastDay": null,
+    "daysLeft": 0,
+    "ongoing": true,
+    "status": "NOT_STARTED",
+    "forName": ""
+   }
+  ],
+  "/api/v1/patients/me/medicine-requests": [
+   {
+    "id": "abababab-7777-4777-8777-abababab0001",
+    "status": "OPEN",
+    "createdAt": "2026-09-30T02:05:00.007075Z",
+    "expiresAt": "2026-10-01T01:30:00.007075Z",
+    "prescriptionId": "ffffffff-6666-4666-8666-ffffffffff04",
+    "diagnosis": "Palpitations resolved; reflux controlled",
+    "doctorName": "Dr. Anjali Rao",
+    "medicines": 1,
+    "storesAsked": 5,
+    "answers": 3
+   },
+   {
+    "id": "abababab-7777-4777-8777-abababab0002",
+    "status": "CLOSED",
+    "createdAt": "2026-09-05T02:30:00.007075Z",
+    "expiresAt": "2026-09-05T08:30:00.007075Z",
+    "prescriptionId": "ffffffff-6666-4666-8666-ffffffffff01",
+    "diagnosis": "Benign sinus palpitations; gastro-oesophageal reflux",
+    "doctorName": "Dr. Anjali Rao",
+    "medicines": 1,
+    "storesAsked": 5,
+    "answers": 3
+   }
+  ],
+  "/api/v1/patients/me/family": [
+   {
+    "patientId": "bbbbbbbb-2222-4222-8222-bbbbbbbbbb01",
+    "fullName": "Meera Nair",
+    "relationship": null,
+    "self": true,
+    "age": 32,
+    "gender": "FEMALE",
+    "bloodGroup": "O+"
+   },
+   {
+    "patientId": "bbbbbbbb-2222-4222-8222-bbbbbbbbbb11",
+    "fullName": "Lalitha Nair",
+    "relationship": "PARENT",
+    "self": false,
+    "age": 65,
+    "gender": "FEMALE",
+    "bloodGroup": "B+"
+   },
+   {
+    "patientId": "bbbbbbbb-2222-4222-8222-bbbbbbbbbb12",
+    "fullName": "Aarav Nair",
+    "relationship": "CHILD",
+    "self": false,
+    "age": 7,
+    "gender": "MALE",
+    "bloodGroup": "O+"
+   }
+  ],
+  "/api/v1/queue/mine": [],
+  "/api/v1/patients/me/waitlist": [],
+  "/api/v1/notifications": {
+   "unread": 2,
+   "items": [
+    {
+     "id": "937ba15b-0127-4424-b913-7d19544ae2d1",
+     "kind": "MEDICINE_RUNNING_OUT",
+     "title": "Omeprazole 20mg runs out in 2 days",
+     "body": "Ask the chemists near you again? One tap sends your prescription to all of them.",
+     "link": "/portal/prescriptions?ask=ffffffff-6666-4666-8666-ffffffffff01",
+     "occursAt": null,
+     "createdAt": "2026-09-30T03:30:00.078282Z",
+     "read": false
+    },
+    {
+     "id": "989223a3-166a-427c-8169-a36cadc510b7",
+     "kind": "MEDICINE_RUNNING_OUT",
+     "title": "Lalitha's Metformin 500mg runs out in 2 days",
+     "body": "Ask the chemists near you again? One tap sends your prescription to all of them.",
+     "link": "/portal/prescriptions?ask=ffffffff-6666-4666-8666-ffffffffff07",
+     "occursAt": null,
+     "createdAt": "2026-09-30T03:30:00.071952Z",
+     "read": false
+    }
+   ]
+  },
+  "/api/v1/stores/nearby?lat=12.9719&lng=77.6412&radiusM=3000": [
+   {
+    "id": "55555555-5555-4555-8555-555555555501",
+    "name": "Sri Sai Medicals",
+    "phone": "+919876500301",
+    "addressLine": "12, 100 Feet Road, Indiranagar",
+    "city": "Bengaluru",
+    "latitude": 12.9745,
+    "longitude": 77.6408,
+    "distanceM": 292,
+    "opensAt": "08:00:00",
+    "closesAt": "22:00:00",
+    "open24h": false,
+    "openNow": true,
+    "holdHours": 3
+   },
+   {
+    "id": "55555555-5555-4555-8555-555555555502",
+    "name": "Green Cross Pharmacy",
+    "phone": "+919876500302",
+    "addressLine": "4th Cross, HAL 2nd Stage",
+    "city": "Bengaluru",
+    "latitude": 12.9784,
+    "longitude": 77.64,
+    "distanceM": 734,
+    "opensAt": "09:00:00",
+    "closesAt": "21:00:00",
+    "open24h": false,
+    "openNow": true,
+    "holdHours": 2
+   },
+   {
+    "id": "55555555-5555-4555-8555-555555555503",
+    "name": "Lakshmi Medical Stores",
+    "phone": "+919876500303",
+    "addressLine": "CMH Road, Indiranagar",
+    "city": "Bengaluru",
+    "latitude": 12.966,
+    "longitude": 77.648,
+    "distanceM": 987,
+    "opensAt": "07:30:00",
+    "closesAt": "23:00:00",
+    "open24h": false,
+    "openNow": true,
+    "holdHours": 4
+   },
+   {
+    "id": "55555555-5555-4555-8555-555555555504",
+    "name": "Nightingale 24x7 Chemists",
+    "phone": "+919876500304",
+    "addressLine": "Old Airport Road, Domlur",
+    "city": "Bengaluru",
+    "latitude": 12.959,
+    "longitude": 77.644,
+    "distanceM": 1466,
+    "opensAt": "00:00:00",
+    "closesAt": "23:59:00",
+    "open24h": true,
+    "openNow": true,
+    "holdHours": 3
+   },
+   {
+    "id": "55555555-5555-4555-8555-555555555505",
+    "name": "CityCare Pharmacy",
+    "phone": "+919876500305",
+    "addressLine": "Old Madras Road, Baiyappanahalli",
+    "city": "Bengaluru",
+    "latitude": 12.99,
+    "longitude": 77.66,
+    "distanceM": 2864,
+    "opensAt": "08:00:00",
+    "closesAt": "20:00:00",
+    "open24h": false,
+    "openNow": true,
+    "holdHours": 3
+   }
+  ],
+  "/api/v1/doctors/specialties": [
+   {
+    "name": "Cardiology",
+    "doctors": 1
+   },
+   {
+    "name": "Dentistry",
+    "doctors": 1
+   },
+   {
+    "name": "Dermatology",
+    "doctors": 1
+   },
+   {
+    "name": "ENT",
+    "doctors": 1
+   },
+   {
+    "name": "Gastroenterology",
+    "doctors": 1
+   },
+   {
+    "name": "General Medicine",
+    "doctors": 1
+   },
+   {
+    "name": "General Surgery",
+    "doctors": 1
+   },
+   {
+    "name": "Gynaecology",
+    "doctors": 1
+   },
+   {
+    "name": "Nephrology",
+    "doctors": 1
+   },
+   {
+    "name": "Neurology",
+    "doctors": 1
+   },
+   {
+    "name": "Orthopaedics",
+    "doctors": 1
+   },
+   {
+    "name": "Paediatrics",
+    "doctors": 1
+   },
+   {
+    "name": "Pulmonology",
+    "doctors": 1
+   },
+   {
+    "name": "Urology",
+    "doctors": 1
+   }
+  ],
+  "/api/v1/doctors/insurers": [
+   {
+    "name": "Care Health",
+    "kind": "PRIVATE"
+   },
+   {
+    "name": "HDFC ERGO",
+    "kind": "PRIVATE"
+   },
+   {
+    "name": "ICICI Lombard",
+    "kind": "PRIVATE"
+   },
+   {
+    "name": "Niva Bupa",
+    "kind": "PRIVATE"
+   },
+   {
+    "name": "Star Health",
+    "kind": "PRIVATE"
+   },
+   {
+    "name": "New India Assurance",
+    "kind": "PUBLIC"
+   },
+   {
+    "name": "Ayushman Bharat (PM-JAY)",
+    "kind": "GOVERNMENT"
+   },
+   {
+    "name": "CGHS",
+    "kind": "GOVERNMENT"
+   }
+  ],
+  "/api/v1/patients/me/appointments?scope=upcoming&page=0&size=10": {
+   "content": [
+    {
+     "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee06",
+     "status": "BOOKED",
+     "scheduledAt": "2026-10-05T10:00:00Z",
+     "endsAt": "2026-10-05T10:30:00Z",
+     "reason": "Six-week headache review",
+     "doctorId": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa02",
+     "doctorName": "Dr. Suresh Iyer",
+     "specialization": "Neurology",
+     "cancelledAt": null,
+     "cancelReason": null,
+     "reviewed": false,
+     "visitType": "IN_PERSON"
+    }
+   ],
+   "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10,
+    "sort": {
+     "unsorted": true,
+     "sorted": false,
+     "empty": true
+    },
+    "offset": 0,
+    "unpaged": false,
+    "paged": true
+   },
+   "totalPages": 1,
+   "totalElements": 1,
+   "last": true,
+   "numberOfElements": 1,
+   "first": true,
+   "size": 10,
+   "number": 0,
+   "sort": {
+    "unsorted": true,
+    "sorted": false,
+    "empty": true
+   },
+   "empty": false
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee06/followups": {
+   "messages": [],
+   "questionsLeft": 3,
+   "closesAt": "2026-10-12T10:30:00Z",
+   "open": false,
+   "awaitingDoctor": false
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee06/attachments": [],
+  "/api/v1/patients/me/appointments?scope=past&page=0&size=10": {
+   "content": [
+    {
+     "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee20",
+     "status": "BOOKED",
+     "scheduledAt": "2026-09-30T07:00:00Z",
+     "endsAt": "2026-09-30T07:30:00Z",
+     "reason": "Follow-up on the ECG results",
+     "doctorId": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa01",
+     "doctorName": "Dr. Anjali Rao",
+     "specialization": "Cardiology",
+     "cancelledAt": null,
+     "cancelReason": null,
+     "reviewed": false,
+     "visitType": "VIDEO"
+    },
+    {
+     "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee05",
+     "status": "COMPLETED",
+     "scheduledAt": "2026-09-18T05:00:00Z",
+     "endsAt": "2026-09-18T05:30:00Z",
+     "reason": "Cardiology follow-up",
+     "doctorId": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa01",
+     "doctorName": "Dr. Anjali Rao",
+     "specialization": "Cardiology",
+     "cancelledAt": null,
+     "cancelReason": null,
+     "reviewed": true,
+     "visitType": "IN_PERSON"
+    },
+    {
+     "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee04",
+     "status": "CANCELLED",
+     "scheduledAt": "2026-09-11T05:00:00Z",
+     "endsAt": "2026-09-11T05:30:00Z",
+     "reason": "Cardiology follow-up",
+     "doctorId": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa01",
+     "doctorName": "Dr. Anjali Rao",
+     "specialization": "Cardiology",
+     "cancelledAt": "2026-09-09T05:00:00Z",
+     "cancelReason": "Rescheduled by patient",
+     "reviewed": false,
+     "visitType": "IN_PERSON"
+    },
+    {
+     "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee03",
+     "status": "NO_SHOW",
+     "scheduledAt": "2026-08-28T05:00:00Z",
+     "endsAt": "2026-08-28T05:30:00Z",
+     "reason": "Headache follow-up",
+     "doctorId": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa02",
+     "doctorName": "Dr. Suresh Iyer",
+     "specialization": "Neurology",
+     "cancelledAt": null,
+     "cancelReason": null,
+     "reviewed": false,
+     "visitType": "IN_PERSON"
+    },
+    {
+     "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee02",
+     "status": "COMPLETED",
+     "scheduledAt": "2026-07-31T05:00:00Z",
+     "endsAt": "2026-07-31T05:30:00Z",
+     "reason": "Recurring headaches, worse in the evening",
+     "doctorId": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa02",
+     "doctorName": "Dr. Suresh Iyer",
+     "specialization": "Neurology",
+     "cancelledAt": null,
+     "cancelReason": null,
+     "reviewed": false,
+     "visitType": "IN_PERSON"
+    },
+    {
+     "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee01",
+     "status": "COMPLETED",
+     "scheduledAt": "2026-05-29T05:00:00Z",
+     "endsAt": "2026-05-29T05:30:00Z",
+     "reason": "Palpitations after climbing stairs, some heartburn",
+     "doctorId": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa01",
+     "doctorName": "Dr. Anjali Rao",
+     "specialization": "Cardiology",
+     "cancelledAt": null,
+     "cancelReason": null,
+     "reviewed": false,
+     "visitType": "IN_PERSON"
+    }
+   ],
+   "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10,
+    "sort": {
+     "unsorted": true,
+     "sorted": false,
+     "empty": true
+    },
+    "offset": 0,
+    "unpaged": false,
+    "paged": true
+   },
+   "totalPages": 1,
+   "totalElements": 6,
+   "last": true,
+   "numberOfElements": 6,
+   "first": true,
+   "size": 10,
+   "number": 0,
+   "sort": {
+    "unsorted": true,
+    "sorted": false,
+    "empty": true
+   },
+   "empty": false
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee20/followups": {
+   "messages": [],
+   "questionsLeft": 3,
+   "closesAt": "2026-10-07T07:30:00Z",
+   "open": false,
+   "awaitingDoctor": false
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee20/attachments": [],
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee05/followups": {
+   "messages": [],
+   "questionsLeft": 3,
+   "closesAt": "2026-09-25T05:30:00Z",
+   "open": false,
+   "awaitingDoctor": false
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee05/attachments": [],
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee04/followups": {
+   "messages": [],
+   "questionsLeft": 3,
+   "closesAt": "2026-09-18T05:30:00Z",
+   "open": false,
+   "awaitingDoctor": false
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee04/attachments": [],
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee03/followups": {
+   "messages": [],
+   "questionsLeft": 3,
+   "closesAt": "2026-09-04T05:30:00Z",
+   "open": false,
+   "awaitingDoctor": false
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee03/attachments": [],
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee02/followups": {
+   "messages": [],
+   "questionsLeft": 3,
+   "closesAt": "2026-08-07T05:30:00Z",
+   "open": false,
+   "awaitingDoctor": false
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee02/attachments": [],
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee01/followups": {
+   "messages": [],
+   "questionsLeft": 3,
+   "closesAt": "2026-06-05T05:30:00Z",
+   "open": false,
+   "awaitingDoctor": false
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee01/attachments": [],
+  "/api/v1/patients/me/appointments?scope=past&page=0&size=3": {
+   "content": [
+    {
+     "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee20",
+     "status": "BOOKED",
+     "scheduledAt": "2026-09-30T07:00:00Z",
+     "endsAt": "2026-09-30T07:30:00Z",
+     "reason": "Follow-up on the ECG results",
+     "doctorId": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa01",
+     "doctorName": "Dr. Anjali Rao",
+     "specialization": "Cardiology",
+     "cancelledAt": null,
+     "cancelReason": null,
+     "reviewed": false,
+     "visitType": "VIDEO"
+    },
+    {
+     "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee05",
+     "status": "COMPLETED",
+     "scheduledAt": "2026-09-18T05:00:00Z",
+     "endsAt": "2026-09-18T05:30:00Z",
+     "reason": "Cardiology follow-up",
+     "doctorId": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa01",
+     "doctorName": "Dr. Anjali Rao",
+     "specialization": "Cardiology",
+     "cancelledAt": null,
+     "cancelReason": null,
+     "reviewed": true,
+     "visitType": "IN_PERSON"
+    },
+    {
+     "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee04",
+     "status": "CANCELLED",
+     "scheduledAt": "2026-09-11T05:00:00Z",
+     "endsAt": "2026-09-11T05:30:00Z",
+     "reason": "Cardiology follow-up",
+     "doctorId": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa01",
+     "doctorName": "Dr. Anjali Rao",
+     "specialization": "Cardiology",
+     "cancelledAt": "2026-09-09T05:00:00Z",
+     "cancelReason": "Rescheduled by patient",
+     "reviewed": false,
+     "visitType": "IN_PERSON"
+    }
+   ],
+   "pageable": {
+    "pageNumber": 0,
+    "pageSize": 3,
+    "sort": {
+     "unsorted": true,
+     "sorted": false,
+     "empty": true
+    },
+    "offset": 0,
+    "unpaged": false,
+    "paged": true
+   },
+   "totalPages": 2,
+   "totalElements": 6,
+   "last": false,
+   "numberOfElements": 3,
+   "first": true,
+   "size": 3,
+   "number": 0,
+   "sort": {
+    "unsorted": true,
+    "sorted": false,
+    "empty": true
+   },
+   "empty": false
+  },
+  "/api/v1/patients/me/appointments?scope=upcoming&page=0&size=3": {
+   "content": [
+    {
+     "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee06",
+     "status": "BOOKED",
+     "scheduledAt": "2026-10-05T10:00:00Z",
+     "endsAt": "2026-10-05T10:30:00Z",
+     "reason": "Six-week headache review",
+     "doctorId": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa02",
+     "doctorName": "Dr. Suresh Iyer",
+     "specialization": "Neurology",
+     "cancelledAt": null,
+     "cancelReason": null,
+     "reviewed": false,
+     "visitType": "IN_PERSON"
+    }
+   ],
+   "pageable": {
+    "pageNumber": 0,
+    "pageSize": 3,
+    "sort": {
+     "unsorted": true,
+     "sorted": false,
+     "empty": true
+    },
+    "offset": 0,
+    "unpaged": false,
+    "paged": true
+   },
+   "totalPages": 1,
+   "totalElements": 1,
+   "last": true,
+   "numberOfElements": 1,
+   "first": true,
+   "size": 3,
+   "number": 0,
+   "sort": {
+    "unsorted": true,
+    "sorted": false,
+    "empty": true
+   },
+   "empty": false
+  },
+  "/api/v1/patients/me/medicine-requests/abababab-7777-4777-8777-abababab0001": {
+   "id": "abababab-7777-4777-8777-abababab0001",
+   "status": "OPEN",
+   "createdAt": "2026-09-30T02:05:00.007075Z",
+   "expiresAt": "2026-10-01T01:30:00.007075Z",
+   "prescriptionId": "ffffffff-6666-4666-8666-ffffffffff04",
+   "doctorName": "Dr. Anjali Rao",
+   "diagnosis": "Palpitations resolved; reflux controlled",
+   "storesAsked": 5,
+   "radiusM": 3000,
+   "items": [
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc06",
+     "name": "Omeprazole",
+     "genericName": "Omeprazole",
+     "strength": "20mg",
+     "form": "CAPSULE",
+     "quantity": 14,
+     "substitutionAllowed": true
+    }
+   ],
+   "stores": [
+    {
+     "storeId": "55555555-5555-4555-8555-555555555503",
+     "name": "Lakshmi Medical Stores",
+     "addressLine": "CMH Road, Indiranagar",
+     "phone": "+919876500303",
+     "distanceM": 987,
+     "openNow": true,
+     "holdHours": 4,
+     "answered": true,
+     "automatic": false,
+     "note": "Omez is the same medicine, and cheaper.",
+     "answeredAt": "2026-09-30T02:15:00.007075Z",
+     "lines": [
+      {
+       "medicineId": "cccccccc-3333-4333-8333-cccccccccc06",
+       "availability": "YES",
+       "quantityAvailable": 14,
+       "unitPrice": 4.2,
+       "substituteMedicineId": "cccccccc-3333-4333-8333-cccccccccc10",
+       "substituteName": "Omez",
+       "substituteStrength": "20mg"
+      }
+     ],
+     "medicinesAvailable": 1,
+     "complete": true,
+     "total": 58.8,
+     "cheapestComplete": true,
+     "nearestComplete": false
+    },
+    {
+     "storeId": "55555555-5555-4555-8555-555555555502",
+     "name": "Green Cross Pharmacy",
+     "addressLine": "4th Cross, HAL 2nd Stage",
+     "phone": "+919876500302",
+     "distanceM": 734,
+     "openNow": true,
+     "holdHours": 2,
+     "answered": true,
+     "automatic": false,
+     "note": "Ready at the counter.",
+     "answeredAt": "2026-09-30T02:10:00.007075Z",
+     "lines": [
+      {
+       "medicineId": "cccccccc-3333-4333-8333-cccccccccc06",
+       "availability": "YES",
+       "quantityAvailable": 14,
+       "unitPrice": 5.5,
+       "substituteMedicineId": null,
+       "substituteName": null,
+       "substituteStrength": null
+      }
+     ],
+     "medicinesAvailable": 1,
+     "complete": true,
+     "total": 77.0,
+     "cheapestComplete": false,
+     "nearestComplete": true
+    },
+    {
+     "storeId": "55555555-5555-4555-8555-555555555504",
+     "name": "Nightingale 24x7 Chemists",
+     "addressLine": "Old Airport Road, Domlur",
+     "phone": "+919876500304",
+     "distanceM": 1466,
+     "openNow": true,
+     "holdHours": 3,
+     "answered": true,
+     "automatic": false,
+     "note": "Rest arrives tomorrow morning.",
+     "answeredAt": "2026-09-30T02:20:00.007075Z",
+     "lines": [
+      {
+       "medicineId": "cccccccc-3333-4333-8333-cccccccccc06",
+       "availability": "PARTIAL",
+       "quantityAvailable": 10,
+       "unitPrice": 5.8,
+       "substituteMedicineId": null,
+       "substituteName": null,
+       "substituteStrength": null
+      }
+     ],
+     "medicinesAvailable": 1,
+     "complete": false,
+     "total": 58.0,
+     "cheapestComplete": false,
+     "nearestComplete": false
+    },
+    {
+     "storeId": "55555555-5555-4555-8555-555555555501",
+     "name": "Sri Sai Medicals",
+     "addressLine": "12, 100 Feet Road, Indiranagar",
+     "phone": "+919876500301",
+     "distanceM": 292,
+     "openNow": true,
+     "holdHours": 3,
+     "answered": false,
+     "automatic": false,
+     "note": null,
+     "answeredAt": null,
+     "lines": [],
+     "medicinesAvailable": 0,
+     "complete": false,
+     "total": null,
+     "cheapestComplete": false,
+     "nearestComplete": false
+    },
+    {
+     "storeId": "55555555-5555-4555-8555-555555555505",
+     "name": "CityCare Pharmacy",
+     "addressLine": "Old Madras Road, Baiyappanahalli",
+     "phone": "+919876500305",
+     "distanceM": 2864,
+     "openNow": true,
+     "holdHours": 3,
+     "answered": false,
+     "automatic": false,
+     "note": null,
+     "answeredAt": null,
+     "lines": [],
+     "medicinesAvailable": 0,
+     "complete": false,
+     "total": null,
+     "cheapestComplete": false,
+     "nearestComplete": false
+    }
+   ],
+   "reservation": null
+  },
+  "/api/v1/patients/me/medicine-requests/abababab-7777-4777-8777-abababab0002": {
+   "id": "abababab-7777-4777-8777-abababab0002",
+   "status": "CLOSED",
+   "createdAt": "2026-09-05T02:30:00.007075Z",
+   "expiresAt": "2026-09-05T08:30:00.007075Z",
+   "prescriptionId": "ffffffff-6666-4666-8666-ffffffffff01",
+   "doctorName": "Dr. Anjali Rao",
+   "diagnosis": "Benign sinus palpitations; gastro-oesophageal reflux",
+   "storesAsked": 5,
+   "radiusM": 3000,
+   "items": [
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc06",
+     "name": "Omeprazole",
+     "genericName": "Omeprazole",
+     "strength": "20mg",
+     "form": "CAPSULE",
+     "quantity": 28,
+     "substitutionAllowed": false
+    }
+   ],
+   "stores": [
+    {
+     "storeId": "55555555-5555-4555-8555-555555555501",
+     "name": "Sri Sai Medicals",
+     "addressLine": "12, 100 Feet Road, Indiranagar",
+     "phone": "+919876500301",
+     "distanceM": 292,
+     "openNow": true,
+     "holdHours": 3,
+     "answered": true,
+     "automatic": false,
+     "note": null,
+     "answeredAt": "2026-09-05T02:36:00.007075Z",
+     "lines": [
+      {
+       "medicineId": "cccccccc-3333-4333-8333-cccccccccc06",
+       "availability": "YES",
+       "quantityAvailable": 28,
+       "unitPrice": 5.2,
+       "substituteMedicineId": null,
+       "substituteName": null,
+       "substituteStrength": null
+      }
+     ],
+     "medicinesAvailable": 1,
+     "complete": true,
+     "total": 145.6,
+     "cheapestComplete": true,
+     "nearestComplete": true
+    },
+    {
+     "storeId": "55555555-5555-4555-8555-555555555503",
+     "name": "Lakshmi Medical Stores",
+     "addressLine": "CMH Road, Indiranagar",
+     "phone": "+919876500303",
+     "distanceM": 987,
+     "openNow": true,
+     "holdHours": 4,
+     "answered": true,
+     "automatic": false,
+     "note": null,
+     "answeredAt": "2026-09-05T02:36:00.007075Z",
+     "lines": [
+      {
+       "medicineId": "cccccccc-3333-4333-8333-cccccccccc06",
+       "availability": "YES",
+       "quantityAvailable": 28,
+       "unitPrice": 5.4,
+       "substituteMedicineId": null,
+       "substituteName": null,
+       "substituteStrength": null
+      }
+     ],
+     "medicinesAvailable": 1,
+     "complete": true,
+     "total": 151.2,
+     "cheapestComplete": false,
+     "nearestComplete": false
+    },
+    {
+     "storeId": "55555555-5555-4555-8555-555555555502",
+     "name": "Green Cross Pharmacy",
+     "addressLine": "4th Cross, HAL 2nd Stage",
+     "phone": "+919876500302",
+     "distanceM": 734,
+     "openNow": true,
+     "holdHours": 2,
+     "answered": true,
+     "automatic": false,
+     "note": null,
+     "answeredAt": "2026-09-05T02:36:00.007075Z",
+     "lines": [
+      {
+       "medicineId": "cccccccc-3333-4333-8333-cccccccccc06",
+       "availability": "YES",
+       "quantityAvailable": 28,
+       "unitPrice": 5.5,
+       "substituteMedicineId": null,
+       "substituteName": null,
+       "substituteStrength": null
+      }
+     ],
+     "medicinesAvailable": 1,
+     "complete": true,
+     "total": 154.0,
+     "cheapestComplete": false,
+     "nearestComplete": false
+    },
+    {
+     "storeId": "55555555-5555-4555-8555-555555555504",
+     "name": "Nightingale 24x7 Chemists",
+     "addressLine": "Old Airport Road, Domlur",
+     "phone": "+919876500304",
+     "distanceM": 1466,
+     "openNow": true,
+     "holdHours": 3,
+     "answered": false,
+     "automatic": false,
+     "note": null,
+     "answeredAt": null,
+     "lines": [],
+     "medicinesAvailable": 0,
+     "complete": false,
+     "total": null,
+     "cheapestComplete": false,
+     "nearestComplete": false
+    },
+    {
+     "storeId": "55555555-5555-4555-8555-555555555505",
+     "name": "CityCare Pharmacy",
+     "addressLine": "Old Madras Road, Baiyappanahalli",
+     "phone": "+919876500305",
+     "distanceM": 2864,
+     "openNow": true,
+     "holdHours": 3,
+     "answered": false,
+     "automatic": false,
+     "note": null,
+     "answeredAt": null,
+     "lines": [],
+     "medicinesAvailable": 0,
+     "complete": false,
+     "total": null,
+     "cheapestComplete": false,
+     "nearestComplete": false
+    }
+   ],
+   "reservation": {
+    "id": "acacacac-8888-4888-8888-acacacac0002",
+    "storeId": "55555555-5555-4555-8555-555555555501",
+    "storeName": "Sri Sai Medicals",
+    "storePhone": "+919876500301",
+    "storeAddress": "12, 100 Feet Road, Indiranagar",
+    "pickupCode": null,
+    "status": "COLLECTED",
+    "total": 145.6,
+    "complete": true,
+    "expiresAt": "2026-09-05T05:40:00.007075Z",
+    "collectedAt": "2026-09-05T03:20:00.007075Z"
+   }
+  },
+  "/api/v1/doctors?page=0&size=20": {
+   "content": [
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa01",
+     "fullName": "Dr. Anjali Rao",
+     "specialization": "Cardiology",
+     "consultationFee": 1200.0,
+     "yearsExperience": 14,
+     "bio": "Interventional cardiologist with a focus on preventive care and arrhythmia management.",
+     "nextSlots": [
+      {
+       "id": "43d0aa05-9c2d-4bd4-8a51-fc6648683c0f",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "d5558e9c-95cb-4374-b5a6-c209a985364e",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "ccca5712-7e19-4e77-978b-6f051446bc13",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": 4.5,
+     "reviewCount": 2,
+     "insurers": [
+      "CGHS",
+      "HDFC ERGO",
+      "ICICI Lombard",
+      "Star Health"
+     ],
+     "prices": [
+      {
+       "procedure": "Registration",
+       "priceInr": 100,
+       "everyVisit": true
+      },
+      {
+       "procedure": "ECG",
+       "priceInr": 350,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Treadmill test (TMT)",
+       "priceInr": 1800,
+       "everyVisit": false
+      },
+      {
+       "procedure": "2D Echo",
+       "priceInr": 2200,
+       "everyVisit": false
+      }
+     ]
+    },
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa14",
+     "fullName": "Dr. Aditi Joshi",
+     "specialization": "Dentistry",
+     "consultationFee": 600.0,
+     "yearsExperience": 7,
+     "bio": "Dentist for toothache, fillings, root canals and gum care.",
+     "nextSlots": [
+      {
+       "id": "4b7a999b-85db-4325-a1e7-9270bc570b7f",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "22c3d9ef-1f3b-4dc3-80c2-adf8899438a2",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "2707f148-5ec4-41d0-b83f-4eab0d822842",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": null,
+     "reviewCount": 0,
+     "insurers": [],
+     "prices": [
+      {
+       "procedure": "Extraction",
+       "priceInr": 800,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Scaling and polishing",
+       "priceInr": 1200,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Tooth-coloured filling",
+       "priceInr": 1500,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Root canal (per tooth)",
+       "priceInr": 5500,
+       "everyVisit": false
+      }
+     ]
+    },
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa08",
+     "fullName": "Dr. Sana Qureshi",
+     "specialization": "Dermatology",
+     "consultationFee": 1000.0,
+     "yearsExperience": 10,
+     "bio": "Dermatologist for acne, eczema, hair loss and skin infections.",
+     "nextSlots": [
+      {
+       "id": "32bf98be-e1c8-4d7a-af8b-26399fcd7ac8",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "08f8e057-e1c5-49a8-9835-201f799ed10e",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "a5701752-9715-4751-91e3-6ff3daa8af33",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": null,
+     "reviewCount": 0,
+     "insurers": [
+      "ICICI Lombard",
+      "Niva Bupa"
+     ],
+     "prices": [
+      {
+       "procedure": "Skin biopsy",
+       "priceInr": 2000,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Chemical peel (per session)",
+       "priceInr": 2500,
+       "everyVisit": false
+      }
+     ]
+    },
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa07",
+     "fullName": "Dr. Neha Bhat",
+     "specialization": "ENT",
+     "consultationFee": 900.0,
+     "yearsExperience": 8,
+     "bio": "Ear, nose and throat specialist: sinusitis, tonsils, hearing and voice.",
+     "nextSlots": [
+      {
+       "id": "998e9b69-db94-4d60-a10a-b8212faa4aad",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "85620c27-4c8a-41a7-8c3f-f839b0732f07",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "964abab9-d8ad-4763-af38-a93b6777acb9",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": null,
+     "reviewCount": 0,
+     "insurers": [
+      "Care Health",
+      "HDFC ERGO"
+     ],
+     "prices": [
+      {
+       "procedure": "Ear syringing (wax removal)",
+       "priceInr": 400,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Nasal endoscopy",
+       "priceInr": 1500,
+       "everyVisit": false
+      }
+     ]
+    },
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa05",
+     "fullName": "Dr. Arvind Kulkarni",
+     "specialization": "Gastroenterology",
+     "consultationFee": 1300.0,
+     "yearsExperience": 16,
+     "bio": "Gastroenterologist treating acidity, reflux, liver and bowel conditions; performs endoscopy.",
+     "nextSlots": [
+      {
+       "id": "f80c6b40-4489-4880-ab85-62d866fc6c36",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "1421170a-a2d1-49f0-9cee-db8f14953512",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "c96469ac-ba5e-4b41-a83b-7e29e9ee1ccd",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": null,
+     "reviewCount": 0,
+     "insurers": [
+      "HDFC ERGO",
+      "ICICI Lombard",
+      "Niva Bupa"
+     ],
+     "prices": [
+      {
+       "procedure": "Registration",
+       "priceInr": 100,
+       "everyVisit": true
+      },
+      {
+       "procedure": "Upper GI endoscopy",
+       "priceInr": 3500,
+       "everyVisit": false
+      }
+     ]
+    },
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa04",
+     "fullName": "Dr. Kavitha Menon",
+     "specialization": "General Medicine",
+     "consultationFee": 700.0,
+     "yearsExperience": 12,
+     "bio": "Family physician for everyday illness, fevers, diabetes and blood pressure; the first stop when you are not sure.",
+     "nextSlots": [
+      {
+       "id": "5bce4223-7587-4639-a015-663e6fc1e3be",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "984c7e63-fac9-4c28-86be-809b6fa04998",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "c6bccd17-30fa-4d3b-a0b9-1025874bb49f",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": null,
+     "reviewCount": 0,
+     "insurers": [
+      "Ayushman Bharat (PM-JAY)",
+      "CGHS",
+      "New India Assurance",
+      "Star Health"
+     ],
+     "prices": [
+      {
+       "procedure": "Blood sugar (glucometer)",
+       "priceInr": 80,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Injection (administration)",
+       "priceInr": 100,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Dressing",
+       "priceInr": 150,
+       "everyVisit": false
+      },
+      {
+       "procedure": "ECG",
+       "priceInr": 300,
+       "everyVisit": false
+      }
+     ]
+    },
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa13",
+     "fullName": "Dr. Meenakshi Sundaram",
+     "specialization": "General Surgery",
+     "consultationFee": 1000.0,
+     "yearsExperience": 19,
+     "bio": "General surgeon for hernia, appendix, gallbladder and lumps.",
+     "nextSlots": [
+      {
+       "id": "011d2987-c575-4507-82dd-a40c75b9c22f",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "0dc8284b-d0c0-44af-b048-ee9f53443ee2",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "0cb840d3-1d64-47df-9985-a5d6c6b1f5b7",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": null,
+     "reviewCount": 0,
+     "insurers": [
+      "Ayushman Bharat (PM-JAY)",
+      "CGHS",
+      "HDFC ERGO",
+      "Star Health"
+     ],
+     "prices": [
+      {
+       "procedure": "Dressing",
+       "priceInr": 200,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Minor suture",
+       "priceInr": 800,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Abscess drainage",
+       "priceInr": 2500,
+       "everyVisit": false
+      }
+     ]
+    },
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa11",
+     "fullName": "Dr. Deepa Hegde",
+     "specialization": "Gynaecology",
+     "consultationFee": 1100.0,
+     "yearsExperience": 14,
+     "bio": "Obstetrician and gynaecologist: periods, pregnancy care and women's health.",
+     "nextSlots": [
+      {
+       "id": "b773b1e2-7855-424c-83a9-9585024187bf",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "028f35f1-933e-410d-afb8-6017d9268230",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "187ca20b-f22b-49bc-99d9-c420c97673a5",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": null,
+     "reviewCount": 0,
+     "insurers": [
+      "Care Health",
+      "CGHS",
+      "Niva Bupa",
+      "Star Health"
+     ],
+     "prices": [
+      {
+       "procedure": "Registration",
+       "priceInr": 100,
+       "everyVisit": true
+      },
+      {
+       "procedure": "Pap smear",
+       "priceInr": 900,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Ultrasound (pelvic)",
+       "priceInr": 1500,
+       "everyVisit": false
+      }
+     ]
+    },
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa12",
+     "fullName": "Dr. Imran Pasha",
+     "specialization": "Nephrology",
+     "consultationFee": 1400.0,
+     "yearsExperience": 17,
+     "bio": "Nephrologist caring for kidney disease, swelling and high blood pressure linked to the kidneys.",
+     "nextSlots": [
+      {
+       "id": "856ddcfa-e1a0-4d84-b203-47712355e60d",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "eaa44ca5-c1bf-4825-9c06-85b8f3ae0459",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "66a7e6ef-4eb5-4811-8114-0a52e7440664",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": null,
+     "reviewCount": 0,
+     "insurers": [
+      "Ayushman Bharat (PM-JAY)",
+      "ICICI Lombard",
+      "New India Assurance"
+     ],
+     "prices": [
+      {
+       "procedure": "Dialysis session",
+       "priceInr": 2500,
+       "everyVisit": false
+      }
+     ]
+    },
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa02",
+     "fullName": "Dr. Suresh Iyer",
+     "specialization": "Neurology",
+     "consultationFee": 1500.0,
+     "yearsExperience": 18,
+     "bio": "Consultant neurologist specialising in epilepsy and movement disorders.",
+     "nextSlots": [
+      {
+       "id": "321b4d60-d17f-4d13-a997-c82980651943",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "255022a2-7e06-40a4-8fd9-3d1c42c62d7b",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "a1b3bef5-217f-4f52-9d04-b3abe5e4c168",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": 5.0,
+     "reviewCount": 1,
+     "insurers": [
+      "Care Health",
+      "Niva Bupa",
+      "Star Health"
+     ],
+     "prices": [
+      {
+       "procedure": "Registration",
+       "priceInr": 100,
+       "everyVisit": true
+      },
+      {
+       "procedure": "EEG",
+       "priceInr": 1500,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Nerve conduction study",
+       "priceInr": 2500,
+       "everyVisit": false
+      }
+     ]
+    },
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa06",
+     "fullName": "Dr. Rohan Shetty",
+     "specialization": "Orthopaedics",
+     "consultationFee": 1100.0,
+     "yearsExperience": 11,
+     "bio": "Orthopaedic surgeon for joint pain, sports injuries, back and spine problems.",
+     "nextSlots": [
+      {
+       "id": "bd556ceb-0cdb-4bb9-bbeb-34b1be0c38ce",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "9894f537-799b-434f-929f-724121729af8",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "2a1e8e82-10ca-4898-98cd-9af2fa215941",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": null,
+     "reviewCount": 0,
+     "insurers": [
+      "CGHS",
+      "ICICI Lombard",
+      "New India Assurance",
+      "Star Health"
+     ],
+     "prices": [
+      {
+       "procedure": "X-ray review",
+       "priceInr": 0,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Plaster cast",
+       "priceInr": 1200,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Joint injection",
+       "priceInr": 1500,
+       "everyVisit": false
+      }
+     ]
+    },
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa03",
+     "fullName": "Dr. Farah Khan",
+     "specialization": "Paediatrics",
+     "consultationFee": 800.0,
+     "yearsExperience": 9,
+     "bio": "Paediatrician with an interest in neonatal care and childhood immunisation.",
+     "nextSlots": [
+      {
+       "id": "98bc620b-d292-4b18-8e39-05762bb01388",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "e0bb9c6d-5209-4889-9484-eb3ae91b6544",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "3e5f7342-f17f-4a7a-b3d8-4b005d7e1727",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": 4.0,
+     "reviewCount": 1,
+     "insurers": [
+      "Ayushman Bharat (PM-JAY)",
+      "Care Health",
+      "HDFC ERGO",
+      "Star Health"
+     ],
+     "prices": [
+      {
+       "procedure": "Vaccination (administration)",
+       "priceInr": 150,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Nebulisation",
+       "priceInr": 200,
+       "everyVisit": false
+      }
+     ]
+    },
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa09",
+     "fullName": "Dr. Vikram Reddy",
+     "specialization": "Pulmonology",
+     "consultationFee": 1200.0,
+     "yearsExperience": 15,
+     "bio": "Chest physician for asthma, persistent cough, breathlessness and sleep apnoea.",
+     "nextSlots": [
+      {
+       "id": "502f8992-d4e7-476b-a118-50947e591011",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "0bcca69e-30eb-44ed-a079-f37fd017d163",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "56a95517-b248-4589-b32d-34a547376e95",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": null,
+     "reviewCount": 0,
+     "insurers": [
+      "Ayushman Bharat (PM-JAY)",
+      "CGHS",
+      "Star Health"
+     ],
+     "prices": [
+      {
+       "procedure": "Nebulisation",
+       "priceInr": 200,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Spirometry (PFT)",
+       "priceInr": 900,
+       "everyVisit": false
+      }
+     ]
+    },
+    {
+     "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa10",
+     "fullName": "Dr. Prakash Gowda",
+     "specialization": "Urology",
+     "consultationFee": 1200.0,
+     "yearsExperience": 13,
+     "bio": "Urologist treating kidney stones, urinary infections and prostate conditions.",
+     "nextSlots": [
+      {
+       "id": "80335a56-db79-4f75-83cc-49e55ca0f3a8",
+       "startsAt": "2026-10-01T10:00:00Z",
+       "endsAt": "2026-10-01T10:30:00Z"
+      },
+      {
+       "id": "0d667d70-9a8a-4224-bb2e-ce41c1c3cd74",
+       "startsAt": "2026-10-01T10:30:00Z",
+       "endsAt": "2026-10-01T11:00:00Z"
+      },
+      {
+       "id": "86b28a82-fa48-436e-88d1-b492318b2b1a",
+       "startsAt": "2026-10-01T11:00:00Z",
+       "endsAt": "2026-10-01T11:30:00Z"
+      }
+     ],
+     "rating": null,
+     "reviewCount": 0,
+     "insurers": [
+      "Care Health",
+      "HDFC ERGO",
+      "New India Assurance"
+     ],
+     "prices": [
+      {
+       "procedure": "Catheter change",
+       "priceInr": 800,
+       "everyVisit": false
+      },
+      {
+       "procedure": "Uroflowmetry",
+       "priceInr": 1200,
+       "everyVisit": false
+      }
+     ]
+    }
+   ],
+   "pageable": {
+    "pageNumber": 0,
+    "pageSize": 20,
+    "sort": {
+     "unsorted": false,
+     "sorted": true,
+     "empty": false
+    },
+    "offset": 0,
+    "unpaged": false,
+    "paged": true
+   },
+   "totalPages": 1,
+   "totalElements": 14,
+   "last": true,
+   "numberOfElements": 14,
+   "first": true,
+   "size": 20,
+   "number": 0,
+   "sort": {
+    "unsorted": false,
+    "sorted": true,
+    "empty": false
+   },
+   "empty": false
+  },
+  "/api/v1/doctors/aaaaaaaa-1111-4111-8111-aaaaaaaaaa01/queue": {
+   "open": true,
+   "closedReason": null,
+   "waiting": 0,
+   "nowServing": null,
+   "minutesPerPatient": 15,
+   "estimatedWaitMinutes": 0
+  },
+  "/api/v1/doctors/aaaaaaaa-1111-4111-8111-aaaaaaaaaa01/live-status": {
+   "state": "ON_TIME",
+   "delayMinutes": 0,
+   "visitInProgress": false,
+   "asOf": "2026-09-30T09:28:37.963495077Z"
+  },
+  "/api/v1/doctors/aaaaaaaa-1111-4111-8111-aaaaaaaaaa14/queue": {
+   "open": true,
+   "closedReason": null,
+   "waiting": 0,
+   "nowServing": null,
+   "minutesPerPatient": 15,
+   "estimatedWaitMinutes": 0
+  },
+  "/api/v1/doctors/aaaaaaaa-1111-4111-8111-aaaaaaaaaa14/live-status": {
+   "state": "ON_TIME",
+   "delayMinutes": 0,
+   "visitInProgress": false,
+   "asOf": "2026-09-30T09:28:39.378804084Z"
+  },
+  "/api/v1/doctors/aaaaaaaa-1111-4111-8111-aaaaaaaaaa08/queue": {
+   "open": true,
+   "closedReason": null,
+   "waiting": 0,
+   "nowServing": null,
+   "minutesPerPatient": 15,
+   "estimatedWaitMinutes": 0
+  },
+  "/api/v1/doctors/aaaaaaaa-1111-4111-8111-aaaaaaaaaa08/live-status": {
+   "state": "ON_TIME",
+   "delayMinutes": 0,
+   "visitInProgress": false,
+   "asOf": "2026-09-30T09:28:40.650857886Z"
+  }
+ }
+}

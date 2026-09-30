@@ -27,7 +27,7 @@ export function FamilySwitcher({ holderName }: { holderName: string }) {
 
   return (
     <div className="switcher">
-      <div className="portal__who">
+      <div className="ws__who">
         <div className="avatar avatar--sm" aria-hidden="true">
           {initials(name)}
         </div>

@@ -1,6 +1,5 @@
-import { Suspense } from "react";
-import { PageLoading } from "../../components/PageLoading";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { WorkspaceShell } from "../../components/WorkspaceShell";
 import { useAuth } from "../../auth/context";
 import { FamilySwitcher } from "./FamilySwitcher";
 
@@ -38,31 +37,15 @@ export function PortalLayout() {
   }
 
   return (
-    <div className="portal">
-      <aside className="portal__nav">
-        {session && <FamilySwitcher holderName={session.fullName} />}
-        <nav aria-label="Patient portal">
-          {SECTIONS.map((s) => (
-            <NavLink
-              key={s.to}
-              to={s.to}
-              end={s.end}
-              className={({ isActive }) => (isActive ? "portal__link is-active" : "portal__link")}
-            >
-              {s.label}
-            </NavLink>
-          ))}
-        </nav>
-        <Link className="button portal__book" to="/doctors">
+    <WorkspaceShell
+      label="Patient portal"
+      who={session && <FamilySwitcher holderName={session.fullName} />}
+      stations={SECTIONS}
+      cta={
+        <Link className="button ws__cta" to="/doctors">
           Book a visit
         </Link>
-      </aside>
-
-      <div className="portal__main">
-        <Suspense fallback={<PageLoading />}>
-          <Outlet />
-        </Suspense>
-      </div>
-    </div>
+      }
+    />
   );
 }

@@ -1,0 +1,437 @@
+/* The signed-in workspaces: the public pages' transit system, seen from
+   inside the train. Tokens are in styles.css; this file holds the base
+   controls, the rail with its line of stations, and the three things each
+   role opens to: the patient's ticket, the doctor's day, the chemist's
+   questions. Spacing steps: 2 4 8 12 16 24 32 40 48 64. */
+
+/* Everything up to the shell is scoped to `.in`, the app root outside the
+   landing and sign-in pages, which have their own rules in landing.css. */
+
+/* ---------- Browser surfaces ---------- */
+
+:where(.in) ::selection { background: color-mix(in srgb, var(--line) 28%, transparent); }
+:where(.in) :focus-visible { outline: 2px solid var(--line); outline-offset: 2px; border-radius: 4px; }
+html { scrollbar-color: var(--border) transparent; }
+:where(.in) a { color: var(--accent-text); text-underline-offset: 4px; }
+:where(.in) h1, :where(.in) h2, :where(.in) h3 { font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+
+/* ---------- Controls ---------- */
+
+:where(.in) button, :where(.in) .button {
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  line-height: 24px;
+  transition: transform 180ms var(--ease), box-shadow 180ms var(--ease), background-color 180ms var(--ease);
+}
+:where(.in) button:not(.link):not(.tab):not(.slot):not(.notification):hover:not(:disabled), :where(.in) a.button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 1px 2px rgba(16, 32, 43, 0.12), 0 6px 16px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+:where(.in) button:active:not(:disabled), :where(.in) .button:active { transform: scale(0.98); }
+:where(.in) button:disabled { opacity: 0.6; cursor: progress; }
+:where(.in) button.link { min-height: 0; padding: 0; color: var(--accent-text); font-weight: 600; text-underline-offset: 4px; box-shadow: none; }
+:where(.in) button.link:hover { transform: none; box-shadow: none; }
+:where(.in) .button--sm { min-height: 32px; padding: 4px 12px; font-size: 0.875rem; line-height: 20px; }
+:where(.in) .button--quiet, :where(.in) .button--ghost { background: transparent; color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--line); }
+:where(.in) .button--quiet:hover, :where(.in) .button--ghost:hover { background: var(--accent-soft); }
+
+:where(.in) input, :where(.in) select, :where(.in) textarea {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-color: var(--border);
+  caret-color: var(--line);
+  transition: border-color 180ms var(--ease), box-shadow 180ms var(--ease);
+}
+:where(.in) input[type="checkbox"], :where(.in) input[type="radio"] { min-height: 0; accent-color: var(--accent); }
+:where(.in) input:focus-visible, :where(.in) select:focus-visible, :where(.in) textarea:focus-visible {
+  outline: none;
+  border-color: var(--line);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--line) 24%, transparent);
+}
+:where(.in) ::placeholder { color: var(--text-muted); opacity: 1; }
+:where(.in) label { font-size: 0.875rem; }
+
+:where(.in) code { font-family: var(--mono); background: var(--raised); }
+
+/* ---------- Surfaces ---------- */
+
+:where(.in) .card { border-radius: var(--radius); padding: 16px 24px; margin-bottom: 12px; }
+:where(.in) a.card { transition: border-color 180ms var(--ease), background-color 180ms var(--ease); }
+:where(.in) .notice { border-radius: 8px; border-color: var(--line); padding: 12px 16px; }
+:where(.in) .notice--ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+:where(.in) .error { color: var(--danger); }
+:where(.in) .acting-banner { border-radius: 8px; padding: 8px 16px; }
+
+:where(.in) .empty { padding: 40px 24px; border-style: dashed; background: transparent; }
+:where(.in) .empty h1, :where(.in) .empty h2 { font-size: 1.125rem; }
+
+:where(.in) .skeleton { border-color: transparent; background: linear-gradient(90deg, var(--raised) 0%, var(--bg) 50%, var(--raised) 100%); background-size: 200% 100%; }
+
+/* Status is a small caption pill; the line colour is kept for "live". */
+:where(.in) .badge { font-size: 0.75rem; font-weight: 600; letter-spacing: 0; padding: 2px 8px; line-height: 16px; }
+:where(.in) .badge--booked, :where(.in) .badge--open, :where(.in) .badge--reserved { color: var(--accent-text); border-color: var(--line); }
+:where(.in) .badge--completed { background: var(--ok-soft); color: var(--ok); }
+:where(.in) .tag { font-size: 0.75rem; line-height: 16px; }
+
+/* A line of facts above a name: time, distance, date. Read exactly, so mono. */
+:where(.in) .eyebrow {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-muted);
+  font-feature-settings: "tnum";
+}
+
+:where(.in) .tabs { border-radius: 9999px; padding: 4px; background: var(--raised); border: 0; }
+:where(.in) .tab { min-height: 32px; padding: 4px 16px; border-radius: 9999px; font-size: 0.875rem; line-height: 24px; }
+:where(.in) .tab:hover { transform: none; box-shadow: none; color: var(--text); }
+:where(.in) .tab.is-active { background: var(--accent); color: var(--accent-contrast); }
+:where(.in) a.tab { border-radius: 9999px; }
+:where(.in) a.tab.is-active { background: var(--accent); color: var(--accent-contrast); }
+
+:where(.in) .avatar { background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 3px var(--line); font-weight: 700; }
+:where(.in) .date-tile { border-radius: 8px; background: var(--raised); color: var(--text); font-family: var(--mono); }
+:where(.in) .date-tile__day { font-weight: 500; }
+:where(.in) .date-tile__month { font-weight: 500; letter-spacing: 0.04em; }
+
+:where(.in) .rx__table th { text-transform: none; letter-spacing: 0; font-size: 0.8125rem; font-weight: 600; }
+:where(.in) .rx__table td.num, :where(.in) .compare__lines .num, :where(.in) .fee, :where(.in) .store-card__distance, :where(.in) .price-list td, :where(.in) .desk__time, :where(.in) .desk__no {
+  font-family: var(--mono);
+  font-feature-settings: "tnum";
+  font-weight: 500;
+}
+
+:where(.in) .filters { gap: 8px; }
+:where(.in) .filters select { flex: 1 1 200px; width: auto; }
+
+/* ---------- The top bar outside the workspaces ---------- */
+
+:where(.in) .topbar { background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(12px); }
+:where(.in) .brand { font-weight: 700; letter-spacing: -0.01em; font-size: 1.125rem; }
+:where(.in) .brand__mark, :where(.in) .ws__mark {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 5px var(--line);
+  color: transparent;
+  flex: none;
+}
+:where(.in) .topbar nav a:not(.button) { font-size: 0.875rem; }
+:where(.in) .content { padding: 32px var(--gutter) 64px; }
+
+/* ---------- The shell ---------- */
+
+.ws {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+.ws__rail {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px 16px 16px 24px;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.ws__brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.125rem; letter-spacing: -0.01em; color: var(--text); text-decoration: none; }
+
+.ws__who { display: flex; gap: 12px; align-items: center; }
+.ws__who > div:last-child { display: flex; flex-direction: column; min-width: 0; line-height: 20px; }
+.ws__who strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws__who .muted { font-size: 0.8125rem; }
+.switcher { gap: 8px; }
+.switcher select { font-weight: 500; font-size: 0.875rem; }
+
+/* The line: a band down the rail with a station for each section. The
+   station being visited is ringed in the line colour. */
+.ws__line { position: relative; display: flex; flex-direction: column; margin: 0; }
+.ws__line::before {
+  content: "";
+  position: absolute;
+  left: 9px; top: 20px; bottom: 20px;
+  width: 4px; border-radius: 9999px;
+  background: var(--border);
+}
+.ws__stop {
+  position: relative;
+  display: flex; align-items: center; gap: 16px;
+  min-height: 40px;
+  padding: 8px 8px 8px 0;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 180ms var(--ease);
+}
+.ws__stop::before {
+  content: "";
+  position: relative; z-index: 1;
+  width: 22px; height: 22px; flex: none;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 4px var(--border);
+  transition: box-shadow 220ms var(--ease), transform 220ms var(--ease);
+}
+.ws__stop:hover { color: var(--text); }
+.ws__stop:hover::before { box-shadow: inset 0 0 0 4px var(--text-muted); }
+.ws__stop.is-active { color: var(--text); font-weight: 600; }
+.ws__stop.is-active::before { box-shadow: inset 0 0 0 6px var(--line); transform: scale(1.1); }
+.ws__count {
+  margin-left: auto;
+  min-width: 20px; height: 20px; padding: 0 6px;
+  display: inline-grid; place-items: center;
+  border-radius: 9999px;
+  background: var(--accent); color: var(--accent-contrast);
+  font-family: var(--mono); font-size: 0.75rem; font-weight: 500;
+}
+
+.ws__cta { text-align: center; }
+
+.ws__foot {
+  margin-top: auto;
+  display: flex; flex-direction: column; gap: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.ws__action {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 40px; padding: 8px;
+  border-radius: 8px;
+  background: none; color: var(--text-muted);
+  font: inherit; font-size: 0.9375rem; font-weight: 500; line-height: 24px;
+  text-align: left; text-decoration: none;
+  cursor: pointer;
+}
+button.ws__action:hover:not(:disabled), a.ws__action:hover { background: var(--raised); color: var(--text); transform: none; box-shadow: none; }
+.ws__action.active { color: var(--text); background: var(--raised); }
+.ws__action svg { flex: none; }
+
+.ws__main { min-width: 0; padding: 40px 40px 64px; max-width: 1000px; }
+.ws__main > .notice { margin-bottom: 24px; }
+
+.portal__title { font-size: 1.875rem; line-height: 36px; margin: 0; }
+.stack > header { display: grid; gap: 4px; }
+.stack > header .muted { max-width: 65ch; }
+.portal__subtitle { font-size: 1.125rem; line-height: 28px; margin: 0 0 12px; }
+.stack { gap: 24px; }
+.section__head { margin-bottom: 4px; }
+.section__head a { font-size: 0.875rem; color: var(--accent-text); }
+.arrow-link { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; text-decoration: none; }
+.arrow-link svg { transition: transform 220ms var(--ease); }
+.arrow-link:hover { text-decoration: underline; }
+.arrow-link:hover svg { transform: translateX(4px); }
+
+/* ---------- Patient: the next visit is a ticket ---------- */
+
+.ticket {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.ticket__stub {
+  display: grid; align-content: center; justify-items: start; gap: 2px;
+  padding: 24px 32px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-family: var(--mono);
+  font-feature-settings: "tnum";
+}
+.ticket__day { font-size: 3rem; line-height: 1; font-weight: 500; letter-spacing: -0.02em; }
+.ticket__month { font-size: 0.875rem; letter-spacing: 0.08em; }
+.ticket__time { margin-top: 8px; font-size: 1.125rem; }
+.ticket__body {
+  position: relative;
+  display: grid; align-content: center; gap: 4px;
+  padding: 24px 24px 24px 32px;
+  min-width: 0;
+}
+/* The tear line between the stub and the body. */
+.ticket__body::before {
+  content: "";
+  position: absolute; left: 0; top: 12px; bottom: 12px;
+  border-left: 2px dashed var(--border);
+}
+.ticket__body h2 { margin: 0; font-size: 1.5rem; line-height: 32px; }
+.ticket__body p { margin: 0; }
+.ticket__when { font-size: 0.875rem; font-weight: 600; color: var(--accent-text); }
+.ticket__action { display: grid; align-content: center; padding: 24px; }
+
+/* Figures on one ruled row, not four boxes. */
+.ledger {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-block: 1px solid var(--border);
+}
+.ledger__item {
+  display: grid; gap: 2px;
+  padding: 16px 16px 16px 0;
+  color: var(--text); text-decoration: none;
+}
+.ledger__item + .ledger__item { padding-left: 16px; border-left: 1px solid var(--border); }
+.ledger__item strong { font-family: var(--mono); font-feature-settings: "tnum"; font-size: 1.875rem; line-height: 36px; font-weight: 500; }
+.ledger__item span { font-size: 0.875rem; color: var(--text-muted); transition: color 180ms var(--ease); }
+.ledger__item:hover span { color: var(--accent-text); }
+
+/* Lists are ruled rows on the ground; a card is kept for things that stand alone. */
+.visit-list, .store-list { display: grid; }
+.visit-list .card, .store-list > li > .card {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  margin: 0;
+  padding: 16px 0;
+}
+.visit-list > li:first-child .card, .visit-list > .card:first-child, .store-list > li:first-child > .card { border-top: 1px solid var(--border); }
+.visit { gap: 16px; }
+.visit__head strong { font-weight: 600; }
+.visit__meta, .visit__note { font-size: 0.875rem; }
+.visit__actions { gap: 16px; font-size: 0.875rem; }
+.followup-badge { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 12px; font-size: 0.8125rem; border-color: var(--line); color: var(--accent-text); background: var(--accent-soft); }
+
+.rx-mini { padding: 16px 24px; }
+.rx-mini strong { font-weight: 600; }
+.rx-mini:hover { border-color: var(--line); }
+
+/* ---------- Doctor: the day is a line of visits ---------- */
+
+.day-nav { gap: 8px; align-items: center; }
+.day-nav .tab { border: 1px solid var(--border); background: var(--surface); display: inline-flex; align-items: center; gap: 8px; color: var(--text); }
+.day-nav .tab:hover { border-color: var(--line); }
+
+.timeline { list-style: none; margin: 0; padding: 0; position: relative; display: grid; }
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 105px; top: 28px; bottom: 28px;
+  width: 4px; border-radius: 9999px;
+  background: var(--border);
+}
+.timeline__visit {
+  position: relative;
+  display: grid;
+  grid-template-columns: 80px 22px minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px 16px 16px 0;
+  border-radius: 12px;
+  color: var(--text); text-decoration: none;
+  transition: background-color 180ms var(--ease);
+}
+.timeline__visit:hover { background: var(--surface); }
+.timeline__time { display: grid; align-content: start; justify-items: end; font-family: var(--mono); font-feature-settings: "tnum"; line-height: 24px; }
+.timeline__time strong { font-weight: 500; }
+.timeline__time span { font-size: 0.8125rem; color: var(--text-muted); }
+.timeline__stop {
+  position: relative; z-index: 1;
+  width: 22px; height: 22px; margin-top: 1px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: inset 0 0 0 4px var(--text-muted);
+  transition: background-color 180ms var(--ease);
+}
+.timeline__visit:hover .timeline__stop { background: var(--surface); }
+/* Seen: the station is filled. Waiting to be closed: ringed in the line colour. */
+.timeline__visit--completed .timeline__stop { background: var(--line); box-shadow: inset 0 0 0 4px var(--line); }
+.timeline__visit--waiting .timeline__stop { box-shadow: inset 0 0 0 6px var(--line); }
+.timeline__visit--cancelled, .timeline__visit--no_show { color: var(--text-muted); }
+.timeline__visit--cancelled .timeline__stop, .timeline__visit--no_show .timeline__stop { box-shadow: inset 0 0 0 4px var(--border); }
+.timeline__body { min-width: 0; display: grid; gap: 2px; }
+.timeline__body p { margin: 0; }
+.timeline__name { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.timeline__name strong { font-size: 1.0625rem; font-weight: 600; }
+.sched__flags { margin: 6px 0 0; }
+
+/* ---------- Chemist: questions ---------- */
+
+.request-row--ticket { display: grid; grid-template-columns: max-content minmax(0, 1fr) auto; align-items: center; gap: 24px; }
+.request-row__stub { display: grid; gap: 2px; white-space: nowrap; font-family: var(--mono); font-feature-settings: "tnum"; font-size: 0.8125rem; color: var(--text-muted); padding-right: 24px; border-right: 2px dashed var(--border); }
+.request-row__distance { font-size: 1.5rem; line-height: 32px; font-weight: 500; color: var(--text); }
+.request-row strong { font-weight: 600; font-size: 1.0625rem; }
+.request-row:hover strong { color: var(--accent-text); }
+.request-row__side { font-family: var(--mono); font-size: 0.8125rem; }
+
+.pickup { border: 1px solid var(--line); border-radius: 16px; }
+.pickup__code, .collect input { font-family: var(--mono); font-weight: 500; }
+.pickup__code { color: var(--text); letter-spacing: 0.2em; }
+.token__number { font-family: var(--mono); font-weight: 500; }
+.token__label { text-transform: none; letter-spacing: 0; font-size: 0.875rem; }
+
+/* ---------- Phones and narrow panes ---------- */
+
+@media (max-width: 900px) {
+  .ws { grid-template-columns: 1fr; }
+  .ws__rail {
+    position: static; height: auto; overflow: visible;
+    padding: 12px 16px 0;
+    gap: 12px;
+    border-right: 0; border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "brand foot" "who who" "line line";
+    align-items: center;
+  }
+  .ws__brand { grid-area: brand; }
+  .ws__whoSlot { grid-area: who; }
+  .ws__cta { display: none; }
+  .ws__foot { grid-area: foot; margin: 0; padding: 0; border: 0; flex-direction: row; gap: 0; }
+  .ws__action { padding: 8px; }
+  .ws__action .ws__actionLabel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  /* The line turns to run along the bottom of the bar. */
+  .ws__line {
+    grid-area: line;
+    flex-direction: row; gap: 4px;
+    overflow-x: auto; scrollbar-width: none;
+    margin: 0 -16px; padding: 0 16px;
+  }
+  .ws__line::before { display: none; }
+  .ws__stop { flex: none; gap: 8px; padding: 8px 12px 12px 0; white-space: nowrap; font-size: 0.875rem; }
+  .ws__stop::before { width: 16px; height: 16px; box-shadow: inset 0 0 0 3px var(--border); }
+  .ws__stop.is-active::before { box-shadow: inset 0 0 0 5px var(--line); transform: none; }
+  .ws__main { padding: 24px 16px 48px; }
+  .portal__title { font-size: 1.5rem; line-height: 32px; }
+
+  .request-row--ticket { grid-template-columns: max-content minmax(0, 1fr); gap: 16px; }
+  .request-row__stub { padding-right: 12px; }
+  .request-row__distance { font-size: 1.25rem; line-height: 28px; }
+  .request-row--ticket .request-row__side { grid-column: 2; align-items: flex-start; }
+  /* On a phone the stub becomes the ticket's top strip. */
+  .ticket { grid-template-columns: minmax(0, 1fr); }
+  .ticket__stub { display: flex; align-items: baseline; gap: 8px; padding: 12px 16px; }
+  .ticket__day { font-size: 1.5rem; line-height: 32px; }
+  .ticket__time { margin: 0 0 0 auto; font-size: 1rem; }
+  .ticket__body { padding: 16px; }
+  .ticket__body::before { left: 12px; right: 12px; top: 0; bottom: auto; border-left: 0; border-top: 2px dashed var(--border); }
+  .ticket__body h2 { font-size: 1.25rem; line-height: 28px; }
+  .ticket__action { padding: 0 16px 16px; justify-items: start; }
+  .ledger { grid-template-columns: repeat(2, 1fr); }
+  .ledger__item:nth-child(3) { padding-left: 0; border-left: 0; }
+  .ledger__item:nth-child(n + 3) { border-top: 1px solid var(--border); }
+
+  .timeline::before { left: 87px; }
+  .timeline__visit { grid-template-columns: 68px 18px minmax(0, 1fr); gap: 12px; padding-right: 0; }
+  .timeline__time { font-size: 0.8125rem; white-space: nowrap; }
+  .timeline__stop { width: 18px; height: 18px; margin-top: 3px; box-shadow: inset 0 0 0 3px var(--text-muted); }
+  .timeline__visit--waiting .timeline__stop { box-shadow: inset 0 0 0 5px var(--line); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.in) *, :where(.in) *::before, :where(.in) *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+.live-pill__dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }

@@ -52,11 +52,12 @@ export function QueuePage() {
       <ul className="store-list">
         {queue.data?.map((q) => (
           <li key={q.id}>
-            <Link to={`/store/requests/${q.id}`} className="card request-row">
+            <Link to={`/store/requests/${q.id}`} className="card request-row request-row--ticket">
+              <div className="request-row__stub">
+                <span className="request-row__distance">{formatDistance(q.distanceM)}</span>
+                <span>away · {formatTime(q.createdAt)}</span>
+              </div>
               <div>
-                <p className="eyebrow">
-                  {formatTime(q.createdAt)} · {formatDistance(q.distanceM)} away
-                </p>
                 <strong>
                   {q.patientName} · {q.medicines} {q.medicines === 1 ? "medicine" : "medicines"}
                 </strong>

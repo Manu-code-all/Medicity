@@ -1,0 +1,523 @@
+{
+ "session": {
+  "userId": "44444444-4444-4444-8444-444444444401",
+  "fullName": "Ravi Kumar",
+  "role": "CHEMIST"
+ },
+ "responses": {
+  "/api/v1/stores/me": {
+   "id": "55555555-5555-4555-8555-555555555501",
+   "name": "Sri Sai Medicals",
+   "licenceNumber": "KA-B1-20/21-DEMO01",
+   "phone": "+919876500301",
+   "addressLine": "12, 100 Feet Road, Indiranagar",
+   "city": "Bengaluru",
+   "latitude": 12.9745,
+   "longitude": 77.6408,
+   "opensAt": "08:00:00",
+   "closesAt": "22:00:00",
+   "open24h": false,
+   "holdHours": 3,
+   "verified": true,
+   "verifiedAt": "2026-09-30T02:30:00.007075Z",
+   "openNow": true,
+   "ownerName": "Ravi Kumar",
+   "ownerEmail": "chemist@medicity.demo",
+   "registeredAt": "2026-09-30T02:30:00.007075Z"
+  },
+  "/api/v1/stores/me/insights": {
+   "from": "2026-09-23T09:28:55.051517916Z",
+   "to": "2026-09-30T09:28:55.055884200Z",
+   "summary": {
+    "questionsReceived": 3,
+    "answered": 2,
+    "answeredAutomatically": 0,
+    "reservations": 0,
+    "collected": 0,
+    "medianMinutesToAnswer": 6
+   },
+   "medicines": [
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc02",
+     "name": "Azithromycin",
+     "strength": "250mg",
+     "form": "TABLET",
+     "asked": 2,
+     "patients": 2,
+     "units": 8,
+     "had": 0,
+     "partly": 0,
+     "saidNo": 2,
+     "unanswered": 0,
+     "wentElsewhere": 2,
+     "considerStocking": true
+    }
+   ]
+  },
+  "/api/v1/stores/me/stock": {
+   "autoAnswer": false,
+   "updatedAt": null,
+   "fresh": false,
+   "items": []
+  },
+  "/api/v1/notifications": {
+   "unread": 0,
+   "items": []
+  },
+  "/api/v1/pharmacy/medicines?size=100": {
+   "content": [
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc04",
+     "name": "Amoxicillin",
+     "genericName": "Amoxicillin",
+     "form": "CAPSULE",
+     "strength": "500mg",
+     "unitPrice": 90.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc08",
+     "name": "Azee",
+     "genericName": "Azithromycin",
+     "form": "TABLET",
+     "strength": "250mg",
+     "unitPrice": 68.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc02",
+     "name": "Azithromycin",
+     "genericName": "Azithromycin",
+     "form": "TABLET",
+     "strength": "250mg",
+     "unitPrice": 75.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc03",
+     "name": "Cetirizine",
+     "genericName": "Cetirizine",
+     "form": "TABLET",
+     "strength": "10mg",
+     "unitPrice": 30.0,
+     "prescriptionRequired": false,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc07",
+     "name": "Crocin",
+     "genericName": "Acetaminophen",
+     "form": "TABLET",
+     "strength": "500mg",
+     "unitPrice": 30.0,
+     "prescriptionRequired": false,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc09",
+     "name": "Glycomet",
+     "genericName": "Metformin HCl",
+     "form": "TABLET",
+     "strength": "500mg",
+     "unitPrice": 38.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc05",
+     "name": "Metformin",
+     "genericName": "Metformin HCl",
+     "form": "TABLET",
+     "strength": "500mg",
+     "unitPrice": 50.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc06",
+     "name": "Omeprazole",
+     "genericName": "Omeprazole",
+     "form": "CAPSULE",
+     "strength": "20mg",
+     "unitPrice": 55.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc10",
+     "name": "Omez",
+     "genericName": "Omeprazole",
+     "form": "CAPSULE",
+     "strength": "20mg",
+     "unitPrice": 42.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc01",
+     "name": "Paracetamol",
+     "genericName": "Acetaminophen",
+     "form": "TABLET",
+     "strength": "500mg",
+     "unitPrice": 40.0,
+     "prescriptionRequired": false,
+     "quantityOnHand": 250,
+     "lowStock": false
+    }
+   ],
+   "pageable": {
+    "pageNumber": 0,
+    "pageSize": 100,
+    "sort": {
+     "unsorted": true,
+     "sorted": false,
+     "empty": true
+    },
+    "offset": 0,
+    "unpaged": false,
+    "paged": true
+   },
+   "totalPages": 1,
+   "totalElements": 10,
+   "last": true,
+   "numberOfElements": 10,
+   "first": true,
+   "size": 100,
+   "number": 0,
+   "sort": {
+    "unsorted": true,
+    "sorted": false,
+    "empty": true
+   },
+   "empty": false
+  },
+  "/api/v1/stores/me/requests?show=pending": [
+   {
+    "id": "abababab-7777-4777-8777-abababab0001",
+    "createdAt": "2026-09-30T02:05:00.007075Z",
+    "expiresAt": "2026-10-01T01:30:00.007075Z",
+    "requestStatus": "OPEN",
+    "myStatus": "PENDING",
+    "answeredAt": null,
+    "distanceM": 292,
+    "patientName": "Meera N.",
+    "doctorName": "Dr. Anjali Rao",
+    "medicines": 1
+   }
+  ],
+  "/api/v1/stores/me/requests/abababab-7777-4777-8777-abababab0001": {
+   "id": "abababab-7777-4777-8777-abababab0001",
+   "status": "OPEN",
+   "createdAt": "2026-09-30T02:05:00.007075Z",
+   "expiresAt": "2026-10-01T01:30:00.007075Z",
+   "patientName": "Meera N.",
+   "distanceM": 292,
+   "prescription": {
+    "doctorName": "Dr. Anjali Rao",
+    "specialization": "Cardiology",
+    "doctorRegistration": "KA-CARD-10041",
+    "issuedAt": "2026-09-18T05:20:00Z",
+    "revised": false,
+    "hospitalDispensedAt": null,
+    "hasPhoto": false
+   },
+   "items": [
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc06",
+     "name": "Omeprazole",
+     "genericName": "Omeprazole",
+     "strength": "20mg",
+     "form": "CAPSULE",
+     "quantity": 14,
+     "substitutionAllowed": true,
+     "dosage": "20mg",
+     "frequency": "Once daily, before breakfast",
+     "durationDays": 14,
+     "equivalents": [
+      {
+       "id": "cccccccc-3333-4333-8333-cccccccccc10",
+       "name": "Omez",
+       "strength": "20mg",
+       "listPrice": 42.0
+      }
+     ]
+    }
+   ],
+   "myStatus": "PENDING",
+   "myNote": null,
+   "answeredAt": null,
+   "myAnswer": []
+  },
+  "/api/v1/stores/me/requests?show=answered": [
+   {
+    "id": "abababab-7777-4777-8777-abababab0004",
+    "createdAt": "2026-09-27T02:30:00.007075Z",
+    "expiresAt": "2026-09-27T08:30:00.007075Z",
+    "requestStatus": "CLOSED",
+    "myStatus": "ANSWERED",
+    "answeredAt": "2026-09-27T02:36:00.007075Z",
+    "distanceM": 292,
+    "patientName": "Kavya R.",
+    "doctorName": "Dr. Farah Khan",
+    "medicines": 2
+   },
+   {
+    "id": "abababab-7777-4777-8777-abababab0003",
+    "createdAt": "2026-09-26T02:30:00.007075Z",
+    "expiresAt": "2026-09-26T08:30:00.007075Z",
+    "requestStatus": "CLOSED",
+    "myStatus": "ANSWERED",
+    "answeredAt": "2026-09-26T02:36:00.007075Z",
+    "distanceM": 292,
+    "patientName": "Arjun M.",
+    "doctorName": "Dr. Suresh Iyer",
+    "medicines": 2
+   },
+   {
+    "id": "abababab-7777-4777-8777-abababab0002",
+    "createdAt": "2026-09-05T02:30:00.007075Z",
+    "expiresAt": "2026-09-05T08:30:00.007075Z",
+    "requestStatus": "CLOSED",
+    "myStatus": "ANSWERED",
+    "answeredAt": "2026-09-05T02:36:00.007075Z",
+    "distanceM": 292,
+    "patientName": "Meera N.",
+    "doctorName": "Dr. Anjali Rao",
+    "medicines": 1
+   }
+  ],
+  "/api/v1/stores/me/requests/abababab-7777-4777-8777-abababab0004": {
+   "id": "abababab-7777-4777-8777-abababab0004",
+   "status": "CLOSED",
+   "createdAt": "2026-09-27T02:30:00.007075Z",
+   "expiresAt": "2026-09-27T08:30:00.007075Z",
+   "patientName": "Kavya R.",
+   "distanceM": 292,
+   "prescription": {
+    "doctorName": "Dr. Farah Khan",
+    "specialization": "Paediatrics",
+    "doctorRegistration": "KA-PAED-30172",
+    "issuedAt": "2026-09-27T05:20:00Z",
+    "revised": false,
+    "hospitalDispensedAt": null,
+    "hasPhoto": false
+   },
+   "items": [
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc02",
+     "name": "Azithromycin",
+     "genericName": "Azithromycin",
+     "strength": "250mg",
+     "form": "TABLET",
+     "quantity": 3,
+     "substitutionAllowed": false,
+     "dosage": "250mg",
+     "frequency": "Once daily",
+     "durationDays": 3,
+     "equivalents": []
+    },
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc01",
+     "name": "Paracetamol",
+     "genericName": "Acetaminophen",
+     "strength": "500mg",
+     "form": "TABLET",
+     "quantity": 10,
+     "substitutionAllowed": true,
+     "dosage": "500mg",
+     "frequency": "As needed for fever, at most 3 a day",
+     "durationDays": 5,
+     "equivalents": [
+      {
+       "id": "cccccccc-3333-4333-8333-cccccccccc07",
+       "name": "Crocin",
+       "strength": "500mg",
+       "listPrice": 30.0
+      }
+     ]
+    }
+   ],
+   "myStatus": "ANSWERED",
+   "myNote": null,
+   "answeredAt": "2026-09-27T02:36:00.007075Z",
+   "myAnswer": [
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc02",
+     "availability": "NO",
+     "quantityAvailable": 0,
+     "unitPrice": null,
+     "substituteMedicineId": null,
+     "substituteName": null,
+     "substituteStrength": null
+    },
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc01",
+     "availability": "YES",
+     "quantityAvailable": 10,
+     "unitPrice": 3.5,
+     "substituteMedicineId": null,
+     "substituteName": null,
+     "substituteStrength": null
+    }
+   ]
+  },
+  "/api/v1/stores/me/requests/abababab-7777-4777-8777-abababab0003": {
+   "id": "abababab-7777-4777-8777-abababab0003",
+   "status": "CLOSED",
+   "createdAt": "2026-09-26T02:30:00.007075Z",
+   "expiresAt": "2026-09-26T08:30:00.007075Z",
+   "patientName": "Arjun M.",
+   "distanceM": 292,
+   "prescription": {
+    "doctorName": "Dr. Suresh Iyer",
+    "specialization": "Neurology",
+    "doctorRegistration": "KA-NEUR-20088",
+    "issuedAt": "2026-09-26T05:20:00Z",
+    "revised": false,
+    "hospitalDispensedAt": null,
+    "hasPhoto": false
+   },
+   "items": [
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc02",
+     "name": "Azithromycin",
+     "genericName": "Azithromycin",
+     "strength": "250mg",
+     "form": "TABLET",
+     "quantity": 5,
+     "substitutionAllowed": true,
+     "dosage": "250mg",
+     "frequency": "Once daily",
+     "durationDays": 5,
+     "equivalents": [
+      {
+       "id": "cccccccc-3333-4333-8333-cccccccccc08",
+       "name": "Azee",
+       "strength": "250mg",
+       "listPrice": 68.0
+      }
+     ]
+    },
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc03",
+     "name": "Cetirizine",
+     "genericName": "Cetirizine",
+     "strength": "10mg",
+     "form": "TABLET",
+     "quantity": 5,
+     "substitutionAllowed": false,
+     "dosage": "10mg",
+     "frequency": "At night",
+     "durationDays": 5,
+     "equivalents": []
+    }
+   ],
+   "myStatus": "ANSWERED",
+   "myNote": null,
+   "answeredAt": "2026-09-26T02:36:00.007075Z",
+   "myAnswer": [
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc02",
+     "availability": "NO",
+     "quantityAvailable": 0,
+     "unitPrice": null,
+     "substituteMedicineId": null,
+     "substituteName": null,
+     "substituteStrength": null
+    },
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc03",
+     "availability": "YES",
+     "quantityAvailable": 5,
+     "unitPrice": 2.5,
+     "substituteMedicineId": null,
+     "substituteName": null,
+     "substituteStrength": null
+    }
+   ]
+  },
+  "/api/v1/stores/me/requests/abababab-7777-4777-8777-abababab0002": {
+   "id": "abababab-7777-4777-8777-abababab0002",
+   "status": "CLOSED",
+   "createdAt": "2026-09-05T02:30:00.007075Z",
+   "expiresAt": "2026-09-05T08:30:00.007075Z",
+   "patientName": "Meera N.",
+   "distanceM": 292,
+   "prescription": {
+    "doctorName": "Dr. Anjali Rao",
+    "specialization": "Cardiology",
+    "doctorRegistration": "KA-CARD-10041",
+    "issuedAt": "2026-05-29T05:25:00Z",
+    "revised": false,
+    "hospitalDispensedAt": "2026-05-29T06:05:00Z",
+    "hasPhoto": false
+   },
+   "items": [
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc06",
+     "name": "Omeprazole",
+     "genericName": "Omeprazole",
+     "strength": "20mg",
+     "form": "CAPSULE",
+     "quantity": 28,
+     "substitutionAllowed": false,
+     "dosage": "20mg",
+     "frequency": "Once daily, before breakfast",
+     "durationDays": 28,
+     "equivalents": []
+    }
+   ],
+   "myStatus": "ANSWERED",
+   "myNote": null,
+   "answeredAt": "2026-09-05T02:36:00.007075Z",
+   "myAnswer": [
+    {
+     "medicineId": "cccccccc-3333-4333-8333-cccccccccc06",
+     "availability": "YES",
+     "quantityAvailable": 28,
+     "unitPrice": 5.2,
+     "substituteMedicineId": null,
+     "substituteName": null,
+     "substituteStrength": null
+    }
+   ]
+  },
+  "/api/v1/stores/me/reservations?show=held": [],
+  "/api/v1/stores/me/reservations?show=done": [
+   {
+    "id": "acacacac-8888-4888-8888-acacacac0002",
+    "requestId": "abababab-7777-4777-8777-abababab0002",
+    "status": "COLLECTED",
+    "patientName": "Meera Nair",
+    "total": 145.6,
+    "complete": true,
+    "createdAt": "2026-09-05T02:40:00.007075Z",
+    "expiresAt": "2026-09-05T05:40:00.007075Z",
+    "collectedAt": "2026-09-05T03:20:00.007075Z",
+    "codeLocked": false,
+    "lines": [
+     {
+      "name": "Omeprazole",
+      "strength": "20mg",
+      "prescribedAs": "Omeprazole",
+      "quantity": 28,
+      "asked": 28,
+      "unitPrice": 5.2
+     }
+    ]
+   }
+  ]
+ }
+}

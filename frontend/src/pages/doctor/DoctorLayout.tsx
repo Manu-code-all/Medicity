@@ -1,10 +1,16 @@
-import { Suspense } from "react";
-import { PageLoading } from "../../components/PageLoading";
 import { useQuery } from "@tanstack/react-query";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { WorkspaceShell } from "../../components/WorkspaceShell";
 import { doctorAccount } from "../../api/endpoints";
 import { useAuth } from "../../auth/context";
 import { initials } from "../../lib/format";
+
+const SECTIONS = [
+  { to: "/doctor", label: "Schedule", end: true },
+  { to: "/doctor/queue", label: "Front desk" },
+  { to: "/doctor/hours", label: "Your hours" },
+  { to: "/doctor/practice", label: "Fees and insurance" },
+];
 
 export function DoctorLayout() {
   const { session } = useAuth();
@@ -29,10 +35,11 @@ export function DoctorLayout() {
   }
 
   return (
-    <div className="portal">
-      <aside className="portal__nav">
-        {session && (
-          <div className="portal__who">
+    <WorkspaceShell
+      label="Doctor workspace"
+      who={
+        session && (
+          <div className="ws__who">
             <div className="avatar avatar--sm" aria-hidden="true">
               {initials(session.fullName)}
             </div>
@@ -41,34 +48,19 @@ export function DoctorLayout() {
               <span className="muted">Doctor</span>
             </div>
           </div>
-        )}
-        <nav aria-label="Doctor workspace">
-          <NavLink to="/doctor" end className={({ isActive }) => (isActive ? "portal__link is-active" : "portal__link")}>
-            Schedule
-          </NavLink>
-          <NavLink to="/doctor/queue" className={({ isActive }) => (isActive ? "portal__link is-active" : "portal__link")}>
-            Front desk
-          </NavLink>
-          <NavLink to="/doctor/hours" className={({ isActive }) => (isActive ? "portal__link is-active" : "portal__link")}>
-            Your hours
-          </NavLink>
-          <NavLink to="/doctor/practice" className={({ isActive }) => (isActive ? "portal__link is-active" : "portal__link")}>
-            Fees and insurance
-          </NavLink>
-        </nav>
-      </aside>
-      <div className="portal__main">
-        {profile.data && !profile.data.verified && (
+        )
+      }
+      stations={SECTIONS}
+      banner={
+        profile.data &&
+        !profile.data.verified && (
           <p className="notice" role="status">
             We are checking registration number <strong>{profile.data.registrationNumber}</strong> with the{" "}
             {profile.data.medicalCouncil}. Until then patients cannot find or book you; set your hours now and they
             open the moment you are verified.
           </p>
-        )}
-        <Suspense fallback={<PageLoading />}>
-          <Outlet />
-        </Suspense>
-      </div>
-    </div>
+        )
+      }
+    />
   );
 }

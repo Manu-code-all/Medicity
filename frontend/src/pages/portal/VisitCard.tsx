@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ChatCircleText, Paperclip } from "@phosphor-icons/react";
 import type { Visit } from "../../api/types";
 import { dateTile, formatDayLong, formatTime } from "../../lib/format";
 import { ReviewForm } from "./ReviewForm";
@@ -73,7 +74,7 @@ export function VisitCard({ visit, prescriptionId, onCancel, cancelling, canRevi
             aria-expanded={followUpOpen}
             onClick={() => setFollowUpOpen((o) => !o)}
           >
-            <span aria-hidden="true">💬</span> Free follow-up · {followUpDaysLeft} day{followUpDaysLeft > 1 ? "s" : ""} left
+            <ChatCircleText size={16} aria-hidden="true" /> Free follow-up · {followUpDaysLeft} day{followUpDaysLeft > 1 ? "s" : ""} left
           </button>
         )}
         {followUpOpen && <FollowUpPanel appointmentId={visit.id} side="PATIENT" />}
@@ -85,7 +86,7 @@ export function VisitCard({ visit, prescriptionId, onCancel, cancelling, canRevi
             aria-expanded={recordsOpen}
             onClick={() => setRecordsOpen((o) => !o)}
           >
-            <span aria-hidden="true">📎</span> Attach medical records
+            <Paperclip size={16} aria-hidden="true" /> Attach medical records
           </button>
         )}
         {recordsOpen && <AttachmentsPanel appointmentId={visit.id} canEdit />}

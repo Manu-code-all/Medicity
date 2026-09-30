@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { ArrowRight } from "@phosphor-icons/react";
 import { portal } from "../../api/endpoints";
 import { useAuth } from "../../auth/context";
 import { dateTile, firstName, formatDate, formatDayLong, formatTime, greeting, relativeFromNow } from "../../lib/format";
@@ -35,23 +36,26 @@ export function OverviewPage() {
       {summary.isPending ? (
         <div className="card skeleton" style={{ height: 120 }} />
       ) : next ? (
-        <section className="card next-visit" aria-label="Next visit">
-          <div className="date-tile date-tile--lg">
-            <span className="date-tile__day">{dateTile(next.scheduledAt).day}</span>
-            <span className="date-tile__month">{dateTile(next.scheduledAt).month}</span>
+        <section className="ticket" aria-label="Next visit">
+          <div className="ticket__stub">
+            <span className="ticket__day">{dateTile(next.scheduledAt).day}</span>
+            <span className="ticket__month">{dateTile(next.scheduledAt).month}</span>
+            <span className="ticket__time">{formatTime(next.scheduledAt)}</span>
           </div>
-          <div>
-            <p className="eyebrow">Next visit · {relativeFromNow(next.scheduledAt)}</p>
+          <div className="ticket__body">
+            <p className="ticket__when">Next visit, {relativeFromNow(next.scheduledAt)}</p>
             <h2>{next.doctorName}</h2>
             <p className="muted">
-              {next.specialization} · {formatDayLong(next.scheduledAt)} at {formatTime(next.scheduledAt)}
+              {next.specialization} · {formatDayLong(next.scheduledAt)}
             </p>
             {next.reason && <p>{next.reason}</p>}
             {next.visitType !== "VIDEO" && isLaterToday(next.scheduledAt) && <LiveStatusPill doctorId={next.doctorId} />}
           </div>
-          <Link className="next-visit__link" to="/portal/visits">
-            Manage
-          </Link>
+          <div className="ticket__action">
+            <Link className="button button--quiet" to="/portal/visits">
+              Manage
+            </Link>
+          </div>
         </section>
       ) : (
         summary.data && (
@@ -66,7 +70,7 @@ export function OverviewPage() {
       )}
 
       {summary.data && (
-        <section className="stats" aria-label="Your numbers">
+        <section className="ledger" aria-label="Your numbers">
           <Stat label="Upcoming" value={summary.data.upcoming} to="/portal/visits" />
           <Stat label="Completed visits" value={summary.data.completed} to="/portal/visits?tab=past" />
           <Stat label="Prescriptions" value={summary.data.prescriptions} to="/portal/prescriptions" />
@@ -82,7 +86,9 @@ export function OverviewPage() {
         <section>
           <div className="section__head">
             <h2 className="portal__subtitle">Recent visits</h2>
-            <Link to="/portal/visits?tab=past">All history →</Link>
+            <Link className="arrow-link" to="/portal/visits?tab=past">
+              All history <ArrowRight size={16} aria-hidden="true" />
+            </Link>
           </div>
           {recent.isPending && <div className="card skeleton" style={{ height: 96 }} />}
           {recent.data?.content.length === 0 && <p className="muted">No past visits yet.</p>}
@@ -96,7 +102,9 @@ export function OverviewPage() {
         <section>
           <div className="section__head">
             <h2 className="portal__subtitle">Latest prescription</h2>
-            <Link to="/portal/prescriptions">All →</Link>
+            <Link className="arrow-link" to="/portal/prescriptions">
+              All <ArrowRight size={16} aria-hidden="true" />
+            </Link>
           </div>
           {prescriptions.isPending && <div className="card skeleton" style={{ height: 96 }} />}
           {prescriptions.data?.length === 0 && <p className="muted">No prescriptions yet.</p>}
@@ -123,9 +131,9 @@ export function OverviewPage() {
 
 function Stat({ label, value, to }: { label: string; value: number; to: string }) {
   return (
-    <Link to={to} className="card stat">
+    <Link to={to} className="ledger__item">
       <strong>{value}</strong>
-      <span className="muted">{label}</span>
+      <span>{label}</span>
     </Link>
   );
 }
