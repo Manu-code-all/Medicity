@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { actingFor, useActingFor } from "../../api/acting";
 import { family } from "../../api/endpoints";
 import { initials } from "../../lib/format";
@@ -6,11 +7,13 @@ import { FAMILY_KEY, relationshipLabel } from "../../lib/family";
 
 /**
  * Whose portal this is right now: the account holder's or a family member's.
- * Switching drops everything cached for the previous person, so nothing of
- * one person's record is ever shown under another's name.
+ * Switching drops everything cached for the previous person and opens the
+ * new person's overview, so nothing of one person's record is ever shown
+ * under another's name.
  */
 export function FamilySwitcher({ holderName }: { holderName: string }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const current = useActingFor();
   const members = useQuery({ queryKey: FAMILY_KEY, queryFn: family.list, staleTime: 5 * 60_000 });
 
@@ -22,7 +25,11 @@ export function FamilySwitcher({ holderName }: { holderName: string }) {
     const self = members.data?.find((m) => m.self)?.patientId;
     actingFor.set(patientId === self ? null : patientId);
     // Everything but the family list itself belongs to the previous person.
-    queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== FAMILY_KEY[0] || q.queryKey[1] !== FAMILY_KEY[1] });
+    // Reset, not remove: a page already on screen refetches for the new person
+    // at once instead of keeping the old person's data until it is reopened.
+    void queryClient.resetQueries({ predicate: (q) => q.queryKey[0] !== FAMILY_KEY[0] || q.queryKey[1] !== FAMILY_KEY[1] });
+    // Each person's portal starts from its overview, wherever the last one was left.
+    navigate("/portal");
   }
 
   return (

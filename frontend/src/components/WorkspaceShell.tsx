@@ -90,8 +90,10 @@ function SignOutButton() {
       type="button"
       className="ws__action"
       onClick={() => {
-        logout();
+        // Leave first: signing out from inside a protected page would otherwise
+        // send the next sign-in straight back to that page.
         navigate("/", { replace: true });
+        logout();
       }}
     >
       <SignOut size={20} aria-hidden="true" />
