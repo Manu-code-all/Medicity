@@ -48,6 +48,15 @@ jobs:
               "|---|---:|---:|---:|---:|---:|---:|---:|", ...rows, ""].join("\n");
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
             console.log(md);
+            // Where the phone profile spends main-thread time, for when a score drops.
+            const m = JSON.parse(fs.readFileSync("lh-mobile.report.json", "utf8")).audits;
+            for (const k of ["mainthread-work-breakdown", "bootup-time", "long-tasks", "unused-javascript"]) {
+              console.log(`== ${k}: ${m[k].displayValue || ""}`);
+              for (const it of (m[k].details?.items || []).slice(0, 6)) {
+                console.log("   " + JSON.stringify(it, ["url", "groupLabel", "duration", "total", "scripting",
+                  "scriptParseCompile", "startTime", "wastedBytes"]));
+              }
+            }
           '
 
       - uses: actions/upload-artifact@v4
