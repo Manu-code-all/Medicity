@@ -1,0 +1,387 @@
+{
+ "session": {
+  "userId": "11111111-1111-4111-8111-111111111101",
+  "fullName": "Dr. Anjali Rao",
+  "role": "DOCTOR"
+ },
+ "responses": {
+  "/api/v1/doctors/me/profile": {
+   "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa01",
+   "fullName": "Dr. Anjali Rao",
+   "email": "dr.rao@medicity.demo",
+   "specialization": "Cardiology",
+   "medicalCouncil": null,
+   "registrationNumber": "KA-CARD-10041",
+   "qualification": null,
+   "yearsExperience": 14,
+   "consultationFee": 1200.0,
+   "verified": true,
+   "verifiedAt": "2026-09-27T19:52:24.591969Z",
+   "registeredAt": "2026-09-25T17:14:07.894708Z"
+  },
+  "/api/v1/doctors/me/hours": [],
+  "/api/v1/doctors/me/leave": [],
+  "/api/v1/doctors/me/practice": {
+   "consultationFee": 1200.0,
+   "bio": "Interventional cardiologist with a focus on preventive care and arrhythmia management.",
+   "yearsExperience": 14,
+   "insurers": [
+    "CGHS",
+    "HDFC ERGO",
+    "ICICI Lombard",
+    "Star Health"
+   ],
+   "prices": [
+    {
+     "procedure": "Registration",
+     "priceInr": 100,
+     "everyVisit": true
+    },
+    {
+     "procedure": "ECG",
+     "priceInr": 350,
+     "everyVisit": false
+    },
+    {
+     "procedure": "Treadmill test (TMT)",
+     "priceInr": 1800,
+     "everyVisit": false
+    },
+    {
+     "procedure": "2D Echo",
+     "priceInr": 2200,
+     "everyVisit": false
+    }
+   ],
+   "availableInsurers": [
+    {
+     "name": "Care Health",
+     "kind": "PRIVATE"
+    },
+    {
+     "name": "HDFC ERGO",
+     "kind": "PRIVATE"
+    },
+    {
+     "name": "ICICI Lombard",
+     "kind": "PRIVATE"
+    },
+    {
+     "name": "Niva Bupa",
+     "kind": "PRIVATE"
+    },
+    {
+     "name": "Star Health",
+     "kind": "PRIVATE"
+    },
+    {
+     "name": "New India Assurance",
+     "kind": "PUBLIC"
+    },
+    {
+     "name": "Ayushman Bharat (PM-JAY)",
+     "kind": "GOVERNMENT"
+    },
+    {
+     "name": "CGHS",
+     "kind": "GOVERNMENT"
+    }
+   ]
+  },
+  "/api/v1/doctors/me/queue": {
+   "status": {
+    "open": true,
+    "closedReason": null,
+    "waiting": 0,
+    "nowServing": null,
+    "minutesPerPatient": 15,
+    "estimatedWaitMinutes": 0
+   },
+   "tokens": []
+  },
+  "/api/v1/notifications": {
+   "unread": 0,
+   "items": []
+  },
+  "/api/v1/pharmacy/medicines?size=100": {
+   "content": [
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc04",
+     "name": "Amoxicillin",
+     "genericName": "Amoxicillin",
+     "form": "CAPSULE",
+     "strength": "500mg",
+     "unitPrice": 90.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc08",
+     "name": "Azee",
+     "genericName": "Azithromycin",
+     "form": "TABLET",
+     "strength": "250mg",
+     "unitPrice": 68.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc02",
+     "name": "Azithromycin",
+     "genericName": "Azithromycin",
+     "form": "TABLET",
+     "strength": "250mg",
+     "unitPrice": 75.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc03",
+     "name": "Cetirizine",
+     "genericName": "Cetirizine",
+     "form": "TABLET",
+     "strength": "10mg",
+     "unitPrice": 30.0,
+     "prescriptionRequired": false,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc07",
+     "name": "Crocin",
+     "genericName": "Acetaminophen",
+     "form": "TABLET",
+     "strength": "500mg",
+     "unitPrice": 30.0,
+     "prescriptionRequired": false,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc09",
+     "name": "Glycomet",
+     "genericName": "Metformin HCl",
+     "form": "TABLET",
+     "strength": "500mg",
+     "unitPrice": 38.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc05",
+     "name": "Metformin",
+     "genericName": "Metformin HCl",
+     "form": "TABLET",
+     "strength": "500mg",
+     "unitPrice": 50.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc06",
+     "name": "Omeprazole",
+     "genericName": "Omeprazole",
+     "form": "CAPSULE",
+     "strength": "20mg",
+     "unitPrice": 55.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc10",
+     "name": "Omez",
+     "genericName": "Omeprazole",
+     "form": "CAPSULE",
+     "strength": "20mg",
+     "unitPrice": 42.0,
+     "prescriptionRequired": true,
+     "quantityOnHand": 250,
+     "lowStock": false
+    },
+    {
+     "id": "cccccccc-3333-4333-8333-cccccccccc01",
+     "name": "Paracetamol",
+     "genericName": "Acetaminophen",
+     "form": "TABLET",
+     "strength": "500mg",
+     "unitPrice": 40.0,
+     "prescriptionRequired": false,
+     "quantityOnHand": 250,
+     "lowStock": false
+    }
+   ],
+   "pageable": {
+    "pageNumber": 0,
+    "pageSize": 100,
+    "sort": {
+     "unsorted": true,
+     "sorted": false,
+     "empty": true
+    },
+    "offset": 0,
+    "unpaged": false,
+    "paged": true
+   },
+   "totalPages": 1,
+   "totalElements": 10,
+   "last": true,
+   "numberOfElements": 10,
+   "first": true,
+   "size": 100,
+   "number": 0,
+   "sort": {
+    "unsorted": true,
+    "sorted": false,
+    "empty": true
+   },
+   "empty": false
+  },
+  "/api/v1/doctors/me/visits?from=2026-09-29T18%3A30%3A00.000Z&to=2026-09-30T18%3A30%3A00.000Z": [
+   {
+    "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee07",
+    "status": "BOOKED",
+    "scheduledAt": "2026-09-30T00:00:00Z",
+    "endsAt": "2026-09-30T00:30:00Z",
+    "reason": "Chest tightness when climbing stairs, 2 weeks",
+    "patient": {
+     "id": "bbbbbbbb-2222-4222-8222-bbbbbbbbbb02",
+     "fullName": "Arjun Mehta",
+     "age": 38,
+     "gender": "MALE",
+     "bloodGroup": "A+"
+    },
+    "prescriptionId": null,
+    "dispensedAt": null,
+    "visitType": "IN_PERSON"
+   },
+   {
+    "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee08",
+    "status": "BOOKED",
+    "scheduledAt": "2026-09-30T04:00:00Z",
+    "endsAt": "2026-09-30T04:30:00Z",
+    "reason": "Racing heartbeat after coffee",
+    "patient": {
+     "id": "bbbbbbbb-2222-4222-8222-bbbbbbbbbb03",
+     "fullName": "Kavya Reddy",
+     "age": 24,
+     "gender": "FEMALE",
+     "bloodGroup": "B+"
+    },
+    "prescriptionId": null,
+    "dispensedAt": null,
+    "visitType": "IN_PERSON"
+   },
+   {
+    "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee20",
+    "status": "BOOKED",
+    "scheduledAt": "2026-09-30T07:00:00Z",
+    "endsAt": "2026-09-30T07:30:00Z",
+    "reason": "Follow-up on the ECG results",
+    "patient": {
+     "id": "bbbbbbbb-2222-4222-8222-bbbbbbbbbb01",
+     "fullName": "Meera Nair",
+     "age": 32,
+     "gender": "FEMALE",
+     "bloodGroup": "O+"
+    },
+    "prescriptionId": null,
+    "dispensedAt": null,
+    "visitType": "VIDEO"
+   }
+  ],
+  "/api/v1/doctors/me/visits/eeeeeeee-5555-4555-8555-eeeeeeeeee07": {
+   "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee07",
+   "status": "BOOKED",
+   "scheduledAt": "2026-09-30T00:00:00Z",
+   "endsAt": "2026-09-30T00:30:00Z",
+   "reason": "Chest tightness when climbing stairs, 2 weeks",
+   "cancelReason": null,
+   "started": true,
+   "patient": {
+    "id": "bbbbbbbb-2222-4222-8222-bbbbbbbbbb02",
+    "fullName": "Arjun Mehta",
+    "age": 38,
+    "gender": "MALE",
+    "bloodGroup": "A+"
+   },
+   "prescription": null,
+   "visitType": "IN_PERSON",
+   "intake": {
+    "area": "Chest",
+    "symptoms": [
+     "Chest discomfort on exertion that settles with rest"
+    ],
+    "since": "Weeks or longer",
+    "suggested": "Cardiology"
+   }
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee07/followups": {
+   "messages": [],
+   "questionsLeft": 3,
+   "closesAt": "2026-10-07T00:30:00Z",
+   "open": false,
+   "awaitingDoctor": false
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee07/attachments": [],
+  "/api/v1/doctors/me/visits/eeeeeeee-5555-4555-8555-eeeeeeeeee08": {
+   "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee08",
+   "status": "BOOKED",
+   "scheduledAt": "2026-09-30T04:00:00Z",
+   "endsAt": "2026-09-30T04:30:00Z",
+   "reason": "Racing heartbeat after coffee",
+   "cancelReason": null,
+   "started": true,
+   "patient": {
+    "id": "bbbbbbbb-2222-4222-8222-bbbbbbbbbb03",
+    "fullName": "Kavya Reddy",
+    "age": 24,
+    "gender": "FEMALE",
+    "bloodGroup": "B+"
+   },
+   "prescription": null,
+   "visitType": "IN_PERSON",
+   "intake": null
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee08/followups": {
+   "messages": [],
+   "questionsLeft": 3,
+   "closesAt": "2026-10-07T04:30:00Z",
+   "open": false,
+   "awaitingDoctor": false
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee08/attachments": [],
+  "/api/v1/doctors/me/visits/eeeeeeee-5555-4555-8555-eeeeeeeeee20": {
+   "id": "eeeeeeee-5555-4555-8555-eeeeeeeeee20",
+   "status": "BOOKED",
+   "scheduledAt": "2026-09-30T07:00:00Z",
+   "endsAt": "2026-09-30T07:30:00Z",
+   "reason": "Follow-up on the ECG results",
+   "cancelReason": null,
+   "started": true,
+   "patient": {
+    "id": "bbbbbbbb-2222-4222-8222-bbbbbbbbbb01",
+    "fullName": "Meera Nair",
+    "age": 32,
+    "gender": "FEMALE",
+    "bloodGroup": "O+"
+   },
+   "prescription": null,
+   "visitType": "VIDEO",
+   "intake": null
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee20/followups": {
+   "messages": [],
+   "questionsLeft": 3,
+   "closesAt": "2026-10-07T07:30:00Z",
+   "open": false,
+   "awaitingDoctor": false
+  },
+  "/api/v1/appointments/eeeeeeee-5555-4555-8555-eeeeeeeeee20/attachments": []
+ }
+}

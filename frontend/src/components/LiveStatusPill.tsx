@@ -14,7 +14,7 @@ export function LiveStatusPill({ doctorId }: { doctorId: string }) {
   const late = status.data.state === "RUNNING_LATE";
   return (
     <p className={late ? "live-pill live-pill--late" : "live-pill"} title={TIP} role="status">
-      <span aria-hidden="true">{late ? "🟡" : "🟢"}</span>{" "}
+      <span className="live-pill__dot" aria-hidden="true" />
       {late ? `Doctor is running about ${status.data.delayMinutes} min behind` : "Doctor is on time"}
       <span className="sr-only"> ({TIP})</span>
     </p>

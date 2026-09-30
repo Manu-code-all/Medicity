@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
 import { Link, useSearchParams } from "react-router-dom";
 import { workspace } from "../../api/endpoints";
 import type { DoctorVisitSummary } from "../../api/types";
@@ -66,7 +67,7 @@ export function SchedulePage() {
 
       <div className="day-nav">
         <button type="button" className="tab" onClick={() => shift(-1)} aria-label="Previous day">
-          ← Previous
+          <ArrowLeft size={16} aria-hidden="true" /> Previous
         </button>
         {!isToday && (
           <button type="button" className="tab" onClick={() => setParams({})}>
@@ -74,7 +75,7 @@ export function SchedulePage() {
           </button>
         )}
         <button type="button" className="tab" onClick={() => shift(1)} aria-label="Next day">
-          Next →
+          Next <ArrowRight size={16} aria-hidden="true" />
         </button>
       </div>
 
@@ -87,18 +88,22 @@ export function SchedulePage() {
         </div>
       )}
 
-      <ul className="visit-list">
+      <ul className="timeline">
         {rows.map((v) => {
           const needsClosing = v.status === "BOOKED" && new Date(v.scheduledAt) <= new Date();
           return (
             <li key={v.id}>
-              <Link to={`/doctor/visits/${v.id}`} className={`card sched sched--${v.status.toLowerCase()}`}>
-                <div className="sched__time">
+              <Link
+                to={`/doctor/visits/${v.id}`}
+                className={`timeline__visit timeline__visit--${needsClosing ? "waiting" : v.status.toLowerCase()}`}
+              >
+                <div className="timeline__time">
                   <strong>{formatTime(v.scheduledAt)}</strong>
-                  <span className="muted">{formatTime(v.endsAt)}</span>
+                  <span>{formatTime(v.endsAt)}</span>
                 </div>
-                <div className="sched__body">
-                  <div className="visit__head">
+                <span className="timeline__stop" aria-hidden="true" />
+                <div className="timeline__body">
+                  <div className="timeline__name">
                     <strong>{v.patient.fullName}</strong>
                     <span className={`badge badge--${v.status.toLowerCase()}`}>{STATUS_LABEL[v.status]}</span>
                   </div>

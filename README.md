@@ -331,6 +331,10 @@ about production, which is the entire point of these tests.
 cd frontend && npm test
 ```
 
+To look at the signed-in screens with no backend and no sign-in, `cd frontend && npm run preview:ui`, then
+open `localhost:5174/portal?as=patient`, `/doctor?as=doctor` or `/store/requests?as=chemist`. It serves
+recorded demo data and is removed from production builds.
+
 The web app's tests (Vitest, Testing Library) cover the behaviour that would
 break silently: one token refresh for many simultaneous 401s, handing over a
 token another tab already refreshed instead of spending the old one, and

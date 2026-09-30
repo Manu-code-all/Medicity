@@ -2256,6 +2256,48 @@ real regression can be told apart from noise. The one change made on the
 evidence was loading Google Fonts without blocking the first paint
 (`preload` swapped to a stylesheet on load, with a `<noscript>` fallback).
 
+## 59. The workspaces join the line
+
+The landing and sign-in pages had an identity (enamel ground, one line
+colour per role, station roundels) and the workspaces behind sign-in did
+not: a system font, one teal for every role, and the admin template of a
+grey link list over a grid of equal cards. They now share one world.
+
+- **One line colour per role, by one attribute.** `data-role` on the app
+  root repaints every accent: patient teal, doctor indigo, chemist
+  marigold. Each role has three tones, because one colour cannot do three
+  jobs: `--accent` is a band that carries text, `--line` is a stroke, and
+  `--accent-text` is the tone readable as type on the ground. Marigold is
+  the reason: it is unreadable as text on white and cannot carry white
+  text, so 28 uses of the accent as a text colour and 19 as a stroke moved
+  to the tone made for the job.
+- **The navigation is the line.** A rail with a band and a station per
+  section; the station being visited is ringed in the line colour. On a
+  phone the rail becomes a top bar with the line along its foot. The top
+  bar is gone inside the workspaces and kept for the pages between them.
+- **Each role opens to its own form, not to cards.** The patient's next
+  visit is a ticket (mono date stub, tear line, one action), followed by
+  figures on one ruled row. The doctor's day is a vertical line of visits:
+  a station per visit, ringed while it waits to be closed, filled once
+  seen. A chemist's question is a ruled row with the distance as a mono
+  stub. Lists are ruled rows on the ground.
+- **Drawn icons.** Emoji standing in for icons (the status dot, the
+  paperclip, the speech bubble) and text arrows were replaced with the icon
+  set the landing page already uses.
+- **Scoped so the public pages cannot change.** The base rules sit under
+  `:where(.in)`, a class the app root carries everywhere except the landing
+  and sign-in pages, at zero specificity so component rules still win.
+
+**Seeing signed-in screens without signing in.** `npm run preview:ui`
+serves the app against recorded answers from the public demo (no tokens or
+passwords in the fixtures) with `?as=patient|doctor|chemist`. It exists
+because a redesign has to be looked at, and needs no backend; the branch is
+statically removed from production builds, which a check of the built
+bundle confirms.
+
+Behaviour, copy and routes are unchanged: all 126 frontend tests pass
+untouched. Checked at desktop and phone width in both themes.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

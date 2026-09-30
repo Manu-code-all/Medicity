@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Paperclip } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, requestImageUrl } from "../api/client";
 import { attachments } from "../api/endpoints";
@@ -85,7 +86,7 @@ export function AttachmentsPanel({ appointmentId, canEdit, hideWhenEmpty = false
       {canEdit && files.length < 5 && (
         <div className="attachments__add">
           <label htmlFor={`attach-${appointmentId}`}>
-            <span aria-hidden="true">📎</span> Add a report or earlier prescription (PDF or photo, up to 5 MB)
+            <Paperclip size={16} aria-hidden="true" /> Add a report or earlier prescription (PDF or photo, up to 5 MB)
           </label>
           <input
             id={`attach-${appointmentId}`}

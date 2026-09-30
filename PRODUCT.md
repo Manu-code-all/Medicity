@@ -55,7 +55,7 @@ allowed.
 - Stores are verified by a person before they receive prescriptions.
 - Frontend: React 18 + TypeScript + Vite, plain CSS with tokens in
   `frontend/src/styles.css` (light and dark). The portal, doctor and store
-  workspaces are out of scope for the redesign and keep working.
+  workspaces share the same tokens and line colours (`workspace.css`).
 
 ## Brand Commitments
 
