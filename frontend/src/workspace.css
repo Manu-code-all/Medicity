@@ -484,6 +484,34 @@ button.ws__action:hover:not(:disabled), a.ws__action:hover { background: var(--r
   .bento > .b-4:not(.tile--flush) { grid-column: span 4; }
 }
 
+/* ---------- Health details: sign-up step and profile ---------- */
+
+.welcome { max-width: 640px; margin: 0 auto; display: grid; gap: 32px; }
+.welcome h1 { margin: 0; font-size: 1.875rem; line-height: 36px; letter-spacing: -0.022em; }
+.welcome header { display: grid; gap: 8px; }
+.welcome header p { margin: 0; }
+.profile__head { flex-wrap: wrap; }
+.profile__edit { margin-left: auto; }
+
+.health { display: grid; gap: 24px; }
+.health__group { display: grid; gap: 16px; margin: 0; padding: 24px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: var(--e1); }
+.health__group legend { padding: 0 8px; margin-left: -8px; font-weight: 600; font-size: 1rem; }
+.health label { display: grid; gap: 4px; font-weight: 600; font-size: 0.875rem; }
+.health textarea { resize: vertical; font-weight: 400; }
+.health input, .health select, .health textarea { font-weight: 400; }
+.health__row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.health__row--2 { grid-template-columns: 3fr 2fr; }
+.health__why { margin: 0; font-size: 0.875rem; }
+.health__locate { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 16px; }
+.health__locate button { display: inline-flex; align-items: center; gap: 8px; }
+.health__saved { display: inline-flex; align-items: center; gap: 12px; font-size: 0.875rem; font-weight: 600; color: var(--ok); }
+.health__actions { display: flex; align-items: center; gap: 24px; }
+
+@media (max-width: 600px) {
+  .health__row, .health__row--2 { grid-template-columns: 1fr; }
+  .health__group { padding: 16px; }
+}
+
 /* ---------- Phones and narrow panes ---------- */
 
 @media (max-width: 900px) {

@@ -36,6 +36,7 @@ import type {
   Page,
   PatientHistory,
   PatientProfile,
+  ProfileUpdate,
   PortalSummary,
   Prescription,
   PrescriptionDraft,
@@ -75,6 +76,7 @@ export const auth = {
     fullName: string;
     phone?: string;
     dateOfBirth: string;
+    gender?: string;
   }) =>
     request<TokenPair>("/api/v1/auth/register", {
       method: "POST",
@@ -155,6 +157,9 @@ export const appointments = {
  */
 export const portal = {
   profile: () => request<PatientProfile>("/api/v1/patients/me"),
+
+  updateProfile: (update: ProfileUpdate) =>
+    request<PatientProfile>("/api/v1/patients/me", { method: "PUT", body: update }),
 
   summary: () => request<PortalSummary>("/api/v1/patients/me/summary"),
 

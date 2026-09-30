@@ -15,13 +15,14 @@ export function RegisterPage() {
     password: "",
     phone: "",
     dateOfBirth: "",
+    gender: "UNDISCLOSED",
   });
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
   function update(key: keyof typeof form) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
@@ -32,7 +33,8 @@ export function RegisterPage() {
     setBusy(true);
     try {
       await register(form);
-      navigate(returnTo ?? "/portal", { replace: true });
+      // The health questions come next; they hand on to where the person was headed.
+      navigate("/welcome", { replace: true, state: { from: returnTo ?? "/portal" } });
     } catch (err) {
       if (err instanceof ApiError) {
         // Server-side validation is the authority; mirror its field errors
@@ -82,6 +84,14 @@ export function RegisterPage() {
         onChange={update("dateOfBirth")}
       />
       {fieldErrors.dateOfBirth && <small className="error">{fieldErrors.dateOfBirth}</small>}
+
+      <label htmlFor="gender">Gender</label>
+      <select id="gender" value={form.gender} onChange={update("gender")}>
+        <option value="FEMALE">Female</option>
+        <option value="MALE">Male</option>
+        <option value="OTHER">Other</option>
+        <option value="UNDISCLOSED">Prefer not to say</option>
+      </select>
 
       <label htmlFor="phone">Mobile number (optional, lets you sign in with a code)</label>
       <input id="phone" value={form.phone} onChange={update("phone")} />

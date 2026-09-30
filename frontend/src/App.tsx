@@ -41,6 +41,7 @@ const ReservationsPage = lazyPage(() => import("./pages/store/ReservationsPage")
 const StoreProfilePage = lazyPage(() => import("./pages/store/StoreProfilePage"), "StoreProfilePage");
 const StoreRegisterPage = lazyPage(() => import("./pages/store/StoreRegisterPage"), "StoreRegisterPage");
 const RegisterDoctorPage = lazyPage(() => import("./pages/RegisterDoctorPage"), "RegisterDoctorPage");
+const WelcomePage = lazyPage(() => import("./pages/portal/WelcomePage"), "WelcomePage");
 const RegisterPage = lazyPage(() => import("./pages/RegisterPage"), "RegisterPage");
 const OverviewPage = lazyPage(() => import("./pages/portal/OverviewPage"), "OverviewPage");
 const PrescriptionsPage = lazyPage(() => import("./pages/portal/PrescriptionsPage"), "PrescriptionsPage");
@@ -163,6 +164,7 @@ export function App() {
               <Route path="/doctors/:doctorId/walk-in" element={<WalkInPage />} />
               <Route path="/visits/:appointmentId/video" element={<VideoRoomPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/welcome" element={<WelcomePage />} />
             </Route>
             {/* The old URL, kept working for existing bookmarks. */}
             <Route path="/appointments" element={<Navigate to="/portal/visits" replace />} />

@@ -15,6 +15,10 @@ import com.medicity.scheduling.AppointmentStatus;
 import com.medicity.security.AppUserPrincipal;
 import com.medicity.user.User;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
+import org.springframework.transaction.annotation.Transactional;
+import java.math.BigDecimal;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -61,6 +65,32 @@ public class PatientPortalController {
     @Operation(summary = "The caller's patient profile")
     public ProfileResponse profile(@AuthenticationPrincipal AppUserPrincipal principal) {
         return ProfileResponse.from(acting.resolve(principal.getId()), acting.self(principal.getId()));
+    }
+
+    @PutMapping
+    @Transactional
+    @Operation(summary = "Replace the health and contact details of the person being viewed",
+            description = "Every field is optional and the body replaces what was there, so an omitted field is cleared. "
+                    + "Name, date of birth and gender are not changed here.")
+    public ProfileResponse updateProfile(@AuthenticationPrincipal AppUserPrincipal principal,
+                                         @Valid @RequestBody ProfileUpdate update) {
+        if ((update.homeLatitude() == null) != (update.homeLongitude() == null)) {
+            throw new ValidationException("LOCATION_INCOMPLETE", "Send both latitude and longitude, or neither");
+        }
+        Patient patient = acting.resolve(principal.getId());
+        patient.setBloodGroup(blankToNull(update.bloodGroup()));
+        patient.setHeightCm(update.heightCm());
+        patient.setWeightKg(update.weightKg());
+        patient.setAllergies(blankToNull(update.allergies()));
+        patient.setChronicConditions(blankToNull(update.chronicConditions()));
+        patient.setCurrentMedications(blankToNull(update.currentMedications()));
+        patient.setEmergencyContact(blankToNull(update.emergencyContact()));
+        patient.setAddressLine(blankToNull(update.addressLine()));
+        patient.setCity(blankToNull(update.city()));
+        patient.setHomeLatitude(update.homeLatitude());
+        patient.setHomeLongitude(update.homeLongitude());
+        patientRepository.save(patient);
+        return ProfileResponse.from(patient, acting.self(principal.getId()));
     }
 
     @GetMapping("/summary")
@@ -116,6 +146,10 @@ public class PatientPortalController {
                 .toList();
     }
 
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
     private UUID patientId(AppUserPrincipal principal) {
         return acting.resolve(principal.getId()).getId();
     }
@@ -138,6 +172,20 @@ public class PatientPortalController {
         }
     }
 
+    public record ProfileUpdate(
+            @Pattern(regexp = "^$|^(A|B|AB|O)[+-]$", message = "Blood group like O+ or AB-") String bloodGroup,
+            @Min(value = 30, message = "Height in centimetres") @Max(value = 260, message = "Height in centimetres") Integer heightCm,
+            @DecimalMin(value = "1.0", message = "Weight in kilograms") @DecimalMax(value = "400.0", message = "Weight in kilograms") BigDecimal weightKg,
+            @Size(max = 1000) String allergies,
+            @Size(max = 1000) String chronicConditions,
+            @Size(max = 1000) String currentMedications,
+            @Pattern(regexp = "^$|^\\+?[0-9]{10,15}$", message = "Phone must be 10-15 digits") String emergencyContact,
+            @Size(max = 200) String addressLine,
+            @Size(max = 80) String city,
+            @DecimalMin("-90.0") @DecimalMax("90.0") Double homeLatitude,
+            @DecimalMin("-180.0") @DecimalMax("180.0") Double homeLongitude
+    ) {}
+
     public record ProfileResponse(
             UUID patientId,
             /** For a family member, their relationship to the account holder; null for the holder. */
@@ -151,6 +199,13 @@ public class PatientPortalController {
             String addressLine,
             String city,
             String emergencyContact,
+            Integer heightCm,
+            BigDecimal weightKg,
+            String allergies,
+            String chronicConditions,
+            String currentMedications,
+            Double homeLatitude,
+            Double homeLongitude,
             Instant memberSince
     ) {
         /** A family member's contact details are the account holder's: they share the sign-in. */
@@ -161,6 +216,8 @@ public class PatientPortalController {
                     p.displayName(), u.getEmail(), u.getPhone(),
                     p.getDateOfBirth(), p.getGender().name(), p.getBloodGroup(),
                     p.getAddressLine(), p.getCity(), p.getEmergencyContact(),
+                    p.getHeightCm(), p.getWeightKg(), p.getAllergies(), p.getChronicConditions(),
+                    p.getCurrentMedications(), p.getHomeLatitude(), p.getHomeLongitude(),
                     p.isFamilyMember() ? p.getCreatedAt() : u.getCreatedAt());
         }
     }
