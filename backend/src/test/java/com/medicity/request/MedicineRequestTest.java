@@ -170,6 +170,22 @@ class MedicineRequestTest extends NetworkTestSupport {
     }
 
     @Test
+    @DisplayName("seven questions sent at once with none open: exactly five are taken")
+    void openQuestionCapHoldsUnderConcurrency() throws Exception {
+        List<UUID> prescriptions = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            prescriptions.add(prescribe(meera, List.of(
+                    new PrescriptionDraft.Item(cetirizine.getId(), "10mg", "At night", 5, 5, false))));
+        }
+
+        int wins = race(7, i -> service.ask(meeraUser.getId(), prescriptions.get(i), LAT, LNG, 3000, null));
+
+        assertThat(wins).isEqualTo(MedicineRequestService.MAX_OPEN_PER_PATIENT);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM medicine_requests WHERE patient_id = ? AND status = 'OPEN'",
+                Integer.class, meera.getId())).isEqualTo(5);
+    }
+
+    @Test
     @DisplayName("once the patient closes a question, stores can no longer answer it or see it queued")
     void closedQuestionsCannotBeAnswered() throws Exception {
         UUID id = ask(3000);

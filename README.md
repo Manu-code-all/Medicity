@@ -168,6 +168,12 @@ The schema is the specification. Each of these makes an invalid state
 | `patients_one_kind` — `CHECK` | V18 | A patient with no one who can sign in for them, or with two |
 | `uq_prescription_scan` — partial unique index; `scans_size` — `CHECK` | V19 | One photographed slip issuing two prescriptions; oversized uploads |
 
+Limits that are counts cannot be a constraint: three follow-up questions or
+five attachments per visit, eight family members per account, five open
+questions per patient. Each locks its owner's row first (`SELECT … FOR UPDATE`
+on the visit, account or patient), then counts, then inserts, so requests sent
+at the same moment are taken in turn. Each has a test that fires them at once.
+
 The `EXCLUDE` constraint uses a half-open range `'[)'`, so 10:00–10:30 and
 10:30–11:00 do *not* conflict — exactly what back-to-back consultations need.
 

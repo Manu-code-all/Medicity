@@ -144,6 +144,27 @@ class FamilyTest extends NetworkTestSupport {
                 .andExpect(jsonPath("$.code").value("FAMILY_FULL"));
     }
 
+    @Test
+    @DisplayName("five adds sent at the same moment at six members: exactly two are taken")
+    void capHoldsUnderConcurrency() throws Exception {
+        for (int i = 0; i < 6; i++) {
+            addMember("Member " + i, "OTHER", "1990-01-01");
+        }
+        int wins = race(5, i -> {
+            int status = mvc.perform(post("/api/v1/patients/me/family").header("Authorization", bearer(meeraUser))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(memberJson("Racer " + i, "OTHER", "1990-01-01")))
+                    .andReturn().getResponse().getStatus();
+            if (status == 409) {
+                throw new com.medicity.common.ConflictException("FAMILY_FULL", "full");
+            }
+            assertThat(status).isEqualTo(201);
+        });
+        assertThat(wins).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM patients WHERE guardian_user_id = ?",
+                Integer.class, meeraUser.getId())).isEqualTo(8);
+    }
+
     // --- helpers ------------------------------------------------------------------
 
     private UUID addMember(String name, String relationship, String dateOfBirth) throws Exception {

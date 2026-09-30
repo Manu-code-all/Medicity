@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,7 @@ public class FamilyController {
     private final ActingPatient acting;
     private final AuditLog auditLog;
     private final Clock clock;
+    private final JdbcTemplate jdbc;
 
     @GetMapping
     @Operation(summary = "Me and the family members I manage")
@@ -59,8 +61,9 @@ public class FamilyController {
     @Operation(summary = "Add a family member I will manage")
     @Transactional
     public Member add(@AuthenticationPrincipal AppUserPrincipal principal, @Valid @RequestBody MemberRequest request) {
-        // Not race-proof: two simultaneous adds at the limit could make nine.
-        // The cap is a guard against abuse, not an invariant worth a lock.
+        // Lock the account first, so the count and the insert happen as one step:
+        // two adds sent at the same moment at seven members make eight, not nine.
+        jdbc.query("SELECT id FROM users WHERE id = ? FOR UPDATE", rs -> {}, principal.getId());
         if (patients.countByGuardianUserId(principal.getId()) >= MAX_MEMBERS) {
             throw new ConflictException("FAMILY_FULL", "An account can manage up to %d family members".formatted(MAX_MEMBERS));
         }

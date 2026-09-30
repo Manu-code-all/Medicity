@@ -2009,6 +2009,29 @@ their arrival.
   unfinished visits; the spec's "based on current consultation progress"
   would promise data the system does not have.
 
+## 51. The family and open-question caps, locked
+
+Two limits were checked, not locked: an account manages at most eight family
+members, and a patient has at most five open questions to the chemists. Each
+counted, then inserted, so two requests at the same moment could both see
+seven members (or four questions) and both pass. Known gaps called this out.
+
+Both now lock a row first, the pattern follow-ups and attachments already use:
+
+- **Family:** `SELECT id FROM users WHERE id = ? FOR UPDATE` on the account
+  holder, then count, then insert. A second add waits on the lock and counts
+  after the first has committed.
+- **Questions:** the same on the patient's row before the open count.
+
+The lock is per account, so it only makes one person's own simultaneous
+requests wait for each other; nobody else is slowed down. An advisory lock
+would have worked too, but a row lock needs no key scheme and is released by
+the transaction like everything else.
+
+**Verified by.** `FamilyTest`: at six members, five adds sent at once give
+exactly two 201s and eight members. `MedicineRequestTest`: seven questions
+sent at once with none open give exactly five.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -2059,11 +2082,6 @@ their arrival.
   "Send a code" also takes slightly longer for a number with an account
   (one insert), a timing difference far smaller than network jitter but not
   zero.
-- **The family and open-question caps are checked, not locked.** Adding a
-  family member counts, then inserts; two adds at the same moment at seven
-  members could make nine. The five-open-questions cap works the same way.
-  Both are abuse limits, not invariants, so a rare overshoot by one was
-  accepted; a per-account advisory lock would close it.
 - **Reserving does not reduce live stock.** A store with live stock answers
   "yes, 10" to every question until its billing software sends the next list,
   even after reservations have taken all ten. Stores with auto-answer should
