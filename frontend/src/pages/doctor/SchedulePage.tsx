@@ -50,34 +50,42 @@ export function SchedulePage() {
   }
 
   const rows = visits.data ?? [];
-  const waiting = rows.filter((v) => v.status === "BOOKED" && new Date(v.scheduledAt) <= new Date()).length;
+  const now = new Date();
+  const toClose = rows.filter((v) => v.status === "BOOKED" && new Date(v.scheduledAt) <= now);
+  const waiting = toClose.length;
+  const upcoming = rows.filter((v) => v.status === "BOOKED" && new Date(v.scheduledAt) > now);
+  const seen = rows.filter((v) => v.status === "COMPLETED").length;
+  // The visit to act on: the oldest one still open, else the next to arrive.
+  const lead = toClose[0] ?? upcoming[0];
 
   return (
     <div className="stack">
-      <header>
-        <h1 className="portal__title">
-          {isToday ? `${greeting()}, ${session?.fullName ?? "Doctor"}` : "Schedule"}
-        </h1>
-        <p className="muted">
-          {day.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-          {visits.data && ` · ${rows.length} ${rows.length === 1 ? "visit" : "visits"}`}
-          {waiting > 0 && ` · ${waiting} waiting to be closed`}
-        </p>
-      </header>
+      <header className="page-head">
+        <div>
+          <h1 className="portal__title">
+            {isToday ? `${greeting()}, ${session?.fullName ?? "Doctor"}` : "Schedule"}
+          </h1>
+          <p className="muted">
+            {day.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            {visits.data && ` · ${rows.length} ${rows.length === 1 ? "visit" : "visits"}`}
+            {waiting > 0 && ` · ${waiting} waiting to be closed`}
+          </p>
+        </div>
 
-      <div className="day-nav">
-        <button type="button" className="tab" onClick={() => shift(-1)} aria-label="Previous day">
-          <ArrowLeft size={16} aria-hidden="true" /> Previous
-        </button>
-        {!isToday && (
-          <button type="button" className="tab" onClick={() => setParams({})}>
-            Today
+        <div className="day-nav">
+          <button type="button" className="tab" onClick={() => shift(-1)} aria-label="Previous day">
+            <ArrowLeft size={16} aria-hidden="true" /> Previous
           </button>
-        )}
-        <button type="button" className="tab" onClick={() => shift(1)} aria-label="Next day">
-          Next <ArrowRight size={16} aria-hidden="true" />
-        </button>
-      </div>
+          {!isToday && (
+            <button type="button" className="tab" onClick={() => setParams({})}>
+              Today
+            </button>
+          )}
+          <button type="button" className="tab" onClick={() => shift(1)} aria-label="Next day">
+            Next <ArrowRight size={16} aria-hidden="true" />
+          </button>
+        </div>
+      </header>
 
       {visits.isError && <p className="error">Could not load the schedule.</p>}
       {visits.isPending && <div className="card skeleton" style={{ height: 120 }} />}
@@ -88,7 +96,48 @@ export function SchedulePage() {
         </div>
       )}
 
-      <ul className="timeline">
+      {rows.length > 0 && (
+        <div className="bento">
+          {lead ? (
+            <Link to={`/doctor/visits/${lead.id}`} className="tile tile--link tile--lead b-6">
+              <span className="tile__label">{toClose[0] ? "Needs closing" : "Up next"}</span>
+              <span className="lead">
+                <span className="lead__time">{formatTime(lead.scheduledAt)}</span>
+                <span className="lead__who">
+                  <strong>{lead.patient.fullName}</strong>
+                  <span>
+                    {lead.patient.age} yrs · {lead.patient.gender.toLowerCase()}
+                    {lead.reason && ` · ${lead.reason}`}
+                  </span>
+                </span>
+              </span>
+              <span className="arrow-link">
+                Open visit <ArrowRight size={16} aria-hidden="true" />
+              </span>
+            </Link>
+          ) : (
+            <div className="tile tile--lead b-6">
+              <span className="tile__label">Up next</span>
+              <strong className="lead__clear">Every visit is closed</strong>
+              <span className="tile__hint">Nothing more is booked for this day.</span>
+            </div>
+          )}
+          <div className="tile b-2">
+            <span className="tile__label">Still to come</span>
+            <strong className="tile__figure">{upcoming.length}</strong>
+          </div>
+          <div className={waiting > 0 ? "tile tile--warn b-2" : "tile b-2"}>
+            <span className="tile__label">To close</span>
+            <strong className="tile__figure">{waiting}</strong>
+          </div>
+          <div className="tile b-2">
+            <span className="tile__label">Seen</span>
+            <strong className="tile__figure">{seen}</strong>
+          </div>
+        </div>
+      )}
+
+      <ul className={rows.length > 0 ? "timeline panel panel--pad" : "timeline"}>
         {rows.map((v) => {
           const needsClosing = v.status === "BOOKED" && new Date(v.scheduledAt) <= new Date();
           return (

@@ -36,9 +36,16 @@ function Profile({ store }: { store: StoreProfile }) {
 
   return (
     <div className="stack">
-      <header>
-        <p className="eyebrow">{store.city}</p>
-        <h1 className="portal__title">{store.name}</h1>
+      <header className="page-head">
+        <div>
+          <p className="eyebrow">{store.city}</p>
+          <h1 className="portal__title">{store.name}</h1>
+        </div>
+        {!editing && (
+          <button type="button" className="button--quiet" onClick={() => setEditing(true)}>
+            Edit store details
+          </button>
+        )}
       </header>
 
       {store.verified ? (
@@ -107,9 +114,6 @@ function Profile({ store }: { store: StoreProfile }) {
               {store.latitude}, {store.longitude}
             </dd>
           </dl>
-          <button type="button" onClick={() => setEditing(true)}>
-            Edit store details
-          </button>
         </section>
       )}
     </div>
