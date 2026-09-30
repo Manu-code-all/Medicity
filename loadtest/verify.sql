@@ -27,3 +27,18 @@ FROM (SELECT patient_id, scheduled_at FROM appointments WHERE status <> 'CANCELL
 SELECT 'every_booking_audited',
        (SELECT count(*) FROM appointments) = (SELECT count(*) FROM audit_log WHERE action = 'APPOINTMENT_BOOKED'),
        (SELECT count(*) FROM appointments);
+
+-- Walk-in tokens at the queue doctor run 101, 102, ... with no gap and no
+-- repeat (the day's counter starts at 100), whatever the count was (zero
+-- when run outside the queue's hours).
+SELECT 'queue_tokens_contiguous',
+       count(*) = 0 OR (min(token_no) = 101 AND max(token_no) = 100 + count(*)
+                        AND count(DISTINCT token_no) = count(*)),
+       count(*)
+FROM queue_tokens WHERE doctor_id = 'd0000000-0000-4000-8000-000000000005';
+
+-- Every token was called exactly once: none left waiting, and every token
+-- given is now CALLED (one row per token, so none can be called twice).
+SELECT 'queue_every_token_called', count(*) FILTER (WHERE status = 'WAITING') = 0,
+       count(*) FILTER (WHERE status = 'CALLED')
+FROM queue_tokens WHERE doctor_id = 'd0000000-0000-4000-8000-000000000005';
