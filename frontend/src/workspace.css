@@ -512,6 +512,134 @@ button.ws__action:hover:not(:disabled), a.ws__action:hover { background: var(--r
   .health__group { padding: 16px; }
 }
 
+/* ---------- The directory and booking ---------- */
+
+.content:has(.directory, .booking) { max-width: 1040px; }
+
+.num { font-family: var(--mono); font-feature-settings: "tnum"; }
+
+.directory { display: grid; gap: 24px; }
+.directory__head { display: grid; gap: 8px; }
+.directory__head h1, .booking__head h1 { margin: 0; font-size: 1.875rem; line-height: 36px; letter-spacing: -0.022em; }
+.directory__head p, .booking__head p { margin: 0; }
+.directory .filters { margin: 0; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--e1); }
+.directory .filters input { flex: 2 1 240px; }
+
+.directory__bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px 24px; }
+.directory__where { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin: 0; font-size: 0.875rem; color: var(--text-muted); }
+.directory__where svg { color: var(--accent-text); }
+.directory__sort select { width: auto; min-height: 36px; font-size: 0.875rem; font-weight: 600; }
+.directory__note { margin: 0; }
+
+.doctor-list { display: grid; gap: 16px; }
+.dcard {
+  display: grid; gap: 16px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--e1);
+  transition: box-shadow 180ms var(--ease), border-color 180ms var(--ease);
+}
+.dcard:hover { box-shadow: var(--e2); border-color: color-mix(in srgb, var(--line) 35%, var(--border)); }
+.dcard__top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px 20px; align-items: start; }
+.dcard__who { display: grid; gap: 4px; min-width: 0; }
+.dcard__who h2 { margin: 0; font-size: 1.25rem; line-height: 28px; letter-spacing: -0.015em; }
+.dcard__who p { margin: 0; }
+.dcard__who .rating { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-size: 0.875rem; }
+.dcard__who .rating svg { color: var(--star); }
+.dcard__fee { display: grid; justify-items: end; gap: 2px; text-align: right; }
+.dcard__feeLabel { font-size: 0.75rem; line-height: 16px; font-weight: 600; color: var(--text-muted); }
+.dcard__fee .fee { margin: 0; font-size: 1.5rem; line-height: 32px; letter-spacing: -0.02em; }
+.dcard__bio { margin: 0; color: var(--text-muted); max-width: 70ch; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.dcard .insurers, .dcard .price-list { margin: 0; }
+
+.dcard__foot { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+.dcard__times { display: grid; gap: 8px; min-width: 0; }
+.dcard__label { margin: 0; font-size: 0.75rem; line-height: 16px; font-weight: 600; color: var(--text-muted); }
+.dcard__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.dcard .next-slots__none { margin: 0; }
+
+.next-days { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.next-days__day { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.next-days__name { min-width: 72px; font-size: 0.875rem; font-weight: 600; }
+.next-days__times { display: flex; flex-wrap: wrap; gap: 8px; }
+.slot-pill { font-family: var(--mono); font-feature-settings: "tnum"; font-weight: 500; padding: 4px 12px; border-radius: 8px; font-size: 0.875rem; line-height: 24px; transition: background-color 180ms var(--ease), color 180ms var(--ease), transform 180ms var(--ease); }
+.slot-pill:hover { transform: translateY(-1px); }
+
+.clinic { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 4px 8px; margin: 0; font-size: 0.875rem; line-height: 20px; }
+.clinic > svg { margin-top: 2px; color: var(--accent-text); flex: none; }
+.clinic__where { display: grid; min-width: 0; }
+.clinic__away { font-weight: 600; padding: 0 8px; border-radius: 9999px; background: var(--accent-soft); color: var(--accent-text); line-height: 20px; }
+.clinic__directions { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; text-decoration: none; }
+.clinic__directions:hover { text-decoration: underline; }
+
+/* Booking: a doctor, then three steps, the last of which is a summary that stays in view. */
+.booking { display: grid; gap: 24px; }
+.booking__head { display: grid; gap: 8px; }
+.booking__doctor { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px 20px; align-items: start; padding: 20px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--e1); }
+.booking__who { display: grid; gap: 4px; min-width: 0; }
+.booking__who h2 { margin: 0; font-size: 1.25rem; line-height: 28px; letter-spacing: -0.015em; }
+.booking__who p { margin: 0; }
+
+.booking__layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; align-items: start; }
+.booking__pick { display: grid; gap: 16px; min-width: 0; }
+.booking__summary { position: sticky; top: 88px; display: grid; gap: 16px; padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow); }
+.booking__step { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 1rem; line-height: 24px; letter-spacing: -0.006em; }
+.booking__n { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-contrast); font-family: var(--mono); font-size: 0.75rem; }
+.booking__summary > p { margin: 0; }
+.summary__when { display: grid; gap: 2px; }
+.summary__when strong { font-size: 1.125rem; line-height: 28px; letter-spacing: -0.012em; }
+.summary__when span { font-size: 1.5rem; line-height: 32px; font-weight: 500; letter-spacing: -0.02em; color: var(--accent-text); }
+.booking__confirm { max-width: none; }
+.booking__confirm button[type="submit"] { width: 100%; min-height: 48px; }
+.booking__confirm .visit-type { display: grid; gap: 8px; }
+
+.daystrip { display: flex; gap: 8px; overflow-x: auto; padding: 4px 4px 12px; margin: 0 -4px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.daystrip__day {
+  flex: none; scroll-snap-align: start;
+  display: grid; justify-items: center; gap: 2px;
+  min-width: 88px; padding: 12px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 16px;
+  transition: border-color 180ms var(--ease), background-color 180ms var(--ease), transform 180ms var(--ease);
+}
+.daystrip__day:hover:not(:disabled) { border-color: var(--line); box-shadow: none; transform: translateY(-1px); }
+.daystrip__day[aria-selected="true"] { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+.daystrip__name { font-size: 0.75rem; line-height: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+.daystrip__date { font-size: 1rem; line-height: 24px; font-weight: 600; }
+.daystrip__count { font-size: 0.75rem; line-height: 16px; opacity: 0.8; }
+
+.timepart { display: grid; gap: 8px; }
+.timepart h3 { margin: 0; font-size: 0.75rem; line-height: 16px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.timegrid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.time {
+  width: 100%; min-height: 44px; padding: 8px 12px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 12px;
+  font-family: var(--mono); font-feature-settings: "tnum"; font-weight: 500; font-size: 0.9375rem;
+  transition: border-color 180ms var(--ease), background-color 180ms var(--ease), color 180ms var(--ease);
+}
+.time:hover:not(:disabled) { border-color: var(--line); background: var(--accent-soft); box-shadow: none; transform: none; }
+.time--selected, .time--selected:hover:not(:disabled) { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+
+@media (max-width: 900px) {
+  .booking__layout { grid-template-columns: minmax(0, 1fr); }
+  .booking__summary { position: static; }
+}
+@media (max-width: 600px) {
+  .dcard { padding: 16px; border-radius: 16px; }
+  .dcard__top { grid-template-columns: auto minmax(0, 1fr); }
+  .dcard__top .avatar--lg { width: 52px; height: 52px; }
+  .dcard__fee { grid-column: 1 / -1; grid-template-columns: auto auto; justify-content: space-between; align-items: baseline; justify-items: start; }
+  .dcard__actions { width: 100%; }
+  .dcard__actions .button { flex: 1; text-align: center; }
+  .booking__doctor { grid-template-columns: auto minmax(0, 1fr); padding: 16px; }
+  .booking__doctor .dcard__fee { grid-column: 1 / -1; grid-template-columns: auto auto; justify-content: space-between; align-items: baseline; justify-items: start; }
+  .booking__summary { padding: 16px; }
+  .timegrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 /* ---------- Phones and narrow panes ---------- */
 
 @media (max-width: 900px) {

@@ -37,6 +37,11 @@ export interface Doctor {
   insurers?: string[];
   /** Charges beyond the consultation fee; "every visit" ones are added to it. */
   prices?: ProcedurePrice[];
+  /** Where patients are seen; null until the doctor says. The app works out the distance. */
+  clinicName?: string | null;
+  clinicAddress?: string | null;
+  clinicLatitude?: number | null;
+  clinicLongitude?: number | null;
 }
 
 export interface Specialty {
@@ -761,7 +766,15 @@ export interface Insurer {
 }
 
 /** What a doctor edits about their practice. */
+export interface ClinicLocation {
+  name: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 export interface PracticeUpdate {
+  clinic: ClinicLocation | null;
   consultationFee: number;
   bio: string | null;
   yearsExperience: number;

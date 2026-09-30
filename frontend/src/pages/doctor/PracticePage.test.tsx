@@ -7,6 +7,7 @@ import { PracticePage } from "./PracticePage";
 
 const SAVED = {
   consultationFee: 900,
+  clinic: null,
   bio: "Heart rhythm clinic.",
   yearsExperience: 10,
   insurers: ["Star Health"],
@@ -33,6 +34,13 @@ describe("PracticePage", () => {
     await userEvent.clear(fee);
     await userEvent.type(fee, "1100");
     await userEvent.click(screen.getByRole("checkbox", { name: "CGHS" }));
+    await userEvent.type(screen.getByLabelText("Clinic name"), "Rao Heart Clinic");
+    await userEvent.type(screen.getByLabelText("Address"), "12, 100 Feet Road");
+    Object.defineProperty(globalThis.navigator, "geolocation", {
+      configurable: true,
+      value: { getCurrentPosition: (ok: PositionCallback) => ok({ coords: { latitude: 12.9784, longitude: 77.6408 } } as GeolocationPosition) },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Use my current location" }));
     await userEvent.click(screen.getByRole("button", { name: "+ Add a charge" }));
     await userEvent.type(screen.getByLabelText("Charge 2 name"), "Registration");
     await userEvent.type(screen.getByLabelText("Charge 2 price"), "100");
@@ -43,6 +51,7 @@ describe("PracticePage", () => {
     expect(await screen.findByText(/directory shows the new details/)).toBeInTheDocument();
     expect(calls.find((c) => c.method === "PUT")?.body).toEqual({
       consultationFee: 1100,
+      clinic: { name: "Rao Heart Clinic", address: "12, 100 Feet Road", latitude: 12.9784, longitude: 77.6408 },
       yearsExperience: 10,
       bio: "Heart rhythm clinic.",
       insurers: ["Star Health", "CGHS"],

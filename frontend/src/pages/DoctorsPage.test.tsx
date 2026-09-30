@@ -82,10 +82,41 @@ describe("DoctorsPage", () => {
     renderAt("/doctors");
 
     const times = await screen.findByRole("list", { name: "Next free times with Dr. Kavitha Menon" });
-    const first = within(times).getAllByRole("link")[0]!;
-    expect(first).toHaveTextContent(/^Tomorrow, /);
+    // One row per day: the day's name once, then its times as links.
+    expect(within(times).getByText("Tomorrow")).toBeInTheDocument();
+    const [first, second] = within(times).getAllByRole("link");
+    expect(first).toHaveTextContent(/^10:00/);
     expect(first).toHaveAttribute("href", "/doctors/d4/book?slot=s1");
-    expect(within(times).getByRole("link", { name: "More times" })).toHaveAttribute("href", "/doctors/d4/book");
+    expect(second).toHaveAttribute("href", "/doctors/d4/book?slot=s2");
+    expect(screen.getByRole("link", { name: "See all times" })).toHaveAttribute("href", "/doctors/d4/book");
+  });
+
+  it("shows the clinic, its distance from the person's location, and sorts the nearest first", async () => {
+    const at = (name: string, lat: number) => ({
+      ...MENON.content[0], id: name, fullName: name, clinicName: `${name} Clinic`, clinicAddress: "Somewhere", clinicLatitude: lat, clinicLongitude: 77.64,
+    });
+    directory(({ url }) =>
+      json(200, url.endsWith("/specialties") ? [] : {
+        ...MENON,
+        content: [at("Dr. Far", 13.05), at("Dr. Near", 12.98), { ...MENON.content[0], id: "x", fullName: "Dr. Nowhere" }],
+      }),
+    );
+    Object.defineProperty(globalThis.navigator, "geolocation", {
+      configurable: true,
+      value: { getCurrentPosition: (ok: PositionCallback) => ok({ coords: { latitude: 12.97, longitude: 77.64 } } as GeolocationPosition) },
+    });
+    renderAt("/doctors");
+
+    expect(await screen.findByText("Dr. Far Clinic")).toBeInTheDocument();
+    expect(screen.queryByText(/km away|m away/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Use my location" }));
+    expect(await screen.findByText("1.1 km away")).toBeInTheDocument();
+    expect(screen.getByText("8.9 km away")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Directions" })[0]).toHaveAttribute("href", expect.stringContaining("destination=13.05,77.64"));
+
+    await userEvent.selectOptions(screen.getByLabelText("Sort doctors"), "nearest");
+    const names = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    expect(names).toEqual(["Dr. Near", "Dr. Far", "Dr. Nowhere"]);
   });
 
   it("shows the rating from visits, linked to the reviews", async () => {

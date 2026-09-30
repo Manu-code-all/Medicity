@@ -42,6 +42,12 @@ function PracticeEditor({ saved }: { saved: Practice }) {
   const [fee, setFee] = useState(String(saved.consultationFee));
   const [years, setYears] = useState(String(saved.yearsExperience));
   const [bio, setBio] = useState(saved.bio ?? "");
+  const [clinicName, setClinicName] = useState(saved.clinic?.name ?? "");
+  const [clinicAddress, setClinicAddress] = useState(saved.clinic?.address ?? "");
+  const [where, setWhere] = useState<{ lat: number; lng: number } | null>(
+    saved.clinic?.latitude != null && saved.clinic.longitude != null ? { lat: saved.clinic.latitude, lng: saved.clinic.longitude } : null,
+  );
+  const [locating, setLocating] = useState<"idle" | "locating" | "refused">("idle");
   const [insurers, setInsurers] = useState<Set<string>>(() => new Set(saved.insurers));
   const [prices, setPrices] = useState<PriceRow[]>(() =>
     saved.prices.map((p) => ({ procedure: p.procedure, priceInr: String(p.priceInr), everyVisit: p.everyVisit })),
@@ -53,6 +59,10 @@ function PracticeEditor({ saved }: { saved: Practice }) {
         consultationFee: Number(fee),
         yearsExperience: Number(years),
         bio: bio.trim() || null,
+        clinic:
+          clinicName.trim() || clinicAddress.trim() || where
+            ? { name: clinicName.trim() || null, address: clinicAddress.trim() || null, latitude: where?.lat ?? null, longitude: where?.lng ?? null }
+            : null,
         insurers: [...insurers],
         // Rows left without a name are dropped rather than refused: an empty row is an unfinished thought.
         prices: prices
@@ -61,6 +71,22 @@ function PracticeEditor({ saved }: { saved: Practice }) {
       }),
     onSuccess: (result) => queryClient.setQueryData(KEY, result),
   });
+
+  function locateClinic() {
+    if (!("geolocation" in navigator)) {
+      setLocating("refused");
+      return;
+    }
+    setLocating("locating");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setWhere({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocating("idle");
+      },
+      () => setLocating("refused"),
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 },
+    );
+  }
 
   function toggle(name: string) {
     setInsurers((prev) => {
@@ -104,6 +130,40 @@ function PracticeEditor({ saved }: { saved: Practice }) {
           About you <span className="muted small">(shown on your listing)</span>
           <textarea rows={3} maxLength={1000} value={bio} onChange={(e) => setBio(e.target.value)} />
         </label>
+      </section>
+
+      <section className="card stack" aria-labelledby="practice-clinic">
+        <h2 id="practice-clinic" className="portal__subtitle">
+          Your clinic
+        </h2>
+        <p className="muted small">
+          Patients see this beside your name and how far it is from them. Stand at the clinic and press the button for
+          the most exact pin.
+        </p>
+        <div className="practice__row">
+          <label>
+            Clinic name
+            <input maxLength={120} value={clinicName} onChange={(e) => setClinicName(e.target.value)} />
+          </label>
+          <label>
+            Address
+            <input maxLength={200} value={clinicAddress} onChange={(e) => setClinicAddress(e.target.value)} />
+          </label>
+        </div>
+        <div className="health__locate">
+          <button type="button" className="button--quiet" onClick={locateClinic} disabled={locating === "locating"}>
+            {locating === "locating" ? "Finding the clinic…" : where ? "Update the clinic's location" : "Use my current location"}
+          </button>
+          {where && (
+            <span className="health__saved" role="status">
+              Location set
+              <button type="button" className="link" onClick={() => setWhere(null)}>
+                Remove
+              </button>
+            </span>
+          )}
+        </div>
+        {locating === "refused" && <small className="error">Your browser did not share the location.</small>}
       </section>
 
       <section className="card stack" aria-labelledby="practice-insurers">

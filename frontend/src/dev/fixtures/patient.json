@@ -1067,19 +1067,19 @@
      "bio": "Interventional cardiologist with a focus on preventive care and arrhythmia management.",
      "nextSlots": [
       {
-       "id": "43d0aa05-9c2d-4bd4-8a51-fc6648683c0f",
-       "startsAt": "2026-10-01T10:00:00Z",
-       "endsAt": "2026-10-01T10:30:00Z"
+       "id": "s1",
+       "startsAt": "2026-10-01T04:30:00Z",
+       "endsAt": "2026-10-01T05:00:00Z"
       },
       {
-       "id": "d5558e9c-95cb-4374-b5a6-c209a985364e",
-       "startsAt": "2026-10-01T10:30:00Z",
-       "endsAt": "2026-10-01T11:00:00Z"
+       "id": "s2",
+       "startsAt": "2026-10-01T06:00:00Z",
+       "endsAt": "2026-10-01T06:30:00Z"
       },
       {
-       "id": "ccca5712-7e19-4e77-978b-6f051446bc13",
-       "startsAt": "2026-10-01T11:00:00Z",
-       "endsAt": "2026-10-01T11:30:00Z"
+       "id": "s3",
+       "startsAt": "2026-10-01T08:30:00Z",
+       "endsAt": "2026-10-01T09:00:00Z"
       }
      ],
      "rating": 4.5,
@@ -1111,7 +1111,11 @@
        "priceInr": 2200,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "Rao Heart Clinic",
+     "clinicAddress": "12, 100 Feet Road, Indiranagar, Bengaluru",
+     "clinicLatitude": 12.9784,
+     "clinicLongitude": 77.6408
     },
     {
      "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa14",
@@ -1161,7 +1165,11 @@
        "priceInr": 5500,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "NeuroCare Centre",
+     "clinicAddress": "3rd Cross, HAL 2nd Stage, Bengaluru",
+     "clinicLatitude": 12.9611,
+     "clinicLongitude": 77.6387
     },
     {
      "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa08",
@@ -1204,7 +1212,11 @@
        "priceInr": 2500,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "Little Steps Children's Clinic",
+     "clinicAddress": "80 Feet Road, Koramangala, Bengaluru",
+     "clinicLatitude": 12.9352,
+     "clinicLongitude": 77.6245
     },
     {
      "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa07",
@@ -1247,7 +1259,11 @@
        "priceInr": 1500,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "Family Health Clinic",
+     "clinicAddress": "5th Main, Indiranagar, Bengaluru",
+     "clinicLatitude": 12.9716,
+     "clinicLongitude": 77.6412
     },
     {
      "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa05",
@@ -1291,7 +1307,11 @@
        "priceInr": 3500,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "Rao Heart Clinic",
+     "clinicAddress": "12, 100 Feet Road, Indiranagar, Bengaluru",
+     "clinicLatitude": 12.9784,
+     "clinicLongitude": 77.6408
     },
     {
      "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa04",
@@ -1346,7 +1366,11 @@
        "priceInr": 300,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "NeuroCare Centre",
+     "clinicAddress": "3rd Cross, HAL 2nd Stage, Bengaluru",
+     "clinicLatitude": 12.9611,
+     "clinicLongitude": 77.6387
     },
     {
      "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa13",
@@ -1396,7 +1420,11 @@
        "priceInr": 2500,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "Little Steps Children's Clinic",
+     "clinicAddress": "80 Feet Road, Koramangala, Bengaluru",
+     "clinicLatitude": 12.9352,
+     "clinicLongitude": 77.6245
     },
     {
      "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa11",
@@ -1446,7 +1474,11 @@
        "priceInr": 1500,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "Family Health Clinic",
+     "clinicAddress": "5th Main, Indiranagar, Bengaluru",
+     "clinicLatitude": 12.9716,
+     "clinicLongitude": 77.6412
     },
     {
      "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa12",
@@ -1485,7 +1517,11 @@
        "priceInr": 2500,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "Rao Heart Clinic",
+     "clinicAddress": "12, 100 Feet Road, Indiranagar, Bengaluru",
+     "clinicLatitude": 12.9784,
+     "clinicLongitude": 77.6408
     },
     {
      "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa02",
@@ -1534,7 +1570,11 @@
        "priceInr": 2500,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "NeuroCare Centre",
+     "clinicAddress": "3rd Cross, HAL 2nd Stage, Bengaluru",
+     "clinicLatitude": 12.9611,
+     "clinicLongitude": 77.6387
     },
     {
      "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa06",
@@ -1584,7 +1624,11 @@
        "priceInr": 1500,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "Little Steps Children's Clinic",
+     "clinicAddress": "80 Feet Road, Koramangala, Bengaluru",
+     "clinicLatitude": 12.9352,
+     "clinicLongitude": 77.6245
     },
     {
      "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa03",
@@ -1629,7 +1673,11 @@
        "priceInr": 200,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "Family Health Clinic",
+     "clinicAddress": "5th Main, Indiranagar, Bengaluru",
+     "clinicLatitude": 12.9716,
+     "clinicLongitude": 77.6412
     },
     {
      "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa09",
@@ -1673,7 +1721,11 @@
        "priceInr": 900,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "Rao Heart Clinic",
+     "clinicAddress": "12, 100 Feet Road, Indiranagar, Bengaluru",
+     "clinicLatitude": 12.9784,
+     "clinicLongitude": 77.6408
     },
     {
      "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa10",
@@ -1717,7 +1769,11 @@
        "priceInr": 1200,
        "everyVisit": false
       }
-     ]
+     ],
+     "clinicName": "NeuroCare Centre",
+     "clinicAddress": "3rd Cross, HAL 2nd Stage, Bengaluru",
+     "clinicLatitude": 12.9611,
+     "clinicLongitude": 77.6387
     }
    ],
    "pageable": {
@@ -1787,6 +1843,267 @@
    "delayMinutes": 0,
    "visitInProgress": false,
    "asOf": "2026-09-30T09:28:40.650857886Z"
-  }
+  },
+  "/api/v1/doctors/aaaaaaaa-1111-4111-8111-aaaaaaaaaa01": {
+   "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaa01",
+   "fullName": "Dr. Anjali Rao",
+   "specialization": "Cardiology",
+   "consultationFee": 1200.0,
+   "yearsExperience": 14,
+   "bio": "Interventional cardiologist with a focus on preventive care and arrhythmia management.",
+   "nextSlots": [
+    {
+     "id": "s1",
+     "startsAt": "2026-10-01T04:30:00Z",
+     "endsAt": "2026-10-01T05:00:00Z"
+    },
+    {
+     "id": "s2",
+     "startsAt": "2026-10-01T06:00:00Z",
+     "endsAt": "2026-10-01T06:30:00Z"
+    },
+    {
+     "id": "s3",
+     "startsAt": "2026-10-01T08:30:00Z",
+     "endsAt": "2026-10-01T09:00:00Z"
+    }
+   ],
+   "rating": 4.5,
+   "reviewCount": 2,
+   "insurers": [
+    "CGHS",
+    "HDFC ERGO",
+    "ICICI Lombard",
+    "Star Health"
+   ],
+   "prices": [
+    {
+     "procedure": "Registration",
+     "priceInr": 100,
+     "everyVisit": true
+    },
+    {
+     "procedure": "ECG",
+     "priceInr": 350,
+     "everyVisit": false
+    },
+    {
+     "procedure": "Treadmill test (TMT)",
+     "priceInr": 1800,
+     "everyVisit": false
+    },
+    {
+     "procedure": "2D Echo",
+     "priceInr": 2200,
+     "everyVisit": false
+    }
+   ],
+   "clinicName": "Rao Heart Clinic",
+   "clinicAddress": "12, 100 Feet Road, Indiranagar, Bengaluru",
+   "clinicLatitude": 12.9784,
+   "clinicLongitude": 77.6408
+  },
+  "/api/v1/doctors/aaaaaaaa-1111-4111-8111-aaaaaaaaaa01/slots": [
+   {
+    "id": "s1",
+    "startsAt": "2026-10-01T04:30:00Z",
+    "endsAt": "2026-10-01T05:00:00Z"
+   },
+   {
+    "id": "s2",
+    "startsAt": "2026-10-01T06:00:00Z",
+    "endsAt": "2026-10-01T06:30:00Z"
+   },
+   {
+    "id": "s3",
+    "startsAt": "2026-10-01T08:30:00Z",
+    "endsAt": "2026-10-01T09:00:00Z"
+   },
+   {
+    "id": "s4",
+    "startsAt": "2026-10-01T09:00:00Z",
+    "endsAt": "2026-10-01T09:30:00Z"
+   },
+   {
+    "id": "s5",
+    "startsAt": "2026-10-01T10:30:00Z",
+    "endsAt": "2026-10-01T11:00:00Z"
+   },
+   {
+    "id": "s6",
+    "startsAt": "2026-10-01T12:00:00Z",
+    "endsAt": "2026-10-01T12:30:00Z"
+   },
+   {
+    "id": "s7",
+    "startsAt": "2026-10-02T03:30:00Z",
+    "endsAt": "2026-10-02T04:00:00Z"
+   },
+   {
+    "id": "s8",
+    "startsAt": "2026-10-02T04:00:00Z",
+    "endsAt": "2026-10-02T04:30:00Z"
+   },
+   {
+    "id": "s9",
+    "startsAt": "2026-10-02T04:30:00Z",
+    "endsAt": "2026-10-02T05:00:00Z"
+   },
+   {
+    "id": "s10",
+    "startsAt": "2026-10-02T06:30:00Z",
+    "endsAt": "2026-10-02T07:00:00Z"
+   },
+   {
+    "id": "s11",
+    "startsAt": "2026-10-02T10:30:00Z",
+    "endsAt": "2026-10-02T11:00:00Z"
+   },
+   {
+    "id": "s12",
+    "startsAt": "2026-10-02T12:30:00Z",
+    "endsAt": "2026-10-02T13:00:00Z"
+   },
+   {
+    "id": "s13",
+    "startsAt": "2026-10-03T03:30:00Z",
+    "endsAt": "2026-10-03T04:00:00Z"
+   },
+   {
+    "id": "s14",
+    "startsAt": "2026-10-03T04:00:00Z",
+    "endsAt": "2026-10-03T04:30:00Z"
+   },
+   {
+    "id": "s15",
+    "startsAt": "2026-10-03T06:00:00Z",
+    "endsAt": "2026-10-03T06:30:00Z"
+   },
+   {
+    "id": "s16",
+    "startsAt": "2026-10-03T06:30:00Z",
+    "endsAt": "2026-10-03T07:00:00Z"
+   },
+   {
+    "id": "s17",
+    "startsAt": "2026-10-03T08:30:00Z",
+    "endsAt": "2026-10-03T09:00:00Z"
+   },
+   {
+    "id": "s18",
+    "startsAt": "2026-10-03T09:00:00Z",
+    "endsAt": "2026-10-03T09:30:00Z"
+   },
+   {
+    "id": "s19",
+    "startsAt": "2026-10-03T12:00:00Z",
+    "endsAt": "2026-10-03T12:30:00Z"
+   },
+   {
+    "id": "s20",
+    "startsAt": "2026-10-03T12:30:00Z",
+    "endsAt": "2026-10-03T13:00:00Z"
+   },
+   {
+    "id": "s21",
+    "startsAt": "2026-10-04T04:30:00Z",
+    "endsAt": "2026-10-04T05:00:00Z"
+   },
+   {
+    "id": "s22",
+    "startsAt": "2026-10-04T06:00:00Z",
+    "endsAt": "2026-10-04T06:30:00Z"
+   },
+   {
+    "id": "s23",
+    "startsAt": "2026-10-04T08:30:00Z",
+    "endsAt": "2026-10-04T09:00:00Z"
+   },
+   {
+    "id": "s24",
+    "startsAt": "2026-10-04T09:00:00Z",
+    "endsAt": "2026-10-04T09:30:00Z"
+   },
+   {
+    "id": "s25",
+    "startsAt": "2026-10-04T10:30:00Z",
+    "endsAt": "2026-10-04T11:00:00Z"
+   },
+   {
+    "id": "s26",
+    "startsAt": "2026-10-04T12:00:00Z",
+    "endsAt": "2026-10-04T12:30:00Z"
+   },
+   {
+    "id": "s27",
+    "startsAt": "2026-10-05T03:30:00Z",
+    "endsAt": "2026-10-05T04:00:00Z"
+   },
+   {
+    "id": "s28",
+    "startsAt": "2026-10-05T04:00:00Z",
+    "endsAt": "2026-10-05T04:30:00Z"
+   },
+   {
+    "id": "s29",
+    "startsAt": "2026-10-05T04:30:00Z",
+    "endsAt": "2026-10-05T05:00:00Z"
+   },
+   {
+    "id": "s30",
+    "startsAt": "2026-10-05T06:30:00Z",
+    "endsAt": "2026-10-05T07:00:00Z"
+   },
+   {
+    "id": "s31",
+    "startsAt": "2026-10-05T10:30:00Z",
+    "endsAt": "2026-10-05T11:00:00Z"
+   },
+   {
+    "id": "s32",
+    "startsAt": "2026-10-05T12:30:00Z",
+    "endsAt": "2026-10-05T13:00:00Z"
+   },
+   {
+    "id": "s33",
+    "startsAt": "2026-10-06T03:30:00Z",
+    "endsAt": "2026-10-06T04:00:00Z"
+   },
+   {
+    "id": "s34",
+    "startsAt": "2026-10-06T04:00:00Z",
+    "endsAt": "2026-10-06T04:30:00Z"
+   },
+   {
+    "id": "s35",
+    "startsAt": "2026-10-06T06:00:00Z",
+    "endsAt": "2026-10-06T06:30:00Z"
+   },
+   {
+    "id": "s36",
+    "startsAt": "2026-10-06T06:30:00Z",
+    "endsAt": "2026-10-06T07:00:00Z"
+   },
+   {
+    "id": "s37",
+    "startsAt": "2026-10-06T08:30:00Z",
+    "endsAt": "2026-10-06T09:00:00Z"
+   },
+   {
+    "id": "s38",
+    "startsAt": "2026-10-06T09:00:00Z",
+    "endsAt": "2026-10-06T09:30:00Z"
+   },
+   {
+    "id": "s39",
+    "startsAt": "2026-10-06T12:00:00Z",
+    "endsAt": "2026-10-06T12:30:00Z"
+   },
+   {
+    "id": "s40",
+    "startsAt": "2026-10-06T12:30:00Z",
+    "endsAt": "2026-10-06T13:00:00Z"
+   }
+  ]
  }
 }

@@ -107,6 +107,9 @@ export const doctors = {
   /** Specialisations someone can be booked in, with how many doctors practise each. */
   specialties: () => request<Specialty[]>("/api/v1/doctors/specialties"),
 
+  /** One listed doctor, as the directory shows them. */
+  get: (doctorId: string) => request<Doctor>(`/api/v1/doctors/${doctorId}`),
+
   /** Whether the doctor is on time today (signed-in users). */
   liveStatus: (doctorId: string) => request<LiveStatus>(`/api/v1/doctors/${doctorId}/live-status`),
 

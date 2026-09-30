@@ -1,5 +1,7 @@
 package com.medicity.doctor;
 
+import com.medicity.common.NotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 import com.medicity.review.ReviewService;
 import com.medicity.scheduling.AppointmentSlot;
 import com.medicity.scheduling.BookingService;
@@ -125,6 +127,20 @@ public class DoctorController {
                 .withOffers(insurers.getOrDefault(d.getId(), List.of()), prices.getOrDefault(d.getId(), List.of())));
     }
 
+    @GetMapping("/{doctorId}")
+    // The doctor's user row is read lazily for the name; keep the session open until the response is built.
+    @Transactional(readOnly = true)
+    @Operation(summary = "One listed doctor, as the directory shows them",
+            description = "A doctor still waiting for registration checks is not listed, so is not found.")
+    public DoctorResponse one(@PathVariable UUID doctorId) {
+        Doctor d = doctorRepository.findById(doctorId).filter(Doctor::isVerified)
+                .orElseThrow(() -> new NotFoundException("Doctor", doctorId));
+        List<UUID> ids = List.of(d.getId());
+        return DoctorResponse.from(d, nextSlots(ids).getOrDefault(d.getId(), List.of()), reviewService.ratings(ids).get(d.getId()))
+                .withOffers(offers.insurersOf(ids).getOrDefault(d.getId(), List.of()),
+                        offers.pricesOf(ids).getOrDefault(d.getId(), List.of()));
+    }
+
     /**
      * Each card's next few bookable times. Starts after the booking service's
      * minimum notice, so every time offered can actually be booked; like the
@@ -186,11 +202,16 @@ public class DoctorController {
             /** Insurers and schemes the clinic accepts. */
             List<String> insurers,
             /** Charges beyond the consultation fee; "every visit" ones are added to it. */
-            List<DoctorOffers.Price> prices
+            List<DoctorOffers.Price> prices,
+            /** Where patients are seen; null when the doctor has not said. The app works out the distance. */
+            String clinicName,
+            String clinicAddress,
+            Double clinicLatitude,
+            Double clinicLongitude
     ) {
         DoctorResponse withOffers(List<String> insurers, List<DoctorOffers.Price> prices) {
             return new DoctorResponse(id, fullName, specialization, consultationFee, yearsExperience, bio, nextSlots,
-                    rating, reviewCount, insurers, prices);
+                    rating, reviewCount, insurers, prices, clinicName, clinicAddress, clinicLatitude, clinicLongitude);
         }
 
         static DoctorResponse from(Doctor d, List<SlotResponse> nextSlots, ReviewService.Rating rating) {
@@ -205,7 +226,11 @@ public class DoctorController {
                     rating == null ? null : rating.average(),
                     rating == null ? 0 : rating.count(),
                     List.of(),
-                    List.of());
+                    List.of(),
+                    d.getClinicName(),
+                    d.getClinicAddress(),
+                    d.getClinicLatitude(),
+                    d.getClinicLongitude());
         }
     }
 

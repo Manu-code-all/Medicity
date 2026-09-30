@@ -2447,6 +2447,46 @@ Two backend tests (update and replace; refusals) and two frontend tests
 (the form sends the whole body with the saved location; skipping sends
 nothing).
 
+## 64. Find a doctor and booking, rebuilt around how far, how much and when
+
+The directory showed a card per doctor with the next three times as pills
+reading "Tomorrow, 3:30 pm", "Tomorrow, 4:00 pm", "Tomorrow, 4:30 pm", and a
+"More times" link to a page that listed every open time in a fortnight as one
+long wall of buttons. Nothing said where the clinic was or how far.
+
+- **Where the clinic is.** Doctors have a clinic name, address and a pin
+  (migration V35, both coordinates or neither, checked in the database as
+  well as the API). A doctor sets it on the Fees and insurance page, with a
+  button that uses the browser's position (best pressed at the clinic). The
+  demo doctors have clinics around Indiranagar. Practice, like hours and
+  prices, is replaced whole, so leaving the clinic out clears it.
+- **How far.** The app works the distance out itself (haversine, straight
+  line, and labelled "away", never "drive") from the person's saved location
+  when they have one, else from the browser when they press "Use my
+  location", never on arrival. Each clinic has a Directions link that opens
+  the person's maps app. "Nearest first" sorts what is on the page, and a
+  doctor with no clinic location goes last rather than being hidden.
+  The server returns coordinates and does no geometry, so there is nothing
+  to keep in step and no location ever reaches it from a search.
+- **When, in rows and steps.** A card's next times are one row per day ("Tomorrow  10:00 am  10:30 am")
+  instead of repeating the day in every pill, and the link is "See all
+  times". Booking is three numbered steps: a strip of the days that have
+  open times (with how many), the chosen day's times grouped into morning,
+  afternoon and evening, and a summary that stays in view with the visit
+  type, the reason and one Confirm. Days with nothing are not shown, so
+  nobody scans empty days. The page names the doctor, the clinic, the
+  distance and the whole fee for a visit, so nothing is learnt only after
+  confirming. `GET /api/v1/doctors/{id}` (listed doctors only; an unverified
+  one is a 404) feeds that header.
+- **Unchanged on purpose.** The idempotency key, the lost race handling,
+  the waiting list and moving a visit keep their logic and their tests; the
+  time buttons keep `aria-pressed` and a full-date accessible name, and the
+  day strip is a tab list so the two never read as the same kind of control.
+
+One backend test (set, read in the directory and by id, half a location
+refused, cleared by omission, 404) and three frontend (distance and sort,
+the day/part-of-day layout, the practice form's clinic).
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

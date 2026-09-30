@@ -46,7 +46,10 @@ public class DoctorPracticeController {
                                                  @Valid @RequestBody PracticeRequest r) {
         return practice.update(principal.getId(), r.consultationFee(), r.bio(), r.yearsExperience(),
                 r.insurers(), r.prices().stream()
-                        .map(p -> new DoctorOffers.Price(p.procedure(), p.priceInr(), p.everyVisit())).toList());
+                        .map(p -> new DoctorOffers.Price(p.procedure(), p.priceInr(), p.everyVisit())).toList(),
+                r.clinic() == null ? null
+                        : new DoctorPracticeService.Clinic(r.clinic().name(), r.clinic().address(),
+                                r.clinic().latitude(), r.clinic().longitude()));
     }
 
     public record PracticeRequest(
@@ -54,7 +57,16 @@ public class DoctorPracticeController {
             @Size(max = 1000) String bio,
             @Min(0) @Max(70) int yearsExperience,
             @NotNull @Size(max = 40) List<@NotBlank String> insurers,
-            @NotNull @Size(max = 40) List<@Valid PriceLine> prices
+            @NotNull @Size(max = 40) List<@Valid PriceLine> prices,
+            /** Optional; omitted clears the clinic's location. */
+            @Valid ClinicLine clinic
+    ) {}
+
+    public record ClinicLine(
+            @Size(max = 120) String name,
+            @Size(max = 200) String address,
+            @DecimalMin("-90.0") @DecimalMax("90.0") Double latitude,
+            @DecimalMin("-180.0") @DecimalMax("180.0") Double longitude
     ) {}
 
     public record PriceLine(

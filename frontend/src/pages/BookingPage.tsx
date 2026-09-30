@@ -8,6 +8,9 @@ import type { Slot, VisitType } from "../api/types";
 import { readIntake, readVisitNote, saveIntake, saveVisitNote } from "../lib/visitNote";
 import { WaitlistPanel } from "./WaitlistPanel";
 import { AttachmentsPanel } from "../components/AttachmentsPanel";
+import { ClinicLine } from "../components/ClinicLine";
+import { initials } from "../lib/format";
+import { useMyLocation } from "../lib/useMyLocation";
 
 /**
  * Slot picker and booking flow.
@@ -33,8 +36,12 @@ export function BookingPage() {
   const [intake] = useState(readIntake);
   const [shareIntake, setShareIntake] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
+  const [dayKey, setDayKey] = useState<string | null>(null);
+  const me = useMyLocation();
 
   const window = useDateWindow();
+  const doctor = useQuery({ queryKey: ["doctor", doctorId], queryFn: () => doctors.get(doctorId), staleTime: 60_000 });
+  const doc = doctor.data;
   const doctorReviews = useQuery({ queryKey: ["reviews", doctorId], queryFn: () => reviews.forDoctor(doctorId) });
   // A time tapped on the directory card arrives as ?slot= and starts selected.
   const [params] = useSearchParams();
@@ -147,12 +154,38 @@ export function BookingPage() {
   if (slotsQuery.isError) return <p className="error">Could not load availability.</p>;
 
   const slots = slotsQuery.data;
+  const days = groupSlotsByDay(slots);
+  // The day being looked at: the chosen time's day, else the one picked, else the first with times.
+  const activeKey = dayKey && days.some((d) => d.key === dayKey) ? dayKey : selectedSlot ? keyOf(selectedSlot.startsAt) : days[0]?.key;
+  const activeDay = days.find((d) => d.key === activeKey);
+  const everyVisit = (doc?.prices ?? []).filter((p) => p.everyVisit).reduce((sum, p) => sum + p.priceInr, 0);
 
   return (
     <section className="booking">
-      <h1>{moving ? "Choose a new time" : "Choose a time"}</h1>
-      {moving && <p className="muted">Your current time stays booked until the new one is confirmed.</p>}
+      <header className="booking__head">
+        <h1>{moving ? "Choose a new time" : "Book a visit"}</h1>
+        {moving && <p className="muted">Your current time stays booked until the new one is confirmed.</p>}
+      </header>
       <ActingBanner verb="Booking" />
+
+      {doc && (
+        <div className="booking__doctor">
+          <div className="avatar avatar--lg" aria-hidden="true">
+            {initials(doc.fullName)}
+          </div>
+          <div className="booking__who">
+            <h2>{doc.fullName}</h2>
+            <p className="muted">
+              {doc.specialization} · {doc.yearsExperience} yrs experience
+            </p>
+            <ClinicLine doctor={doc} from={me.point} />
+          </div>
+          <div className="dcard__fee">
+            <span className="dcard__feeLabel">Consultation</span>
+            <p className="fee num">₹{doc.consultationFee + everyVisit}</p>
+          </div>
+        </div>
+      )}
 
       {notice && (
         <p className="notice" role="status" aria-live="polite">
@@ -166,90 +199,149 @@ export function BookingPage() {
         </p>
       )}
 
-      {slots.length === 0 ? (
-        <p className="muted">No open slots in the next 14 days.</p>
-      ) : (
-        <ul className="slot-grid">
-          {slots.map((slot) => (
-            <li key={slot.id}>
-              <button
-                type="button"
-                className={slot.id === selectedSlot?.id ? "slot slot--selected" : "slot"}
-                aria-pressed={slot.id === selectedSlot?.id}
-                onClick={() => setSelectedSlot(slot)}
-              >
-                {formatSlot(slot.startsAt)}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="booking__layout">
+        <div className="booking__pick">
+          {slots.length === 0 ? (
+            <p className="muted">No open slots in the next 14 days.</p>
+          ) : (
+            <>
+              <h2 className="booking__step">
+                <span className="booking__n">1</span> Choose a day
+              </h2>
+              <div className="daystrip" role="tablist" aria-label="Days with open times">
+                {days.map((d) => (
+                  <button
+                    key={d.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={d.key === activeKey}
+                    className="daystrip__day"
+                    onClick={() => setDayKey(d.key)}
+                  >
+                    <span className="daystrip__name">{d.name}</span>
+                    <span className="daystrip__date num">{d.date}</span>
+                    <span className="daystrip__count">
+                      {d.slots.length} {d.slots.length === 1 ? "time" : "times"}
+                    </span>
+                  </button>
+                ))}
+              </div>
 
-      {selectedSlot && moving && (
-        <form
-          className="booking__confirm"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setNotice(null);
-            move.mutate(selectedSlot.id);
-          }}
-        >
-          <button type="submit" disabled={move.isPending}>
-            {move.isPending ? "Moving…" : `Move to ${formatSlot(selectedSlot.startsAt)}`}
-          </button>
-        </form>
-      )}
-
-      {selectedSlot && !moving && (
-        <form
-          className="booking__confirm"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setNotice(null);
-            booking.mutate({ slotId: selectedSlot.id, why: reason, type: visitType, share: Boolean(intake && shareIntake) });
-          }}
-        >
-          <fieldset className="visit-type">
-            <legend>How would you like to see the doctor?</legend>
-            <label>
-              <input
-                type="radio"
-                name="visit-type"
-                checked={visitType === "IN_PERSON"}
-                onChange={() => setVisitType("IN_PERSON")}
-              />{" "}
-              At the clinic
-            </label>
-            <label>
-              <input type="radio" name="visit-type" checked={visitType === "VIDEO"} onChange={() => setVisitType("VIDEO")} />{" "}
-              Video call
-            </label>
-          </fieldset>
-          {intake && (
-            <div className="intake-share">
-              <p className="intake-share__title">Your answers in the body guide</p>
-              <p className="muted small">
-                {[intake.area, ...intake.symptoms, intake.since].filter(Boolean).join(" · ")}
-              </p>
-              <label>
-                <input type="checkbox" checked={shareIntake} onChange={(e) => setShareIntake(e.target.checked)} /> Share
-                these answers with the doctor before the visit
-              </label>
-            </div>
+              <h2 className="booking__step">
+                <span className="booking__n">2</span> Choose a time
+              </h2>
+              {activeDay &&
+                PARTS.map((part) => {
+                  const inPart = activeDay.slots.filter(part.test);
+                  if (inPart.length === 0) return null;
+                  return (
+                    <div key={part.name} className="timepart">
+                      <h3>{part.name}</h3>
+                      <ul className="timegrid">
+                        {inPart.map((slot) => (
+                          <li key={slot.id}>
+                            <button
+                              type="button"
+                              className={slot.id === selectedSlot?.id ? "time time--selected" : "time"}
+                              aria-pressed={slot.id === selectedSlot?.id}
+                              aria-label={formatSlot(slot.startsAt)}
+                              onClick={() => setSelectedSlot(slot)}
+                            >
+                              {timeLabel(slot.startsAt)}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+            </>
           )}
-          <label htmlFor="reason">What brings you in?</label>
-          <textarea
-            id="reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            maxLength={500}
-            rows={3}
-          />
-          <button type="submit" disabled={booking.isPending}>
-            {booking.isPending ? "Booking…" : `Confirm ${formatSlot(selectedSlot.startsAt)}`}
-          </button>
-        </form>
-      )}
+          {!moving && <WaitlistPanel doctorId={doctorId} />}
+        </div>
+
+        <aside className="booking__summary" aria-label="Your visit">
+          <h2 className="booking__step">
+            <span className="booking__n">3</span> {moving ? "Confirm" : "Your visit"}
+          </h2>
+          {!selectedSlot ? (
+            <p className="muted">Pick a day and a time and your visit appears here.</p>
+          ) : (
+            <p className="summary__when">
+              <strong>
+                {new Date(selectedSlot.startsAt).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
+              </strong>
+              <span className="num">{timeLabel(selectedSlot.startsAt)}</span>
+            </p>
+          )}
+
+          {selectedSlot && moving && (
+            <form
+              className="booking__confirm"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setNotice(null);
+                move.mutate(selectedSlot.id);
+              }}
+            >
+              <button type="submit" disabled={move.isPending}>
+                {move.isPending ? "Moving…" : `Move to ${formatSlot(selectedSlot.startsAt)}`}
+              </button>
+            </form>
+          )}
+
+          {selectedSlot && !moving && (
+            <form
+              className="booking__confirm"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setNotice(null);
+                booking.mutate({ slotId: selectedSlot.id, why: reason, type: visitType, share: Boolean(intake && shareIntake) });
+              }}
+            >
+              <fieldset className="visit-type">
+                <legend>How would you like to see the doctor?</legend>
+                <label>
+                  <input
+                    type="radio"
+                    name="visit-type"
+                    checked={visitType === "IN_PERSON"}
+                    onChange={() => setVisitType("IN_PERSON")}
+                  />{" "}
+                  At the clinic
+                </label>
+                <label>
+                  <input type="radio" name="visit-type" checked={visitType === "VIDEO"} onChange={() => setVisitType("VIDEO")} />{" "}
+                  Video call
+                </label>
+              </fieldset>
+              {intake && (
+                <div className="intake-share">
+                  <p className="intake-share__title">Your answers in the body guide</p>
+                  <p className="muted small">
+                    {[intake.area, ...intake.symptoms, intake.since].filter(Boolean).join(" · ")}
+                  </p>
+                  <label>
+                    <input type="checkbox" checked={shareIntake} onChange={(e) => setShareIntake(e.target.checked)} /> Share
+                    these answers with the doctor before the visit
+                  </label>
+                </div>
+              )}
+              <label htmlFor="reason">What brings you in?</label>
+              <textarea
+                id="reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                maxLength={500}
+                rows={3}
+              />
+              <button type="submit" disabled={booking.isPending}>
+                {booking.isPending ? "Booking…" : `Confirm ${formatSlot(selectedSlot.startsAt)}`}
+              </button>
+            </form>
+          )}
+        </aside>
+      </div>
 
       {booking.isSuccess && booking.data && (
         <section className="card" aria-labelledby="attach-title">
@@ -258,8 +350,6 @@ export function BookingPage() {
           <AttachmentsPanel appointmentId={booking.data.id} canEdit />
         </section>
       )}
-
-      {!moving && <WaitlistPanel doctorId={doctorId} />}
 
       {doctorReviews.data && doctorReviews.data.length > 0 && (
         <section id="reviews" className="reviews" aria-labelledby="reviews-title">
@@ -291,6 +381,50 @@ function useDateWindow() {
     return { from: from.toISOString(), to: to.toISOString() };
   });
   return window;
+}
+
+interface SlotDay {
+  key: string;
+  name: string;
+  date: string;
+  slots: Slot[];
+}
+
+function keyOf(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+/** The days that have open times, at most 14, each with its times in order. */
+function groupSlotsByDay(slots: Slot[]): SlotDay[] {
+  const days: SlotDay[] = [];
+  for (const slot of slots) {
+    const key = keyOf(slot.startsAt);
+    let day = days.find((d) => d.key === key);
+    if (!day) {
+      const at = new Date(slot.startsAt);
+      day = {
+        key,
+        name: at.toLocaleDateString(undefined, { weekday: "short" }),
+        date: at.toLocaleDateString(undefined, { day: "numeric", month: "short" }),
+        slots: [],
+      };
+      days.push(day);
+    }
+    day.slots.push(slot);
+  }
+  return days.slice(0, 14);
+}
+
+/** Morning, afternoon and evening read faster than one long run of times. */
+const PARTS = [
+  { name: "Morning", test: (s: Slot) => new Date(s.startsAt).getHours() < 12 },
+  { name: "Afternoon", test: (s: Slot) => new Date(s.startsAt).getHours() >= 12 && new Date(s.startsAt).getHours() < 17 },
+  { name: "Evening", test: (s: Slot) => new Date(s.startsAt).getHours() >= 17 },
+];
+
+function timeLabel(iso: string): string {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
 function formatSlot(iso: string): string {

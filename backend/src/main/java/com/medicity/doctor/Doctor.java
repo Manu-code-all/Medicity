@@ -54,6 +54,19 @@ public class Doctor extends BaseEntity {
     @Column(name = "qualification", length = 120)
     private String qualification;
 
+    /** Where patients are seen. Null until the doctor sets it; coordinates are both set or both null. */
+    @Column(name = "clinic_name", length = 120)
+    private String clinicName;
+
+    @Column(name = "clinic_address", length = 200)
+    private String clinicAddress;
+
+    @Column(name = "clinic_latitude")
+    private Double clinicLatitude;
+
+    @Column(name = "clinic_longitude")
+    private Double clinicLongitude;
+
     /**
      * When the registration number was checked. Null only for a doctor who
      * signed up and is waiting: not listed, not bookable. A doctor created

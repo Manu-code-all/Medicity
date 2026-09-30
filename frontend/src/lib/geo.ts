@@ -17,6 +17,20 @@ export const DEMO_AREA: Point & { label: string } = {
   label: "Indiranagar, Bengaluru (demo area)",
 };
 
+/** Straight-line distance in metres (haversine). Roads are longer; the label says "away", not "drive". */
+export function distanceM(a: Point, b: Point): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6_371_000 * Math.asin(Math.sqrt(h));
+}
+
+/** A link that opens turn by turn directions to a place in the person's maps app. */
+export function directionsUrl(to: Point): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${to.lat},${to.lng}`;
+}
+
 /** "350 m", "2.4 km". Rounded: a store's door is not a precise point. */
 export function formatDistance(metres: number): string {
   if (metres < 1000) return `${Math.max(10, Math.round(metres / 10) * 10)} m`;

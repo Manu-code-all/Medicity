@@ -135,6 +135,49 @@ describe("BookingPage", () => {
     expect(posts()[0]!.body).toMatchObject({ visitType: "VIDEO" });
   });
 
+  it("lays the times out by day and by part of the day, and says where the clinic is", async () => {
+    const user = userEvent.setup();
+    const local = (day: number, hour: number) => new Date(2030, 0, day, hour, 0).toISOString();
+    mockFetch((call) => {
+      if (call.url.includes("/slots")) {
+        return json(200, [
+          { id: "a", startsAt: local(7, 9), endsAt: local(7, 10) },
+          { id: "b", startsAt: local(7, 14), endsAt: local(7, 15) },
+          { id: "c", startsAt: local(7, 18), endsAt: local(7, 19) },
+          { id: "d", startsAt: local(8, 10), endsAt: local(8, 11) },
+        ]);
+      }
+      if (call.url === "/api/v1/doctors/d1") {
+        return json(200, { id: "d1", fullName: "Dr. Anjali Rao", specialization: "Cardiology", consultationFee: 1200, yearsExperience: 14,
+          bio: null, nextSlots: [], clinicName: "Rao Heart Clinic", clinicAddress: "12, 100 Feet Road", clinicLatitude: 12.97, clinicLongitude: 77.64 });
+      }
+      return json(404, {});
+    });
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={["/doctors/d1/book"]}>
+          <Routes>
+            <Route path="/doctors/:doctorId/book" element={<BookingPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText("Rao Heart Clinic")).toBeInTheDocument();
+    const days = screen.getByRole("tablist", { name: "Days with open times" });
+    expect(within(days).getAllByRole("tab")).toHaveLength(2);
+    expect(within(days).getAllByRole("tab")[0]).toHaveTextContent("3 times");
+    expect(screen.getByRole("heading", { name: "Morning" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Afternoon" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Evening" })).toBeInTheDocument();
+
+    // The other day has only a morning time.
+    await user.click(within(days).getAllByRole("tab")[1]!);
+    expect(screen.queryByRole("heading", { name: "Afternoon" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { pressed: false }));
+    expect(screen.getByLabelText("What brings you in?")).toBeInTheDocument();
+  });
+
   it("shows what patients said, with stars and a first name only", async () => {
     mockFetch((call) => {
       if (call.url.includes("/slots")) return json(200, SLOTS);
