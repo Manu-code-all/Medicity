@@ -18,12 +18,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -147,6 +149,61 @@ class DoctorSignUpTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("a morning and an afternoon session open slots in both and none in the lunch break")
+    void twoSessionsADay() throws Exception {
+        String token = register("Dr. Nisha Rao", "KMC-99007");
+        UUID doctorId = doctorId("KMC-99007");
+
+        saveHours(token, """
+                {"days":[{"weekday":1,"startsAt":"14:00","endsAt":"15:00","slotMinutes":30},
+                         {"weekday":1,"startsAt":"09:00","endsAt":"11:00","slotMinutes":30}]}
+                """).andExpect(status().isOk())
+                .andExpect(jsonPath("$.slotsOpened").value(24))            // 4 Mondays x (4 + 2)
+                .andExpect(jsonPath("$.hours[0].startsAt").value("09:00:00"))
+                .andExpect(jsonPath("$.hours[1].startsAt").value("14:00:00"));
+
+        assertThat(jdbc.queryForList("""
+                SELECT DISTINCT to_char(starts_at AT TIME ZONE 'Asia/Kolkata', 'HH24:MI') FROM appointment_slots
+                WHERE doctor_id = ? ORDER BY 1
+                """, String.class, doctorId)).containsExactly("09:00", "09:30", "10:00", "10:30", "14:00", "14:30");
+    }
+
+    @Test
+    @DisplayName("a day off removes that day's open slots, keeps and counts the booked visit, and reopens when removed")
+    void leave() throws Exception {
+        String token = register("Dr. Nisha Rao", "KMC-99008");
+        UUID doctorId = doctorId("KMC-99008");
+        saveHours(token, WEEKDAYS_10_TO_12);
+        mvc.perform(post("/api/v1/admin/doctors/" + doctorId + "/verify").header("Authorization", bearer(admin)));
+        UUID booked = anySlot(doctorId);
+        book(patientToken(), booked).andExpect(status().isCreated());
+        LocalDate day = jdbc.queryForObject(
+                "SELECT (starts_at AT TIME ZONE 'Asia/Kolkata')::date FROM appointment_slots WHERE id = ?",
+                LocalDate.class, booked);
+
+        mvc.perform(post("/api/v1/doctors/me/leave").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"day\":\"%s\",\"note\":\"Conference\"}".formatted(day)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bookedVisits").value(1))
+                .andExpect(jsonPath("$.note").value("Conference"));
+        assertThat(slotsOn(doctorId, day)).containsExactly(booked);
+
+        // The nightly top-up leaves the day alone.
+        hoursService.rollForward();
+        assertThat(slotsOn(doctorId, day)).containsExactly(booked);
+        me(token, "/leave").andExpect(jsonPath("$", hasSize(1))).andExpect(jsonPath("$[0].day").value(day.toString()));
+
+        mvc.perform(delete("/api/v1/doctors/me/leave/" + day).header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.slotsOpened").value(3));
+        assertThat(slotsOn(doctorId, day)).hasSize(4).contains(booked);
+
+        mvc.perform(post("/api/v1/doctors/me/leave").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"day\":\"2020-01-01\"}"))
+                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("LEAVE_IN_PAST"));
+    }
+
+    @Test
     @DisplayName("changing hours replaces unbooked future slots but keeps the booked one")
     void changingHoursKeepsBookings() throws Exception {
         String token = register("Dr. Nisha Rao", "KMC-99004");
@@ -175,8 +232,14 @@ class DoctorSignUpTest extends AbstractIntegrationTest {
                 .andExpect(status().isBadRequest());
         saveHours(token, """
                 {"days":[{"weekday":1,"startsAt":"10:00","endsAt":"12:00","slotMinutes":30},
-                         {"weekday":1,"startsAt":"14:00","endsAt":"16:00","slotMinutes":30}]}
-                """).andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("DUPLICATE_DAY"));
+                         {"weekday":1,"startsAt":"11:30","endsAt":"13:00","slotMinutes":30}]}
+                """).andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("SESSIONS_OVERLAP"));
+        saveHours(token, """
+                {"days":[{"weekday":2,"startsAt":"08:00","endsAt":"09:00","slotMinutes":30},
+                         {"weekday":2,"startsAt":"10:00","endsAt":"11:00","slotMinutes":30},
+                         {"weekday":2,"startsAt":"12:00","endsAt":"13:00","slotMinutes":30},
+                         {"weekday":2,"startsAt":"14:00","endsAt":"15:00","slotMinutes":30}]}
+                """).andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("TOO_MANY_SESSIONS"));
 
         registration("Dr. Same Number", "kmc-99005@doctor.test".replace("kmc", "other"), "KMC-99005", "Cardiology")
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("REGISTRATION_TAKEN"));
@@ -225,6 +288,13 @@ class DoctorSignUpTest extends AbstractIntegrationTest {
 
     private UUID doctorId(String registrationNumber) {
         return jdbc.queryForObject("SELECT id FROM doctors WHERE license_number = ?", UUID.class, registrationNumber);
+    }
+
+    private List<UUID> slotsOn(UUID doctorId, LocalDate day) {
+        return jdbc.queryForList("""
+                SELECT id FROM appointment_slots
+                WHERE doctor_id = ? AND (starts_at AT TIME ZONE 'Asia/Kolkata')::date = ?
+                """, UUID.class, doctorId, day);
     }
 
     private UUID anySlot(UUID doctorId) {

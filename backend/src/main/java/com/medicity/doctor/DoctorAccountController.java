@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
@@ -71,6 +73,32 @@ public class DoctorAccountController {
         return new HoursSaved(hours.hours(principal.getId()), opened);
     }
 
+    @GetMapping("/api/v1/doctors/me/leave")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "The caller's upcoming days off, each with the visits already booked on it")
+    public List<DoctorHoursService.Leave> leave(@AuthenticationPrincipal AppUserPrincipal principal) {
+        return hours.leave(principal.getId());
+    }
+
+    @PostMapping("/api/v1/doctors/me/leave")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "Mark a day off",
+            description = "No appointments are opened that day and unbooked ones are removed. "
+                    + "Visits already booked are kept and counted in the answer.")
+    public DoctorHoursService.Leave addLeave(@AuthenticationPrincipal AppUserPrincipal principal,
+                                             @Valid @RequestBody LeaveRequest request) {
+        return hours.addLeave(principal.getId(), request.day(), request.note());
+    }
+
+    @DeleteMapping("/api/v1/doctors/me/leave/{day}")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "Remove a day off; its appointments open again")
+    public HoursSaved removeLeave(@AuthenticationPrincipal AppUserPrincipal principal,
+                                  @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate day) {
+        int opened = hours.removeLeave(principal.getId(), day);
+        return new HoursSaved(hours.hours(principal.getId()), opened);
+    }
+
     @GetMapping("/api/v1/admin/doctors/pending")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Doctors waiting for their registration number to be checked, oldest first")
@@ -102,7 +130,10 @@ public class DoctorAccountController {
             @Size(max = 1000) String bio
     ) {}
 
-    public record HoursRequest(@NotNull @Size(max = 7) List<@Valid Day> days) {}
+    /** Up to three sessions on each of the seven days. */
+    public record HoursRequest(@NotNull @Size(max = 21) List<@Valid Day> days) {}
+
+    public record LeaveRequest(@NotNull LocalDate day, @Size(max = 120) String note) {}
 
     public record Day(
             @Min(1) @Max(7) int weekday,
