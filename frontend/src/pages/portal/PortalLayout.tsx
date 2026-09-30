@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { PageLoading } from "../../components/PageLoading";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../auth/context";
 import { FamilySwitcher } from "./FamilySwitcher";
@@ -57,7 +59,9 @@ export function PortalLayout() {
       </aside>
 
       <div className="portal__main">
-        <Outlet />
+        <Suspense fallback={<PageLoading />}>
+          <Outlet />
+        </Suspense>
       </div>
     </div>
   );
