@@ -304,6 +304,9 @@ and PostgreSQL 18 on one GitHub-hosted runner): 200 simultaneous attempts on 20
 slots yield exactly 20 bookings and 180 `409`s. 150 bookings/s holds p95 at
 31 ms with no errors. At 300/s the runner saturates (p95 1.3 s), still with zero
 errors and zero double bookings; the database is checked after every run.
+The walk-in queue is loaded the same way: 300 patients joining one doctor's
+queue at once get tokens #101 to #400 with no gap or repeat, and 8 front-desk
+tabs calling "next" together call each of them exactly once (p95 14 ms).
 Latencies vary between runs on shared runners (booking p95 at 40/s has ranged
 from 16 to 71 ms); the correctness results have not.
 

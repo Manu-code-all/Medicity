@@ -2103,6 +2103,36 @@ Everything else was already index-served: patient visit lists, the day's
 schedule, "running late", notifications, the outbox poll. Each now has a
 test that says so.
 
+## 54. The walk-in queue and the directory under load
+
+The k6 run (entry 12) covered booking only. It now also covers what came
+after it: the walk-in queue and the doctor directory.
+
+- **300 patients take a token at one doctor at the same moment.** Every one
+  gets a token, numbered #101 to #400 with no gap and no repeat. The p95
+  was 590 ms: all 300 wait in turn on one row, the day's counter (`UPDATE
+  queue_days SET last_token = last_token + 1 RETURNING …`), which is
+  exactly what makes the numbering gap-free. Real queues see a few joins a
+  minute, not 300 at once, so this is a worst case and not a target.
+- **8 front-desk tabs press "Call next" together until nobody is left.**
+  300 calls, each token called exactly once, p95 14 ms. `FOR UPDATE SKIP
+  LOCKED` hands each tab a different patient instead of making the tabs
+  queue behind each other.
+- **Reads now include the directory page** (next free slots, ratings,
+  insurers and prices for 20 doctors, one query each) and a name search,
+  alongside a doctor's slots and "my visits".
+- **`verify.sql` checks the queue too:** tokens run from 101 to 100 + n with
+  no gap or repeat, and no token is left waiting.
+
+One run on a shared 4-vCPU GitHub runner, with the API, PostgreSQL and k6 on
+the same machine: 2,421 bookings, 20 of 20 contended slots booked once, 180
+clean 409s, no double booking. Booking p95 15 ms, read p95 7 ms, no failed
+requests.
+
+The first run failed the new "contiguous tokens" check. The code was right
+and the check was wrong: numbering starts at 101 (the counter's default is
+100, so tokens read like a clinic's), and the check had assumed 1.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
