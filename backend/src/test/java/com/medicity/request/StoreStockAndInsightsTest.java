@@ -8,6 +8,7 @@ import com.medicity.user.Role;
 import com.medicity.user.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
@@ -27,6 +28,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @DisplayName("Store stock and insights")
 class StoreStockAndInsightsTest extends NetworkTestSupport {
+
+    @Autowired ReservationService reservations;
 
     // --- live stock ---------------------------------------------------------
 
@@ -49,6 +52,38 @@ class StoreStockAndInsightsTest extends NetworkTestSupport {
         List<Integer> partial = JsonPath.read(body,
                 "$.stores[?(@.name == 'Sri Sai Medicals')].lines[?(@.availability == 'PARTIAL')].quantityAvailable");
         assertThat(partial).containsExactly(2);
+    }
+
+    @Test
+    @DisplayName("reserved medicines are not offered again: held or collected since the list, they are off the shelf")
+    void reservationsTakeFromStock() throws Exception {
+        // Exactly what one prescription asks for: 14 omeprazole, 5 cetirizine.
+        putStock(nearOwner, stock(omeprazole, 14, "4.00"), stock(cetirizine, 5, "1.50")).andExpect(status().isOk());
+        autoAnswer(nearOwner, true);
+        List<PrescriptionDraft.Item> same = List.of(
+                new PrescriptionDraft.Item(omeprazole.getId(), "20mg", "Once daily before breakfast", 14, 14, false),
+                new PrescriptionDraft.Item(cetirizine.getId(), "10mg", "At night", 5, 5, false));
+
+        UUID first = ask(3000);
+        assertThat(answerAt(first)).isEqualTo("YES,YES");
+        UUID held = reservations.reserve(meeraUser.getId(), first, near.getId());
+
+        // Held: all of it is set aside for Meera, so the next question hears "no".
+        UUID second = askAbout(prescribe(meera, same));
+        assertThat(answerAt(second)).isEqualTo("NO,NO");
+
+        // Cancelled: back on the shelf, without anyone writing to the stock.
+        reservations.cancel(meeraUser.getId(), held);
+        UUID third = askAbout(prescribe(meera, same));
+        assertThat(answerAt(third)).isEqualTo("YES,YES");
+
+        // Collected: gone until the billing software sends the next list.
+        UUID taken = reservations.reserve(meeraUser.getId(), third, near.getId());
+        reservations.collect(nearOwner.getId(), taken,
+                jdbc.queryForObject("SELECT pickup_code FROM reservations WHERE id = ?", String.class, taken));
+        assertThat(answerAt(askAbout(prescribe(meera, same)))).isEqualTo("NO,NO");
+        putStock(nearOwner, stock(omeprazole, 14, "4.00"), stock(cetirizine, 5, "1.50")).andExpect(status().isOk());
+        assertThat(answerAt(askAbout(prescribe(meera, same)))).isEqualTo("YES,YES");
     }
 
     @Test
@@ -146,6 +181,20 @@ class StoreStockAndInsightsTest extends NetworkTestSupport {
     }
 
     // --- helpers ------------------------------------------------------------------
+
+    private UUID askAbout(UUID prescription) throws Exception {
+        String body = askRaw(3000, meeraUser, prescription).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return UUID.fromString(JsonPath.read(body, "$.id"));
+    }
+
+    /** The near store's automatic answer, one availability per medicine. */
+    private String answerAt(UUID requestId) {
+        return jdbc.queryForObject("""
+                SELECT string_agg(availability, ',' ORDER BY availability) FROM request_answer_lines
+                WHERE request_id = ? AND store_id = ?
+                """, String.class, requestId, near.getId());
+    }
 
     private ResultActions putStock(User owner, String... items) throws Exception {
         return mvc.perform(put("/api/v1/stores/me/stock").header("Authorization", bearer(owner))

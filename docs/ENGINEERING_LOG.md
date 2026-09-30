@@ -2031,6 +2031,33 @@ the transaction like everything else.
 **Verified by.** `FamilyTest`: at six members, five adds sent at once give
 exactly two 201s and eight members. `MedicineRequestTest`: seven questions
 sent at once with none open give exactly five.
+## 52. Reserved medicines leave the shelf
+
+A store with live stock answered "yes, 10" to every question until its billing
+software sent the next list, even after reservations had taken all ten
+(listed in Known gaps). Now automatic answers use what is left.
+
+**Computed, not written.** The obvious fix is to decrement `store_stock` on
+reserve and add it back on cancel or expiry. That goes wrong the moment the
+store sends a new list while a reservation is held: billing software still
+counts those medicines as on the shelf, because nobody has bought them, so the
+new list silently undoes the decrement. Instead, the quantity an answer sees is
+
+    listed quantity
+    − medicines in reservations still HELD
+    − medicines in reservations COLLECTED after the list was sent
+
+A held reservation always counts, whenever the list was sent. A collection
+counts only until the next list, which already reflects the sale. A cancelled
+or expired reservation stops counting with nothing to undo. It is one
+`LEFT JOIN` on an aggregate over the store's reservations, using the existing
+`idx_reservations_store_held` index, and it runs only when a store answers
+automatically.
+
+**Verified by.** `StoreStockAndInsightsTest`: with exactly one prescription's
+worth in stock, the first question hears yes; after Meera reserves, the next
+hears no; after she cancels, yes; after a reservation is collected, no; after
+the store sends its list again, yes.
 
 ## Known gaps (tracked, not hidden)
 
@@ -2082,10 +2109,6 @@ sent at once with none open give exactly five.
   "Send a code" also takes slightly longer for a number with an account
   (one insert), a timing difference far smaller than network jitter but not
   zero.
-- **Reserving does not reduce live stock.** A store with live stock answers
-  "yes, 10" to every question until its billing software sends the next list,
-  even after reservations have taken all ten. Stores with auto-answer should
-  send stock often; decrementing on reserve is the fix.
 - **Prescription photos are stored in PostgreSQL.** `BYTEA`, capped at 5 MB by
   a CHECK. Fine at demo scale; at volume they belong in object storage with
   the database holding a key, so backups and replicas stay small.

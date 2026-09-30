@@ -642,7 +642,8 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
   never the diagnosis or the patient's full name before a reservation. *Insights*
   shows what people nearby asked for this week, counted only from questions sent
   to that store and hidden below two people. Stores with billing software can
-  send live stock and answer automatically while it is under a day old.
+  send live stock and answer automatically while it is under a day old;
+  medicines held or collected since the list was sent are not offered again.
 - **Administrators** (`admin@medicity.demo`) verify each store's drug licence
   before it receives anything.
 

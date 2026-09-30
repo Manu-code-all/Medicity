@@ -100,6 +100,13 @@ public class StoreStockService {
     /**
      * The stock a question may be answered from, if the store asked for
      * automatic answers and its stock is fresh; empty otherwise.
+     *
+     * <p>Quantities are what is left after reservations. The list comes from
+     * billing software, which still counts a held reservation as on the shelf
+     * (nobody has bought it yet) and learns of a collection only when the next
+     * list is sent. So a medicine is taken off for every reservation still
+     * held, and for every one collected since the list was sent. Nothing is
+     * written: a cancelled or expired reservation simply stops counting.
      */
     @Transactional(readOnly = true)
     public Optional<Map<UUID, StockLine>> answeringStock(UUID storeId) {
@@ -111,12 +118,25 @@ public class StoreStockService {
             return Optional.empty();
         }
         return Optional.of(jdbc.query("""
-                SELECT st.medicine_id, m.name, m.strength, m.form, st.quantity, st.unit_price
-                FROM store_stock st JOIN medicines m ON m.id = st.medicine_id
+                SELECT st.medicine_id, m.name, m.strength, m.form,
+                       greatest(st.quantity - coalesce(h.held, 0), 0) AS quantity, st.unit_price
+                FROM store_stock st
+                JOIN medicines m ON m.id = st.medicine_id
+                LEFT JOIN (
+                    SELECT coalesce(l.substitute_medicine_id, l.medicine_id) AS medicine_id,
+                           sum(l.quantity_available) AS held
+                    FROM reservations r
+                    JOIN stores s ON s.id = r.store_id
+                    JOIN request_answer_lines l
+                      ON l.request_id = r.request_id AND l.store_id = r.store_id AND l.availability <> 'NO'
+                    WHERE r.store_id = ?
+                      AND (r.status = 'HELD' OR (r.status = 'COLLECTED' AND r.collected_at > s.stock_updated_at))
+                    GROUP BY 1
+                ) h ON h.medicine_id = st.medicine_id
                 WHERE st.store_id = ?
                 """, (rs, i) -> new StockLine(rs.getObject("medicine_id", UUID.class), rs.getString("name"),
                 rs.getString("strength"), rs.getString("form"), rs.getInt("quantity"),
-                rs.getBigDecimal("unit_price")), storeId).stream()
+                rs.getBigDecimal("unit_price")), storeId, storeId).stream()
                 .collect(Collectors.toMap(StockLine::medicineId, l -> l)));
     }
 
