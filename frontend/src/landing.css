@@ -4,7 +4,7 @@
    scale (2/4/8/12/16/24/32/40/48/64/80/96). */
 
 .lm {
-  --lm-ground: #f7f7f2;
+  --lm-ground: #ffffff;
   --lm-surface: #ffffff;
   --lm-raised: #efefe8;
   --lm-rule: #d9dbd3;

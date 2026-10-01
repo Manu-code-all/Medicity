@@ -2546,6 +2546,29 @@ turn), none under reduced motion. One render test. The sample reuses the
 real search box, body guide and map, so adopting it is a swap of the
 landing page's composition, not a rebuild.
 
+## 67. A white background everywhere
+
+The product owner asked for a white background across the whole site. The
+ground was a warm off white (`#f7f7f2`) in two token sets, one for the landing
+and sign-in pages (`--lm-ground`) and one for everything behind sign-in
+(`--bg`); both are now `#ffffff`, so the public pages, the three workspaces
+and the pages between them agree. DESIGN.md names the ground as white.
+
+Two things follow from putting white panels on a white ground, and were
+handled rather than left to chance:
+
+- Panels were separated from the page by a tone; now they are separated by
+  their 1px rule and their shadow, which they already carried, so they still
+  read as panels in the screenshots checked (landing, patient overview,
+  directory).
+- Four small insets (the prescription note, the "how to take" block, the
+  cancelled visit's date tile and the sample card's figures) had used the
+  ground as their tint on a white card. On a white ground they would have
+  vanished, so they use the recessed `--raised` tone instead.
+
+The night theme is untouched: it still follows the device setting, so a
+phone set to dark mode keeps a dark page. Only the light page changed.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
