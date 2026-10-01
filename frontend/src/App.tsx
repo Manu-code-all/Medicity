@@ -41,7 +41,6 @@ const ReservationsPage = lazyPage(() => import("./pages/store/ReservationsPage")
 const StoreProfilePage = lazyPage(() => import("./pages/store/StoreProfilePage"), "StoreProfilePage");
 const StoreRegisterPage = lazyPage(() => import("./pages/store/StoreRegisterPage"), "StoreRegisterPage");
 const RegisterDoctorPage = lazyPage(() => import("./pages/RegisterDoctorPage"), "RegisterDoctorPage");
-const DesignSample = lazyPage(() => import("./pages/DesignSample"), "DesignSample");
 const WelcomePage = lazyPage(() => import("./pages/portal/WelcomePage"), "WelcomePage");
 const RegisterPage = lazyPage(() => import("./pages/RegisterPage"), "RegisterPage");
 const OverviewPage = lazyPage(() => import("./pages/portal/OverviewPage"), "OverviewPage");
@@ -65,7 +64,7 @@ export function App() {
   const navigate = useNavigate();
   // The landing and sign-in pages carry their own navigation.
   const { pathname } = useLocation();
-  const ownChrome = pathname === "/" || pathname.startsWith("/login") || pathname.startsWith("/lab/");
+  const ownChrome = pathname === "/" || pathname.startsWith("/login");
   // The three workspaces bring their own rail; the top bar is for the pages
   // in between (the directory, booking, notifications, sign-up).
   const inWorkspace = /^\/(portal|doctor|store)(\/|$)/.test(pathname);
@@ -117,8 +116,6 @@ export function App() {
           {/* Full-bleed pages manage their own width. */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
-          {/* A sample of a bolder landing page. Not linked from anywhere, and not indexed. */}
-          <Route path="/lab/design" element={<Suspense fallback={<PageLoading />}><DesignSample /></Suspense>} />
           <Route path="/login/doctor" element={<LoginPage role="doctor" />} />
           <Route path="/login/chemist" element={<LoginPage role="chemist" />} />
 

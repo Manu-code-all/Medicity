@@ -2569,6 +2569,44 @@ handled rather than left to chance:
 The night theme is untouched: it still follows the device setting, so a
 phone set to dark mode keeps a dark page. Only the light page changed.
 
+## 68. The bolder look goes live: landing page and all three portals
+
+The sample from entry 66 was approved and is now the real landing page; the
+look it introduced (colour in blocks, big type, one entrance) is carried into
+the doctor, patient and chemist portals.
+
+- **Landing page.** The page now opens on one promise and one action (the
+  search box drawn large, speciality chips, the body guide one link away),
+  with the product shown as a visit ticket, a chemist's answer and a pick-up
+  code on the line; then the five stations on an ink band, the map with its
+  headline, the body guide, the questions people ask first, and a close on one
+  teal colour. It replaces the earlier two-doors opening, the station
+  screenshots and the word-by-word tagline; nothing else on the page was
+  invented, and the footer, the FAQ and the capsule are as they were. The
+  `/lab/design` route and its files are gone.
+- **The portals.** Every page of the three workspaces now opens on a block in
+  its role's colour (teal, indigo, marigold) holding the page title at up to
+  44px with the subtitle beneath. This is one CSS rule on the first header of a
+  page, so every page got it (greeting, visits, prescriptions, the doctor's
+  schedule, the chemist's questions, the store profile), including the ones
+  with actions in the header: the day buttons and "Edit" are white pills on
+  the band, and links inherit the band's text colour. Marigold carries ink
+  text and never white, as the design rules require.
+- **One entrance.** A page's blocks rise in turn once on arrival, and the
+  rail's line draws itself when a portal opens. Not under reduced motion; on a
+  phone the rail's line does not animate.
+- **Left alone on purpose.** The sign-in pages, the directory and the booking
+  page keep their own openings (the owner asked for the landing page and the
+  portals).
+
+A sample card's neighbourhood name was removed so the landing page again names
+no place. The landing tests follow the new composition (the old two-door
+assertions became the one-action ones); all 138 frontend tests pass.
+
+Known leftover: the stylesheet still holds rules for the removed landing
+sections (station screenshots, the tagline); they are unused and harmless,
+and a later pass should delete them.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the

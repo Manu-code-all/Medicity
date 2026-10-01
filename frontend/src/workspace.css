@@ -640,6 +640,57 @@ button.ws__action:hover:not(:disabled), a.ws__action:hover { background: var(--r
   .timegrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
+/* ---------- Bold headers and one entrance: the landing page's look, inside the workspaces ---------- */
+
+/* Each page opens on its role's colour: a block, big type, text on the band. */
+.ws__main .stack > header:first-child {
+  padding: 32px 32px 36px;
+  border-radius: 28px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+.ws__main .stack > header:first-child .portal__title {
+  font-size: clamp(1.875rem, 3.4vw, 2.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  color: inherit;
+}
+.ws__main .stack > header:first-child .muted,
+.ws__main .stack > header:first-child .eyebrow { color: inherit; opacity: 0.86; }
+.ws__main .stack > header:first-child a,
+.ws__main .stack > header:first-child button.link { color: inherit; }
+.ws__main .stack > header:first-child .button--quiet { background: var(--surface); color: var(--text); box-shadow: none; }
+.ws__main .stack > header:first-child .button--quiet:hover { background: var(--raised); }
+.ws__main .stack > header:first-child .avatar--lg { background: var(--surface); }
+/* Day buttons and tabs are white pills on the band. */
+.ws__main .stack > header:first-child .tab { background: var(--surface); color: var(--text); border-color: transparent; }
+
+/* One entrance: the page's blocks rise in turn, once, on arrival. */
+@keyframes ws-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes ws-draw { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.ws__main .stack > * { animation: ws-rise 560ms var(--ease) both; }
+.ws__main .stack > :nth-child(2) { animation-delay: 70ms; }
+.ws__main .stack > :nth-child(3) { animation-delay: 140ms; }
+.ws__main .stack > :nth-child(4) { animation-delay: 210ms; }
+.ws__main .stack > :nth-child(n + 5) { animation-delay: 280ms; }
+.bento > * { animation: ws-rise 560ms var(--ease) both; }
+.bento > :nth-child(2) { animation-delay: 80ms; }
+.bento > :nth-child(3) { animation-delay: 140ms; }
+.bento > :nth-child(4) { animation-delay: 200ms; }
+.bento > :nth-child(5) { animation-delay: 260ms; }
+.bento > :nth-child(n + 6) { animation-delay: 320ms; }
+/* The rail's line draws itself when a portal opens. */
+.ws__line::before { transform-origin: top; animation: ws-draw 900ms var(--ease) 100ms both; }
+
+@media (max-width: 900px) {
+  .ws__main .stack > header:first-child { padding: 24px 20px 28px; border-radius: 20px; }
+  .ws__line::before { animation: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws__main .stack > *, .bento > *, .ws__line::before { animation: none; }
+}
+
 /* ---------- Phones and narrow panes ---------- */
 
 @media (max-width: 900px) {
