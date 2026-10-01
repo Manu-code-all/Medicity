@@ -1,0 +1,203 @@
+/* A bolder landing sample. Same world as landing.css (.lm tokens): enamel ground,
+   ink, and the patient line. Colour comes in blocks (ink band, teal band), type
+   is large, and the line is drawn big. Spacing: 2 4 8 12 16 24 32 40 48 64 80 96 128. */
+
+.ds { --ds-ink: #10202b; --ds-teal: var(--lm-patient-band); }
+.ds ::selection { background: color-mix(in srgb, var(--lm-patient) 28%, transparent); }
+.ds a { text-underline-offset: 4px; }
+
+/* ---------- 1. Hero ---------- */
+
+.ds-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
+  gap: 48px;
+  align-items: center;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 136px 48px 80px;
+  min-height: 100svh;
+}
+.ds-title {
+  margin: 0;
+  font-size: clamp(40px, 4.4vw, 64px);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+  text-wrap: balance;
+}
+.ds-title__end { color: var(--lm-patient-text); }
+.ds-lede { margin: 24px 0 0; max-width: 56ch; font-size: 20px; line-height: 28px; color: var(--lm-ink-2); }
+
+.ds-search { margin-top: 40px; max-width: 640px; }
+/* The real search box, drawn large: the page's main action. */
+.ds-search .omni__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+.ds-search .omni__field {
+  min-height: 64px;
+  padding: 8px 8px 8px 24px;
+  border-radius: 9999px;
+  border: 2px solid var(--ds-ink);
+  background: var(--lm-surface);
+  box-shadow: 0 2px 4px rgba(16, 32, 43, 0.06), 0 16px 40px rgba(16, 32, 43, 0.12);
+}
+.ds-search .omni__field input { height: 48px; font-size: 18px; }
+.ds-search .omni__field .lm-button { min-height: 48px; padding: 8px 32px; font-size: 18px; line-height: 24px; border-radius: 9999px; }
+
+.ds-chips { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 24px 0 0; padding: 0; max-width: 640px; }
+.ds-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 40px; padding: 8px 16px;
+  border-radius: 9999px;
+  background: var(--lm-raised);
+  color: var(--ds-ink);
+  font-size: 15px; font-weight: 600; line-height: 24px;
+  text-decoration: none;
+  transition: background-color 400ms var(--lm-ease), color 400ms var(--lm-ease), transform 400ms var(--lm-ease);
+}
+.ds-chip svg { color: var(--lm-patient-text); transition: color 400ms var(--lm-ease); }
+.ds-chip:hover { background: var(--ds-teal); color: #fff; transform: translateY(-2px); }
+.ds-chip:hover svg { color: #fff; }
+
+.ds-guide-link {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 32px;
+  font-weight: 700; font-size: 18px; color: var(--lm-patient-text); text-decoration: none;
+}
+.ds-guide-link svg { transition: transform 400ms var(--lm-ease); }
+.ds-guide-link:hover { text-decoration: underline; }
+.ds-guide-link:hover svg { transform: translateX(4px); }
+
+/* The product, as three real fragments on the line that joins them. */
+.ds-stack { position: relative; height: 540px; }
+.ds-stack__line { position: absolute; left: -64px; right: 24px; top: 270px; height: 14px; border-radius: 9999px; background: var(--ds-teal); transform-origin: left; animation: ds-draw 1400ms var(--lm-ease) 200ms both; }
+.ds-stack__stop { position: absolute; top: 50%; width: 36px; height: 36px; border-radius: 50%; background: var(--lm-surface); border: 8px solid var(--ds-teal); transform: translateY(-50%); }
+.ds-stack__stop--a { left: 15%; }
+.ds-stack__stop--b { left: 52%; }
+.ds-stack__stop--c { right: 0; }
+
+.ds-card {
+  position: absolute;
+  background: var(--lm-surface);
+  border: 1px solid var(--lm-rule);
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(16, 32, 43, 0.06), 0 20px 48px rgba(16, 32, 43, 0.14);
+  animation: ds-rise 1000ms var(--lm-ease) both;
+}
+.ds-card p { margin: 0; }
+.ds-card__kicker { font-size: 14px; line-height: 20px; font-weight: 700; color: var(--lm-patient-text); }
+.ds-card__big { font-size: 20px; line-height: 28px; font-weight: 700; letter-spacing: -0.01em; }
+.ds-card__sub { font-size: 14px; line-height: 20px; color: var(--lm-ink-2); }
+.ds-num { font-family: "Geist Mono", ui-monospace, monospace; font-feature-settings: "tnum"; }
+
+.ds-card--ticket { top: 24px; right: 0; width: 360px; display: grid; grid-template-columns: auto 1fr; overflow: hidden; animation-delay: 500ms; }
+.ds-ticket__stub { display: grid; align-content: center; justify-items: start; gap: 2px; padding: 20px 24px; background: var(--ds-teal); color: #fff; }
+.ds-ticket__stub strong { font-size: 44px; line-height: 1; font-weight: 500; }
+.ds-ticket__stub span { font-size: 13px; letter-spacing: 0.08em; }
+.ds-ticket__time { margin-top: 8px; font-size: 16px !important; letter-spacing: 0 !important; }
+.ds-ticket__body { display: grid; gap: 2px; align-content: center; padding: 20px 24px; border-left: 2px dashed var(--lm-rule); }
+
+.ds-card--answer { top: 214px; left: 0; width: 360px; padding: 24px; display: grid; gap: 16px; animation-delay: 750ms; }
+.ds-answer__row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.ds-answer__price { font-size: 30px; line-height: 36px; font-weight: 500; letter-spacing: -0.02em; }
+.ds-answer__foot { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--lm-ink-2); }
+.ds-pill { padding: 2px 12px; border-radius: 9999px; background: var(--ds-teal); color: #fff; font-size: 12px; line-height: 16px; font-weight: 700; padding-block: 4px; }
+
+.ds-card--code { bottom: 0; right: 24px; width: 340px; padding: 20px 24px 24px; display: grid; gap: 12px; animation-delay: 1000ms; }
+.ds-code { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.ds-code span { display: grid; place-items: center; height: 56px; border-radius: 10px; background: var(--lm-raised); font-size: 28px; font-weight: 500; }
+
+@keyframes ds-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes ds-rise { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: none; } }
+
+/* ---------- 2. The line, large, on ink ---------- */
+
+.ds-line { background: var(--ds-ink); color: #fff; padding: 128px 48px; }
+.ds-line__title { max-width: 1184px; margin: 0 auto 80px; font-size: clamp(36px, 5vw, 64px); line-height: 1.02; letter-spacing: -0.03em; font-weight: 700; text-wrap: balance; }
+.ds-stations { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 32px; max-width: 1184px; margin: 0 auto; padding: 0; list-style: none; }
+/* The band the stations sit on. */
+.ds-stations::before { content: ""; position: absolute; left: 0; right: 0; top: 17px; height: 10px; border-radius: 9999px; background: var(--lm-patient); }
+.ds-station { position: relative; display: grid; gap: 4px; align-content: start; }
+.ds-station__roundel { position: relative; display: block; width: 44px; height: 44px; margin-bottom: 24px; border-radius: 50%; background: var(--ds-ink); border: 9px solid var(--lm-patient); }
+.ds-station__icon { color: var(--lm-patient); margin-bottom: 8px; }
+.ds-station h3 { margin: 0; font-size: 24px; line-height: 32px; letter-spacing: -0.01em; font-weight: 700; }
+.ds-station__hindi { margin: 0; font-size: 14px; line-height: 20px; color: rgba(255, 255, 255, 0.62); }
+.ds-station__text { margin: 12px 0 0; font-size: 16px; line-height: 24px; color: rgba(255, 255, 255, 0.82); max-width: 24ch; }
+
+/* ---------- 3. Ask ---------- */
+
+.ds-ask { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 80px; align-items: center; max-width: 1280px; margin: 0 auto; padding: 128px 48px; }
+.ds-h2 { margin: 0; font-size: clamp(36px, 5vw, 64px); line-height: 1.02; letter-spacing: -0.03em; font-weight: 700; text-wrap: balance; }
+.ds-ask .ds-lede { margin-bottom: 40px; }
+.ds-ask__map { padding: 32px; border-radius: 28px; background: var(--lm-surface); border: 1px solid var(--lm-rule); box-shadow: 0 2px 4px rgba(16, 32, 43, 0.05), 0 24px 56px rgba(16, 32, 43, 0.12); }
+.ds-ask__map .lm-map { margin: 0; }
+/* The map's route in from the left would run through the headline here. */
+.ds-ask__map .lm-map__trunk { display: none; }
+
+.ds-btn {
+  display: inline-flex; align-items: center; gap: 12px;
+  min-height: 56px; padding: 12px 32px;
+  border-radius: 9999px;
+  background: var(--ds-teal); color: #fff;
+  font-size: 18px; line-height: 24px; font-weight: 700; text-decoration: none;
+  box-shadow: 0 2px 4px rgba(16, 32, 43, 0.14), 0 8px 24px color-mix(in srgb, var(--ds-teal) 32%, transparent);
+  transition: transform 500ms var(--lm-ease), box-shadow 500ms var(--lm-ease);
+}
+.ds-btn:hover { transform: translateY(-3px); box-shadow: 0 2px 4px rgba(16, 32, 43, 0.14), 0 14px 32px color-mix(in srgb, var(--ds-teal) 40%, transparent); }
+.ds-btn:active { transform: scale(0.98); }
+.ds-btn svg { transition: transform 500ms var(--lm-ease); }
+.ds-btn:hover svg { transform: translateX(4px); }
+.ds .ds-btn--light { background: #fff; color: var(--ds-teal); }
+.ds .ds-btn--ghost { background: transparent; color: #fff; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7); }
+.ds-btn--ghost:hover { background: rgba(255, 255, 255, 0.12); box-shadow: inset 0 0 0 2px #fff; }
+
+/* ---------- 4. Guide ---------- */
+
+.ds-guide { background: var(--lm-raised); padding: 128px 48px; }
+.ds-guide { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 80px; align-items: center; }
+.ds-guide__copy { justify-self: end; max-width: 480px; }
+.ds-guide__panel { max-width: 560px; padding: 32px; border-radius: 28px; background: var(--lm-surface); border: 1px solid var(--lm-rule); box-shadow: 0 2px 4px rgba(16, 32, 43, 0.05), 0 24px 56px rgba(16, 32, 43, 0.1); }
+
+/* ---------- 5. Close ---------- */
+
+.ds-close { background: var(--ds-teal); color: #fff; text-align: center; padding: 160px 24px 128px; }
+.ds-close__title { margin: 0 auto; max-width: 14ch; font-size: clamp(40px, 6.4vw, 88px); line-height: 0.98; letter-spacing: -0.035em; font-weight: 700; text-wrap: balance; }
+.ds-close__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 56px; }
+.ds-close__note { margin: 48px auto 0; max-width: 52ch; font-size: 16px; line-height: 24px; color: rgba(255, 255, 255, 0.82); }
+
+/* ---------- Narrow screens ---------- */
+
+@media (max-width: 1080px) {
+  .ds-hero { grid-template-columns: 1fr; gap: 48px; min-height: 0; padding: 152px 24px 64px; }
+  .ds-stack { max-width: 560px; width: 100%; margin: 0 auto; height: 520px; }
+  .ds-stations { grid-template-columns: 1fr; gap: 40px; padding-left: 8px; }
+  .ds-stations::before { left: 21px; right: auto; top: 0; bottom: 0; width: 10px; height: auto; }
+  .ds-station { grid-template-columns: 44px 1fr; column-gap: 24px; }
+  .ds-station__roundel { grid-row: 1 / span 4; margin: 0; }
+  .ds-station__icon { display: none; }
+  .ds-ask, .ds-guide { grid-template-columns: 1fr; gap: 48px; padding: 96px 24px; }
+  .ds-guide__copy { justify-self: start; }
+  .ds-guide__panel { max-width: none; }
+}
+@media (max-width: 640px) {
+  /* On a phone the capsule is one row: the page's own headline already says it. */
+  .ds .lm-nav__pill { grid-template-areas: "brand cta"; padding-bottom: 12px; }
+  .ds .lm-pages { display: none; }
+  .ds-hero { padding-top: 120px; }
+  .ds-lede { font-size: 18px; }
+  .ds-search .omni__field { padding-left: 16px; }
+  .ds-search .omni__field .lm-button { padding: 8px 16px; font-size: 16px; }
+  /* The three fragments stack in the page flow, each whole. */
+  .ds-stack { height: auto; display: grid; gap: 16px; }
+  .ds-stack__line { display: none; }
+  .ds-card { position: static; width: auto; }
+  .ds-line { padding: 96px 24px; }
+  .ds-line__title { margin-bottom: 56px; }
+  .ds-ask__map, .ds-guide__panel { padding: 16px; border-radius: 20px; }
+  .ds-close { padding: 112px 24px 96px; }
+  .ds-btn { width: 100%; justify-content: center; }
+  .ds-close__actions { flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-stack__line, .ds-card { animation: none; }
+}
