@@ -2487,6 +2487,61 @@ One backend test (set, read in the directory and by id, half a location
 refused, cleared by omission, 404) and three frontend (distance and sort,
 the day/part-of-day layout, the practice form's clinic).
 
+## 65. A 3D preview: the journey, the body and the map
+
+The decision (scope, concept, fallback, style) was made with the product
+owner: 3D on the landing and sign-in pages plus a few moments in the app;
+all three ideas (a scroll journey along the transit line, a 3D body to turn
+and tap, a map of chemists); stylised and built in code, not modelled; a
+flat fallback for weak phones and reduced motion. This entry is the
+prototype, shown at `/lab/3d`: not linked from anywhere, not indexed, and
+touching no live page.
+
+- **The journey.** Scroll is travel. A Catmull-Rom curve is the line; the
+  camera rides it and the line fills in teal behind (by drawing more of the
+  tube as `progress` rises), each station's roundel turning from grey to
+  teal as it is reached. Each station has a small landmark made of boxes
+  and discs (a clinic with a cross, a clock, a prescription leaf, a shop
+  with an awning, a counter with six code cells). No text is drawn in 3D:
+  the chapters are HTML that scrolls over the canvas, so they stay real
+  text for readers, search and translation.
+- **The body.** Same contract as the flat drawing (`view`, `selected`,
+  `onSelect`), so the guide around it does not change. Drag to turn it, it
+  settles front or back (and the view follows); tap an area to choose it;
+  hover and choice ease into their colour. A real button per area is kept
+  for keyboard and screen reader users, as the flat one has.
+- **The map.** The product's mechanism in a tilted city: the question goes
+  out from home to each chemist, answers come back one by one, pillars turn
+  teal or marigold, and it loops. Same data as the flat map.
+- **One rule set for every scene** (`three/Stage.tsx`): pixel ratio capped
+  at 1.75, drawing stops off screen and when the tab is hidden, a lost WebGL
+  context swaps in the flat fallback, and geometries are disposed.
+  `canDraw3D` turns 3D off for reduced motion, Data Saver, no WebGL, under
+  four cores or under 4 GB where the browser says; the test is
+  deliberately conservative because a wrong "on" costs a patient a janky
+  page and a wrong "off" costs only a flourish.
+- **Motion stack.** One smooth-scroll engine (Lenis) driven by GSAP's
+  ticker and feeding ScrollTrigger; none of it starts when 3D is off.
+- **Weight.** Everything 3D is lazy: the main bundle is unchanged (106 KB
+  gzipped). Three.js and react-three-fiber add about 221 KB gzipped, GSAP and
+  Lenis about 51 KB, loaded only on a device that passes the check and only
+  on a page that uses a scene. That is above the 300 KB budget set when this
+  was scoped by a small margin and is the first thing to trim (drei is used
+  for one component).
+
+What a first look showed and was fixed: the default tone mapping washed the
+enamel palette to grey (colours are now true, with `flat`), the camera started
+inside a block of the city (the line now has a lead-in and blocks keep clear
+of the camera's path), the chapters collided with the floating bar, and the
+body filled the frame.
+
+Tests: the capability check for each reason it turns 3D off, and the preview
+page with no WebGL (the state every weak device is in) is complete as flat
+pages. Not covered by tests, because jsdom has no WebGL: the scenes
+themselves, which were checked in a real browser at desktop width. Phones and
+real mid-range devices are still to be measured before any of this reaches
+the live pages.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
