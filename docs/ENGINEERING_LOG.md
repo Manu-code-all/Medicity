@@ -2506,6 +2506,46 @@ What it taught, for the 2D redesign that followed:
 - A hero needs one focal point, not a technique. The page's problem was never
   the number of dimensions.
 
+## 66. A bolder 2D landing page, as a sample
+
+After dropping 3D, the question was where the landing page actually falls
+short. Reading the live page as a visitor does, the first screen was the
+problem: two equal white tool panels (a grey body and six empty tiles) with no
+focal point, the headline living in a small capsule, 14px grey type on
+cream, one colour used sparingly, and the best ideas (the line with five
+stations, the question going out and answers coming back) either below the
+fold or drawn small and pale. Nothing said what Medicity is, why it matters,
+or what to do first.
+
+The sample at `/lab/design` (not linked, not indexed, the live landing page
+untouched) keeps the Enamel Signage world and changes the composition:
+
+- **One promise, one action, one picture.** "Find your doctor. Then your
+  medicines nearby." at 64px, the real search box drawn as the main action
+  (64px high, ink outline, one deep shadow), six speciality chips under it,
+  and the body guide as a clear second door. Beside it the product in three
+  real fragments (a visit ticket, a chemist's answer with its price, a
+  pick-up code) strung on the line, which draws itself once on load.
+- **Colour in blocks.** The line section is a full-width ink band with the
+  five stations on a thick teal line; the page closes on a full-width teal
+  band with one white button. Light, dark, light, grey, teal: the page has a
+  rhythm that scrolling can feel, which the cream-on-cream page did not.
+- **The map earns its size.** The existing map is shown larger in a white
+  panel with its headline beside it; its route-in line is hidden here because
+  it would run through the headline.
+- **Not repeated.** The three role sections the owner asked to remove stay
+  removed; a hero-metrics row and section numbers were not added.
+
+Also found while checking at phone width: the capsule's rotating line takes a
+quarter of a phone's first screen, so on a phone (sample only) the capsule is
+one row and the page's own headline carries the message; and absolutely
+positioned fragments overlap on a phone, so they stack in the page flow there.
+
+One authored motion (the line drawing, then the three fragments rising in
+turn), none under reduced motion. One render test. The sample reuses the
+real search box, body guide and map, so adopting it is a swap of the
+landing page's composition, not a rebuild.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
