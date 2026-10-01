@@ -2,7 +2,7 @@
 name: Medicity
 description: From prescription to medicines in hand, near you. Public surfaces drawn as enamel transit signage, one coloured line per role.
 colors:
-  enamel-ground: "#f7f7f2"
+  enamel-ground: "#ffffff"
   enamel-surface: "#ffffff"
   enamel-raised: "#efefe8"
   hairline-rule: "#d9dbd3"
@@ -200,7 +200,7 @@ components:
 
 **Creative North Star: "Enamel Signage"**
 
-The public face of Medicity is a transit line. Care is one line with five stations (book, visit, prescription, chemists nearby, pick up), and every public surface is drawn the way a well kept metro system signs its platforms: a flat off white ground, deep ink navy lettering, thick solid line bands in one colour, and round station markers with a white fill and a heavy ring. Labels sit flush beside their stations like platform signs, and key station names carry a small Hindi line underneath. The mood is calm, plain and exact; the journey itself is the illustration, and real screen fragments with real demo data stand in for decoration.
+The public face of Medicity is a transit line. Care is one line with five stations (book, visit, prescription, chemists nearby, pick up), and every public surface is drawn the way a well kept metro system signs its platforms: a flat white ground, deep ink navy lettering, thick solid line bands in one colour, and round station markers with a white fill and a heavy ring. Labels sit flush beside their stations like platform signs, and key station names carry a small Hindi line underneath. The mood is calm, plain and exact; the journey itself is the illustration, and real screen fragments with real demo data stand in for decoration.
 
 Colour is wayfinding, not ornament. Each role owns one line colour (patient teal, doctor indigo, chemist marigold), and a surface switches its whole accent by switching role, so the sign-in page for a chemist is literally painted in the chemist line. Everything else stays neutral ink on enamel. Depth is reserved for the few things that float above the map: the navigation island, the screen fragments at each station, and a hovered button.
 

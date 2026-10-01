@@ -5,7 +5,7 @@
    --accent-text is the tone that is readable as type on the ground. Marigold
    is never text and never carries white, so the three must not be swapped. */
 :root {
-  --bg: #f7f7f2;
+  --bg: #ffffff;
   --surface: #ffffff;
   --raised: #efefe8;
   --border: #d9dbd3;
@@ -469,7 +469,7 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .preview__visit { display: flex; gap: 12px; align-items: center; }
 .preview__visit p { margin: 0; }
 .preview__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.preview__stats div { background: var(--bg); border-radius: 8px; padding: 8px; text-align: center; display: flex; flex-direction: column; }
+.preview__stats div { background: var(--raised); border-radius: 8px; padding: 8px; text-align: center; display: flex; flex-direction: column; }
 .preview__stats strong { font-size: 1.2rem; }
 .preview__stats span { font-size: 0.72rem; color: var(--text-muted); }
 .preview__rx { display: flex; justify-content: space-between; gap: 8px; font-size: 0.9rem; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
@@ -557,7 +557,7 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 
 .visit-list { list-style: none; padding: 0; margin: 0; }
 .visit { display: flex; gap: 14px; align-items: flex-start; }
-.visit--cancelled .date-tile, .visit--no_show .date-tile { background: var(--bg); color: var(--text-muted); }
+.visit--cancelled .date-tile, .visit--no_show .date-tile { background: var(--raised); color: var(--text-muted); }
 .visit__body { flex: 1; min-width: 0; }
 .visit__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .visit__meta { margin: 2px 0 0; font-size: 0.9rem; }
@@ -586,7 +586,7 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .rx__table th { text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); padding: 6px 10px 6px 0; border-bottom: 1px solid var(--border); }
 .rx__table td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
 .rx__table tr:last-child td { border-bottom: none; }
-.rx__notes { margin: 12px 0 0; padding: 10px 12px; background: var(--bg); border-radius: 8px; font-size: 0.93rem; }
+.rx__notes { margin: 12px 0 0; padding: 10px 12px; background: var(--raised); border-radius: 8px; font-size: 0.93rem; }
 
 .profile__head { display: flex; gap: 16px; align-items: center; }
 .details { display: grid; grid-template-columns: 170px 1fr; gap: 10px 16px; margin: 0; }
@@ -783,7 +783,7 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .acting-banner { background: var(--warn-soft); color: var(--warn); border-radius: var(--radius); padding: 8px 12px; font-weight: 600; }
 
 /* How to take, in the patient's language */
-.how { margin-top: 14px; padding: 12px 14px; border-radius: var(--radius); background: var(--bg); }
+.how { margin-top: 14px; padding: 12px 14px; border-radius: var(--radius); background: var(--raised); }
 .how__head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .how__head h3 { margin: 0; font-size: 1rem; }
 .how__list { margin: 10px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
