@@ -2487,6 +2487,25 @@ One backend test (set, read in the directory and by id, half a location
 refused, cleared by omission, 404) and three frontend (distance and sort,
 the day/part-of-day layout, the practice form's clinic).
 
+## 65. A 3D landing page was tried and dropped
+
+A 3D direction (a scroll journey along the line, a body to turn, a map of
+chemists, in Three.js) was built as a hidden preview, looked at in a real
+browser, and then dropped by the product owner in favour of a 2D page that is
+clean and strikes quickly. It was merged and then removed within a day, and
+nothing on the live pages ever used it.
+
+What it taught, for the 2D redesign that followed:
+
+- The three scenes worked and loaded lazily, but cost about 270 KB gzipped
+  on top of a 106 KB app: a poor trade for a first impression that has to land
+  in seconds on a mid-range phone.
+- The thing that read best in 3D was not the 3D: it was the idea of one line
+  with five stations, and a question going out and answers coming back. Those
+  are as strong flat, drawn big.
+- A hero needs one focal point, not a technique. The page's problem was never
+  the number of dimensions.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
