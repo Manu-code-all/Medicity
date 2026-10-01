@@ -1,17 +1,53 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowRight, CalendarCheck, Clock, Package, Prescription, Storefront } from "@phosphor-icons/react";
+import {
+  ArrowRight,
+  Baby,
+  Bone,
+  CalendarCheck,
+  Clock,
+  FirstAidKit,
+  HandPalm,
+  Heartbeat,
+  Package,
+  Prescription,
+  Storefront,
+  Tooth,
+} from "@phosphor-icons/react";
 import { BodyGuide } from "../components/bodymap/BodyGuide";
 import { IslandNav } from "../components/IslandNav";
 import { LineMap } from "../components/LineMap";
 import { DoctorOmnibar } from "../components/search/DoctorOmnibar";
-import { SpecialtyQuickGrid } from "../components/search/SpecialtyQuickGrid";
 import { DEMO_PASSWORD } from "../lib/demo";
-import { useInView } from "../lib/reveal";
 import "../landing.css";
+import "./landingBold.css";
 
 const API_DOCS_URL = `${import.meta.env.VITE_API_BASE_URL ?? ""}/swagger-ui/index.html`;
 
+const SPECIALITIES = [
+  { name: "General Medicine", label: "General physician", Icon: FirstAidKit },
+  { name: "Dermatology", label: "Skin", Icon: HandPalm },
+  { name: "Orthopaedics", label: "Bones and joints", Icon: Bone },
+  { name: "Paediatrics", label: "Children", Icon: Baby },
+  { name: "Dentistry", label: "Teeth", Icon: Tooth },
+  { name: "Cardiology", label: "Heart", Icon: Heartbeat },
+];
+
+const STATIONS = [
+  { Icon: CalendarCheck, name: "Book", hindi: "बुकिंग", text: "A time that is yours the moment you take it." },
+  { Icon: Clock, name: "Visit", hindi: "मुलाक़ात", text: "Counted down in your portal. Free to cancel." },
+  { Icon: Prescription, name: "Prescription", hindi: "पर्चा", text: "Written by your doctor and kept current." },
+  { Icon: Storefront, name: "Chemists nearby", hindi: "पास के केमिस्ट", text: "Ask them all at once. Compare the answers." },
+  { Icon: Package, name: "Pick up", hindi: "दवा लें", text: "Kept aside and handed over against your code." },
+];
+
+/**
+ * The public first page. One promise and one action in the first screen (find
+ * a doctor, then your medicines nearby, with the search box as the main
+ * action), the line drawn large on an ink band, the question-and-answers map,
+ * the body guide as the second door, the questions people ask first, and a
+ * close on one colour and one action.
+ */
 export function LandingPage() {
   const location = useLocation();
 
@@ -21,80 +57,165 @@ export function LandingPage() {
   }, [location.hash]);
 
   return (
-    <div className="lm">
+    <div className="lm ds">
       <a className="lm-skip" href="#main">
         Skip to content
       </a>
       <IslandNav />
 
       <main id="main">
-        <section className="lm-doors" aria-labelledby="doors-title">
-          {/* The capsule above shows this line; the page keeps it as its heading. */}
-          <h1 id="doors-title" className="lm-sr">
-            Find the right doctor, then your medicines nearby.
-          </h1>
-          <div className="lm-doors__grid">
-            <section className="lm-door" aria-labelledby="door-guide">
-              <h2 id="door-guide" className="lm-door__title">
-                Not sure who to consult?
-              </h2>
-              <p className="lm-door__lede">
-                Tap where it hurts and say what it feels like. We suggest the kind of specialist to see.
-              </p>
-              <BodyGuide />
-            </section>
-            <section className="lm-door" aria-labelledby="door-search">
-              <h2 id="door-search" className="lm-door__title">
-                Know who you are looking for?
-              </h2>
-              <p className="lm-door__lede">Search by doctor or speciality, or pick one of the most asked for.</p>
-              <DoctorOmnibar />
-              <SpecialtyQuickGrid />
-              <Link to="/doctors" className="lm-text-link">
-                See every doctor
-                <ArrowRight size={16} weight="bold" aria-hidden="true" />
-              </Link>
-            </section>
-          </div>
-        </section>
-
-        <section className="lm-hero" aria-labelledby="hero-title">
-          <div className="lm-hero__copy">
-            <h2 id="hero-title" className="lm-sr">
-              From prescription to medicines in hand, near you.
-            </h2>
-            <p className="lm-hero__lede">
-              Book a specialist, keep every prescription in one place, then ask every verified chemist within 3&nbsp;km who
-              has your medicines and at what price. Pick up with a code.
+        {/* 1. The first screen: one promise, one action, one picture of the product. */}
+        <section className="ds-hero" aria-labelledby="ds-title">
+          <div className="ds-hero__copy">
+            <h1 id="ds-title" className="ds-title">
+              Find your doctor.
+              <br /> Then your medicines
+              <br /> <span className="ds-title__end">nearby.</span>
+            </h1>
+            <p className="ds-lede">
+              Book a specialist, keep every prescription in one place, and ask every verified chemist within 3 km who has
+              your medicines and at what price.
             </p>
-            <div className="lm-hero__actions">
-              <Link to="/doctors" className="lm-button">
-                Book a visit
-              </Link>
+
+            <div className="ds-search">
+              <DoctorOmnibar />
             </div>
-            <p className="lm-hero__proof">Free for doctors and chemists. No stock list to keep, no fee per prescription.</p>
+            <ul className="ds-chips" aria-label="Popular specialities">
+              {SPECIALITIES.map(({ name, label, Icon }) => (
+                <li key={name}>
+                  <Link to={`/doctors?${new URLSearchParams({ specialty: name })}`} className="ds-chip">
+                    <Icon size={18} weight="bold" aria-hidden="true" />
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <a href="#guide" className="ds-guide-link">
+              Not sure who to see? Tap where it hurts
+              <ArrowRight size={18} weight="bold" aria-hidden="true" />
+            </a>
           </div>
-          <LineMap />
+
+          {/* The product in three real pieces, on the line that connects them. */}
+          <div className="ds-stack" aria-hidden="true">
+            <div className="ds-stack__line">
+              <span className="ds-stack__stop ds-stack__stop--a" />
+              <span className="ds-stack__stop ds-stack__stop--b" />
+              <span className="ds-stack__stop ds-stack__stop--c" />
+            </div>
+
+            <div className="ds-card ds-card--ticket">
+              <div className="ds-ticket__stub">
+                <strong className="ds-num">2</strong>
+                <span className="ds-num">OCT</span>
+                <span className="ds-num ds-ticket__time">10:30</span>
+              </div>
+              <div className="ds-ticket__body">
+                <p className="ds-card__kicker">Tomorrow</p>
+                <p className="ds-card__big">Dr. Anjali Rao</p>
+                <p className="ds-card__sub">Cardiology · At the clinic</p>
+              </div>
+            </div>
+
+            <div className="ds-card ds-card--answer">
+              <div className="ds-answer__row">
+                <div>
+                  <p className="ds-card__big">Lakshmi Medical Stores</p>
+                  <p className="ds-card__sub">Omez, the same medicine</p>
+                </div>
+                <p className="ds-answer__price ds-num">₹58.80</p>
+              </div>
+              <div className="ds-answer__foot">
+                <span className="ds-num">990 m away</span>
+                <span className="ds-pill">Cheapest</span>
+              </div>
+            </div>
+
+            <div className="ds-card ds-card--code">
+              <p className="ds-card__sub">Show this at the counter</p>
+              <div className="ds-code" aria-label="Pick up code 482913">
+                {"482913".split("").map((d, i) => (
+                  <span key={i} className="ds-num">
+                    {d}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
         </section>
 
-        <Journey />
+        {/* 2. The line, drawn large: the page's signature. */}
+        <section className="ds-line" aria-labelledby="ds-line-title">
+          <h2 id="ds-line-title" className="ds-line__title">
+            One line from the clinic
+            <br /> to the chemist's counter.
+          </h2>
+          <ol className="ds-stations">
+            {STATIONS.map(({ Icon, name, hindi, text }) => (
+              <li key={name} className="ds-station">
+                <span className="ds-station__roundel" aria-hidden="true" />
+                <Icon className="ds-station__icon" size={28} weight="bold" aria-hidden="true" />
+                <h3>{name}</h3>
+                <p className="ds-station__hindi" lang="hi">
+                  {hindi}
+                </p>
+                <p className="ds-station__text">{text}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
 
-        <TaglineReveal
-          lines={["Your prescription already knows the way.", "Every verified chemist within 3 km hears it at once."]}
-        />
+        {/* 3. The idea in one picture: a question out, answers back. */}
+        <section className="ds-ask" aria-labelledby="ds-ask-title">
+          <div className="ds-ask__copy">
+            <h2 id="ds-ask-title" className="ds-h2">
+              Every chemist within 3 km hears it at once.
+            </h2>
+            <p className="ds-lede">
+              One tap sends the prescription to every verified chemist around you. See who has it, what it costs and how far
+              it is, then keep it aside and collect it with a code.
+            </p>
+            <Link to="/doctors" className="ds-btn">
+              Book a visit
+              <ArrowRight size={20} weight="bold" aria-hidden="true" />
+            </Link>
+          </div>
+          <div className="ds-ask__map">
+            <LineMap />
+          </div>
+        </section>
+
+        {/* 4. The other door. */}
+        <section className="ds-guide" id="guide" aria-labelledby="ds-guide-title">
+          <div className="ds-guide__copy">
+            <h2 id="ds-guide-title" className="ds-h2">
+              Not sure who to see?
+            </h2>
+            <p className="ds-lede">Tap where it hurts and say what it feels like. We suggest the kind of specialist to book.</p>
+          </div>
+          <div className="ds-guide__panel">
+            <BodyGuide />
+          </div>
+        </section>
 
         <Faq />
 
-        <section className="lm-close" aria-labelledby="close-title">
-          <h2 id="close-title" className="lm-close__title">
+        {/* 5. Close on one colour and one action. */}
+        <section className="ds-close" aria-labelledby="ds-close-title">
+          <h2 id="ds-close-title" className="ds-close__title">
             Your next prescription
             <br /> can find its own chemist.
           </h2>
-          <div className="lm-hero__actions">
-            <Link to="/doctors" className="lm-button">
+          <div className="ds-close__actions">
+            <Link to="/doctors" className="ds-btn ds-btn--light">
               Book a visit
+              <ArrowRight size={20} weight="bold" aria-hidden="true" />
+            </Link>
+            <Link to="/login" className="ds-btn ds-btn--ghost">
+              Sign in
             </Link>
           </div>
+          <p className="ds-close__note">Free for doctors and chemists. No stock list to keep. Every chemist's licence is checked by a person.</p>
         </section>
       </main>
 
@@ -123,274 +244,6 @@ export function LandingPage() {
         </div>
       </footer>
     </div>
-  );
-}
-
-/* ---------- The line: five stations, each a real piece of the app ---------- */
-
-interface StationProps {
-  icon: ReactNode;
-  name: string;
-  hindi: string;
-  title: string;
-  children: ReactNode;
-  panel: ReactNode;
-  last?: boolean;
-}
-
-function Station({ icon, name, hindi, title, children, panel, last }: StationProps) {
-  const [ref, seen] = useInView<HTMLLIElement>("0px 0px -35% 0px");
-  return (
-    <li ref={ref} className="lm-station" data-reached={seen} data-last={last || undefined}>
-      <span className="lm-station__track" aria-hidden="true">
-        <span className="lm-station__fill" />
-      </span>
-      <span className="lm-roundel lm-roundel--station" aria-hidden="true" />
-      <div className="lm-station__sign">
-        <h3 className="lm-station__name">
-          <span className="lm-station__icon" aria-hidden="true">{icon}</span>
-          {name}
-        </h3>
-        <p className="lm-station__hindi" lang="hi">{hindi}</p>
-        <p className="lm-station__title">{title}</p>
-        <p className="lm-station__text">{children}</p>
-      </div>
-      <div className="lm-station__panel" aria-hidden="true">{panel}</div>
-    </li>
-  );
-}
-
-function Journey() {
-  return (
-    <section className="lm-journey" id="line" aria-labelledby="line-title">
-      <h2 id="line-title" className="lm-h2">
-        One line from the clinic
-        <br /> to the chemist's counter
-      </h2>
-      <ol className="lm-stations">
-        <Station
-          icon={<CalendarCheck size={28} weight="bold" />}
-          name="Book"
-          hindi="बुकिंग"
-          title="A slot that is yours the moment you take it"
-          panel={<SlotPanel />}
-        >
-          Real open times for the next two weeks. If two people press the same slot in the same second, one gets
-          it and the other is told at once.
-        </Station>
-        <Station
-          icon={<Clock size={28} weight="bold" />}
-          name="Visit"
-          hindi="मुलाक़ात"
-          title="Counted down in your portal, free to cancel"
-          panel={<VisitPanel />}
-        >
-          Your next visit waits at the top of your portal. Cancelling frees the slot for someone else straight away,
-          and your parents' and children's visits sit beside yours.
-        </Station>
-        <Station
-          icon={<Prescription size={28} weight="bold" />}
-          name="Prescription"
-          hindi="पर्चा"
-          title="Written by your doctor, kept current"
-          panel={<RxPanel />}
-        >
-          When a doctor corrects a prescription the old one is replaced, never two versions. How to take each
-          medicine, in Hindi, Tamil, Kannada, Telugu or Bengali.
-        </Station>
-        <Station
-          icon={<Storefront size={28} weight="bold" />}
-          name="Chemists nearby"
-          hindi="पास के केमिस्ट"
-          title="Ask them all at once, compare the answers"
-          panel={<ComparePanel />}
-        >
-          One tap sends the prescription to every verified chemist within 1, 3 or 5 km. See who has it, the price,
-          the distance, and a cheaper brand your doctor allowed.
-        </Station>
-        <Station
-          icon={<Package size={28} weight="bold" />}
-          name="Pick up"
-          hindi="दवा लें"
-          title="Kept aside, handed over against your code"
-          panel={<CodePanel />}
-          last
-        >
-          The store holds it for 2 to 4 hours. Show your six digit code and pay at the counter. Before you run
-          out, Medicity reminds you to ask again.
-        </Station>
-      </ol>
-    </section>
-  );
-}
-
-function SlotPanel() {
-  return (
-    <div className="lm-panel">
-      <p className="lm-panel__head">
-        <strong>Dr. Suresh Iyer</strong> · Neurology
-      </p>
-      <p className="lm-panel__sub">Wednesday, 14 October</p>
-      <div className="lm-slots">
-        <span>10:00</span>
-        <span>10:30</span>
-        <span className="is-picked">11:00</span>
-        <span className="is-gone">11:30</span>
-        <span>12:00</span>
-        <span>12:30</span>
-      </div>
-    </div>
-  );
-}
-
-function VisitPanel() {
-  return (
-    <div className="lm-panel">
-      <p className="lm-panel__sub">Tomorrow</p>
-      <div className="lm-visit">
-        <span className="lm-visit__time lm-num">11:00</span>
-        <div>
-          <p className="lm-panel__head"><strong>Dr. Suresh Iyer</strong></p>
-          <p className="lm-panel__sub">Neurology · for Lalitha Nair, mother</p>
-        </div>
-      </div>
-      <span className="lm-panel__action">Cancel visit</span>
-    </div>
-  );
-}
-
-function RxPanel() {
-  return (
-    <div className="lm-panel">
-      <p className="lm-panel__head">
-        <strong>Omeprazole 20mg</strong> · capsule
-      </p>
-      <p className="lm-panel__sub">1 capsule before breakfast · 14 days · by Dr. Anjali Rao</p>
-      <p className="lm-panel__hindi" lang="hi">नाश्ते से पहले एक कैप्सूल, 14 दिन तक</p>
-      <span className="lm-chip">Cheaper brand allowed</span>
-    </div>
-  );
-}
-
-function ComparePanel() {
-  const rows = [
-    { store: "Lakshmi Medical Stores", what: "Omez, same medicine", price: "₹58.80", far: "990 m", best: true },
-    { store: "Green Cross Pharmacy", what: "All 14", price: "₹77.00", far: "740 m" },
-    { store: "Nightingale 24x7", what: "10 of 14", price: "₹58.00", far: "1.5 km" },
-  ];
-  return (
-    <div className="lm-panel lm-panel--flush">
-      <ul className="lm-compare">
-        {rows.map((r) => (
-          <li key={r.store}>
-            <span>
-              <strong>{r.store}</strong>
-              <span className="lm-panel__sub">{r.what}</span>
-            </span>
-            <span className="lm-compare__side">
-              <span className="lm-num lm-compare__price">{r.price}</span>
-              <span className="lm-panel__sub lm-num">{r.far}</span>
-              {r.best && <span className="lm-chip lm-chip--solid">Cheapest</span>}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/** The pick-up code drawn with ghost cells: every unlit cell still shows its frame. */
-function CodePanel() {
-  return (
-    <div className="lm-panel">
-      <p className="lm-panel__sub">Show this at Lakshmi Medical Stores</p>
-      <div className="lm-code" aria-label="Pick up code 482913">
-        {"482913".split("").map((d, i) => (
-          <SegmentDigit key={i} digit={Number(d)} />
-        ))}
-      </div>
-      <p className="lm-panel__sub">Kept aside until 3:40 pm · pay at the counter</p>
-    </div>
-  );
-}
-
-/** Which of the seven segments (a to g, clockwise from the top, g in the middle) each digit lights. */
-const SEGMENTS = ["abcdef", "bc", "abdeg", "abcdg", "bcfg", "acdfg", "acdefg", "abc", "abcdefg", "abcdfg"];
-const SEGMENT_SHAPES: Record<string, string> = {
-  a: "M6 2h12l-2 4H8z",
-  b: "M20 4l2 2v12l-2 2-2-2V8z",
-  c: "M20 22l2 2v12l-2 2-2-2V26z",
-  d: "M6 40h12l-2-4H8z",
-  e: "M4 22l2 2v10l-2 4-2-2V24z",
-  f: "M4 4l2 4v10l-2 2-2-2V6z",
-  g: "M6 21l2-2h8l2 2-2 2H8z",
-};
-
-/** One cell of the code: every segment is drawn, and only the digit's segments are lit. */
-function SegmentDigit({ digit }: { digit: number }) {
-  const lit = SEGMENTS[digit] ?? "";
-  return (
-    <span className="lm-code__cell">
-      <svg viewBox="0 0 24 42" aria-hidden="true">
-        {Object.entries(SEGMENT_SHAPES).map(([id, d]) => (
-          <path key={id} d={d} className={lit.includes(id) ? "is-lit" : undefined} />
-        ))}
-      </svg>
-    </span>
-  );
-}
-
-/* ---------- The tagline, lit word by word as it crosses the middle of the screen ---------- */
-
-function TaglineReveal({ lines }: { lines: string[] }) {
-  const ref = useRef<HTMLParagraphElement>(null);
-  // Words below `count` are lit; `from` is where the latest batch started, so
-  // words crossing the line together still light one after another.
-  const [lit, setLit] = useState(() => ({ count: typeof IntersectionObserver === "undefined" ? Infinity : 0, from: 0 }));
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const words = Array.from(el.querySelectorAll<HTMLElement>("[data-word]"));
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const reached = Math.max(
-          0,
-          ...entries.filter((e) => e.isIntersecting).map((e) => Number((e.target as HTMLElement).dataset.word) + 1),
-        );
-        setLit((prev) => (reached > prev.count ? { count: reached, from: prev.count } : prev));
-      },
-      // The trigger line sits just below the middle of the viewport.
-      { rootMargin: "0px 0px -45% 0px", threshold: 1 },
-    );
-    words.forEach((w) => observer.observe(w));
-    return () => observer.disconnect();
-  }, []);
-
-  let index = 0;
-  return (
-    <section className="lm-tagline" aria-label="What Medicity does">
-      <p ref={ref} className="lm-tagline__text">
-        {lines.map((line, li) => (
-          <span key={li} className="lm-tagline__line">
-            {line.split(" ").map((word) => {
-              const i = index++;
-              const on = i < lit.count;
-              return (
-                <span
-                  key={i}
-                  data-word={i}
-                  className={on ? "is-lit" : undefined}
-                  style={on && i >= lit.from ? { transitionDelay: `${(i - lit.from) * 80}ms` } : undefined}
-                >
-                  {word}{" "}
-                </span>
-              );
-            })}
-          </span>
-        ))}
-      </p>
-    </section>
   );
 }
 

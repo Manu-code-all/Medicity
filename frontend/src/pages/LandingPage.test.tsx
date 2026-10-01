@@ -25,16 +25,17 @@ describe("LandingPage", () => {
     vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("reduce"), media: query }));
   });
 
-  it("leads with the two doors, then shows the example chemists' answers on the map", () => {
+  it("opens on one promise and one action, then shows the example chemists' answers on the map", () => {
     renderLanding();
 
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Find the right doctor, then your medicines nearby.");
-    expect(screen.getByRole("heading", { name: "Not sure who to consult?" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Know who you are looking for?" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Chest" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Find your doctor. Then your medicines nearby.");
+    // The search box is the main action; the body guide is the second door, one link away.
     expect(screen.getByRole("combobox")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Bones and joints" })).toHaveAttribute("href", "/doctors?specialty=Orthopaedics");
-    expect(screen.getByRole("heading", { name: "From prescription to medicines in hand, near you." })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Not sure who to see/ })).toHaveAttribute("href", "#guide");
+    expect(screen.getByRole("heading", { name: "Not sure who to see?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Chest" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Every chemist within 3 km hears it at once." })).toBeInTheDocument();
     const main = screen.getByRole("main");
     expect(within(main).getAllByRole("link", { name: "Book a visit" })[0]).toHaveAttribute("href", "/doctors");
 
@@ -78,7 +79,7 @@ describe("LandingPage", () => {
     for (const station of ["Book", "Visit", "Prescription", "Chemists nearby", "Pick up"]) {
       expect(screen.getByRole("heading", { level: 3, name: station })).toBeInTheDocument();
     }
-    expect(screen.getByText("Ask them all at once, compare the answers")).toBeInTheDocument();
+    expect(screen.getByText("Ask them all at once. Compare the answers.")).toBeInTheDocument();
     // Each role's own sign-in and registration sit in the footer.
     expect(screen.getByRole("link", { name: "Doctor sign in" })).toHaveAttribute("href", "/login/doctor");
     expect(screen.getByRole("link", { name: "Chemist sign in" })).toHaveAttribute("href", "/login/chemist");
