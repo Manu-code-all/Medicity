@@ -10,11 +10,21 @@ import { DoctorsPage } from "./pages/DoctorsPage";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { PharmacistLayout } from "./pages/pharmacist/PharmacistLayout";
+import { ShopPage } from "./pages/pharmacist/ShopPage";
 import { OverviewPage } from "./pages/portal/OverviewPage";
+import { PharmaciesPage } from "./pages/portal/PharmaciesPage";
 import { PortalLayout } from "./pages/portal/PortalLayout";
 import { PrescriptionsPage } from "./pages/portal/PrescriptionsPage";
 import { ProfilePage } from "./pages/portal/ProfilePage";
 import { VisitsPage } from "./pages/portal/VisitsPage";
+
+const NAV_LABEL = {
+  PATIENT: "My portal",
+  DOCTOR: "My workspace",
+  PHARMACIST: "My shop",
+  ADMIN: "",
+} as const;
 
 export function App() {
   const { session, logout } = useAuth();
@@ -39,7 +49,7 @@ export function App() {
               <>
                 {session.role !== "ADMIN" && (
                   <NavLink to={homeFor(session.role)}>
-                    {session.role === "DOCTOR" ? "My workspace" : "My portal"}
+                    {NAV_LABEL[session.role]}
                   </NavLink>
                 )}
                 <button type="button" className="link" onClick={signOut}>
@@ -68,12 +78,16 @@ export function App() {
               <Route index element={<OverviewPage />} />
               <Route path="visits" element={<VisitsPage />} />
               <Route path="prescriptions" element={<PrescriptionsPage />} />
+              <Route path="pharmacies" element={<PharmaciesPage />} />
               <Route path="profile" element={<ProfilePage />} />
             </Route>
             <Route path="/doctor" element={<DoctorLayout />}>
               <Route index element={<SchedulePage />} />
               <Route path="visits/:visitId" element={<VisitPage />} />
               <Route path="patients/:patientId" element={<PatientHistoryPage />} />
+            </Route>
+            <Route path="/pharmacist" element={<PharmacistLayout />}>
+              <Route index element={<ShopPage />} />
             </Route>
           </Route>
 

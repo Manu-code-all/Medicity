@@ -17,7 +17,7 @@ export interface TokenPair {
   fullName: string;
 }
 
-export type Role = "PATIENT" | "DOCTOR" | "ADMIN";
+export type Role = "PATIENT" | "DOCTOR" | "PHARMACIST" | "ADMIN";
 
 export type AppointmentStatus = "BOOKED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 
@@ -179,4 +179,52 @@ export interface Medicine {
   strength: string | null;
   quantityOnHand: number;
   lowStock: boolean;
+}
+
+// --- Pharmacies ----------------------------------------------------------
+
+export interface NearbyPharmacy {
+  id: string;
+  name: string;
+  phone: string;
+  addressLine: string;
+  city: string;
+  pincode: string | null;
+  latitude: number;
+  longitude: number;
+  /** Straight-line distance, not a walking route. */
+  distanceKm: number;
+  /** "HH:mm" on the shop's own clock. */
+  opensAt: string;
+  closesAt: string;
+  openNow: boolean;
+}
+
+export interface Shop {
+  id: string;
+  name: string;
+  drugLicenceNumber: string;
+  phone: string;
+  addressLine: string;
+  city: string;
+  pincode: string | null;
+  latitude: number;
+  longitude: number;
+  /** "HH:mm:ss" */
+  opensAt: string;
+  closesAt: string;
+  status: "ACTIVE" | "SUSPENDED";
+}
+
+/** The fields a pharmacist may change; the licence and status are the administrator's. */
+export interface ShopUpdate {
+  name: string;
+  phone: string;
+  addressLine: string;
+  city: string;
+  pincode: string;
+  latitude: number;
+  longitude: number;
+  opensAt: string;
+  closesAt: string;
 }

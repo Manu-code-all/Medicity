@@ -529,6 +529,83 @@ header up by exact case. The header was there.
 
 ---
 
+## 13. Pharmacies: pharmacist accounts and a nearby search
+
+**Why.** Step one of the product direction: after a doctor prescribes, the
+patient should be able to find a chemist close by. This change adds the shops
+themselves; asking a shop whether it stocks the medicines is the next change.
+
+**Naming.** The new code lives in `com.medicity.chemist`, not `pharmacy`.
+`com.medicity.pharmacy` is the hospital's own stock desk (catalogue, stock
+ledger, dispensing); this package models the independent shops around the
+patient. Two different things with one English word, so two packages.
+
+**What was built.**
+
+| Piece | Where |
+|---|---|
+| `PHARMACIST` role; `pharmacies` table | `V12__pharmacies.sql`, `Role` |
+| `GET /api/v1/pharmacies/nearby?lat&lng&radiusKm&limit` (any signed-in user) | `NearbyPharmacyController` |
+| `GET` / `PUT /api/v1/pharmacies/me` (pharmacist edits own shop) | `PharmacistController` |
+| `POST /api/v1/admin/pharmacies`, `GET`, `POST .../{id}/suspend`, `.../reinstate` | `PharmacyAdminController`, `PharmacyProvisioningService` |
+| Patient page *Pharmacies*, pharmacist page *My shop* | `PharmaciesPage.tsx`, `ShopPage.tsx` |
+| Five demo shops in Bengaluru, one of them open past midnight | `R__demo_data.sql` |
+
+**Decisions.**
+
+- **Administrators create pharmacies; nobody registers one.** A shop is shown to
+  patients who are unwell, so someone must check the drug licence first. Creating
+  the row is that check, so there is no PENDING state. This is the same rule
+  doctors follow and for the same reason: taking the role from a public request
+  body would let anyone list a fake chemist.
+- **No PostGIS.** Railway's Postgres does not promise the extension, and a few
+  thousand shops do not need it. The search narrows on a latitude/longitude box
+  (an index scan, confirmed with `EXPLAIN`) and then applies the exact haversine
+  distance. The box is sized from the widest latitude it covers, because a box
+  sized for the centre is too narrow toward a pole and would drop shops that are
+  inside the radius. `PharmacyLocationTest` checks points on the circle in every
+  direction at six latitudes. Across the antimeridian it leaves longitude
+  unbounded, which stays correct because the exact test runs afterwards.
+- **Nearby search needs a sign-in.** The shop details are not secret, but an open
+  endpoint lets anyone sweep coordinates and collect every shop's phone number.
+  The caller's position is neither stored nor logged; the web page rounds it to
+  about 11 m and keeps it in component state only.
+- **A pharmacist cannot change the licence or the status**, even by sending them:
+  both are facts the administrator vouches for. `PharmacistProfileTest` sends
+  them and checks they did not move.
+- **`openNow` is computed by the shop's own clock**, with `closesAt < opensAt`
+  meaning it closes after midnight (`PharmacyHoursTest`).
+- **Fallback when location is blocked:** a short list of city centres. It is
+  approximate and the page says so ("the centre of Mumbai").
+
+**Bugs caught while building it.**
+
+- PostgreSQL folds unquoted column aliases to lower case, so a camelCase
+  projection such as `addressLine` would read back as null. The aliases are
+  quoted, and `NearbyPharmacyTest` asserts `addressLine` comes through.
+- A validation exception thrown from a record's constructor reaches the client
+  as a generic "body could not be read" and loses its code, because Jackson wraps
+  it. The same-hours check lives in the controller instead.
+- The admin response read the lazy `user` association outside a transaction,
+  which fails with open-in-view off. The repository fetches the owner with the
+  shop (`JOIN FETCH`) rather than loading it per row.
+
+**Verified.** 34 new tests; the whole backend suite (112 tests) passes. Then the
+real app was run on a fresh database with the `demo` profile and exercised over
+HTTP (nearby with 5 and 20 km radii, 401 without a token, 400 for latitude 95,
+403 for a patient on a pharmacist route, create, duplicate licence 409, the new
+pharmacist signing in) and in headless Chromium (patient search, radius, city
+fallback, a blocked-location message; pharmacist edit with a server-side field
+error, then a successful save). Shop hours were checked against the clock: at
+23:49 IST the 07:30-22:30 shop read closed and the 22:00-06:00 shop read open.
+
+**Caveat on that verification.** This sandbox has no Docker, so Testcontainers
+could not start; the tests ran against a local PostgreSQL **16** instead of the
+18 that CI and production use. Nothing here depends on a version difference, but
+CI is the run that counts.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Audit IP addresses are Railway's edge proxies, not clients.** Found when
@@ -564,4 +641,18 @@ header up by exact case. The header was there.
 - **The public demo is consumed by use.** Closing Dr. Rao's waiting visit or
   booking the open slots changes the data for the next visitor. Planned: a
   nightly reset of the demo data.
-
+- **There is no way to change a password, for any role.** Pharmacist accounts
+  are created with a password the administrator chooses and hands over, and the
+  pharmacist cannot replace it. Patients have the same gap. Needs a change flow
+  and a reset by email, and a forced change on first sign-in for provisioned
+  accounts.
+- **Denied requests to long routes are not audited.** `audit_log.entity_id` is
+  `VARCHAR(64)` and `ACCESS_DENIED` stores `"POST /path"`, so any path with a UUID
+  in it (for example a patient calling `POST /api/v1/doctors/me/visits/{id}/complete`)
+  overflows, the best-effort write fails, and only an ERROR line in the server log
+  records the denial. The 403 is still returned. Found while testing the
+  pharmacy admin routes.
+- **Nearby distance is a straight line**, not a walking or driving route, and
+  the city-centre fallback is only good to a few kilometres.
+- **Pharmacies have no stock.** Nothing yet tells a patient whether a shop has
+  their medicines; that is the next change.

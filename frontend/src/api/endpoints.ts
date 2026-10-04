@@ -5,12 +5,15 @@ import type {
   DoctorVisitDetail,
   DoctorVisitSummary,
   Medicine,
+  NearbyPharmacy,
   PatientHistory,
   PrescriptionDraft,
   Page,
   PatientProfile,
   PortalSummary,
   Prescription,
+  Shop,
+  ShopUpdate,
   Slot,
   TokenPair,
   Visit,
@@ -121,4 +124,17 @@ export const workspace = {
 
 export const pharmacy = {
   medicines: () => request<Page<Medicine>>("/api/v1/pharmacy/medicines?size=100"),
+};
+
+export const pharmacies = {
+  /** Straight-line distance search around a point; nothing about the point is stored. */
+  nearby: (lat: number, lng: number, radiusKm: number) =>
+    request<NearbyPharmacy[]>(`/api/v1/pharmacies/nearby?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`),
+};
+
+/** The signed-in pharmacist's own shop; "mine" comes from the token. */
+export const shop = {
+  get: () => request<Shop>("/api/v1/pharmacies/me"),
+
+  update: (body: ShopUpdate) => request<Shop>("/api/v1/pharmacies/me", { method: "PUT", body }),
 };

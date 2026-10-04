@@ -249,3 +249,46 @@ FROM (VALUES
 ) AS v (id, slot_id, patient_id, reason)
 JOIN appointment_slots s ON s.id = v.slot_id::uuid
 ON CONFLICT DO NOTHING;
+
+
+-- ---------------------------------------------------------------------
+-- Pharmacies around central Bengaluru, for the "nearby" search. Each is
+-- run by its own pharmacist account (same demo password). Licence numbers
+-- are made up. NightOwl closes after midnight, to show that case.
+-- ---------------------------------------------------------------------
+INSERT INTO users (id, email, password_hash, full_name, phone, role) VALUES
+  ('44444444-4444-4444-8444-444444444401', 'sunrise@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Ramesh Shetty', '+919876500301', 'PHARMACIST'),
+  ('44444444-4444-4444-8444-444444444402', 'citycare@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Divya Menon', '+919876500302', 'PHARMACIST'),
+  ('44444444-4444-4444-8444-444444444403', 'jayanagar@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Imran Pasha', '+919876500303', 'PHARMACIST'),
+  ('44444444-4444-4444-8444-444444444404', 'whitefield@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Latha Reddy', '+919876500304', 'PHARMACIST'),
+  ('44444444-4444-4444-8444-444444444405', 'nightowl@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Joseph Dsouza', '+919876500305', 'PHARMACIST')
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO pharmacies (id, user_id, name, drug_licence_number, phone, address_line, city, pincode,
+                        latitude, longitude, opens_at, closes_at) VALUES
+  ('cccccccc-6666-4666-8666-cccccccccc01', '44444444-4444-4444-8444-444444444401',
+   'Sunrise Chemists', 'KA-DL-DEMO-0001', '+919876500301',
+   '12 100 Feet Road, Indiranagar', 'Bengaluru', '560038', 12.978400, 77.640800, '08:00', '22:30'),
+  ('cccccccc-6666-4666-8666-cccccccccc02', '44444444-4444-4444-8444-444444444402',
+   'CityCare Pharmacy', 'KA-DL-DEMO-0002', '+919876500302',
+   '5 80 Feet Road, Koramangala', 'Bengaluru', '560034', 12.935200, 77.624500, '09:00', '21:00'),
+  ('cccccccc-6666-4666-8666-cccccccccc03', '44444444-4444-4444-8444-444444444403',
+   'Jayanagar Medicals', 'KA-DL-DEMO-0003', '+919876500303',
+   '27 4th Block, Jayanagar', 'Bengaluru', '560011', 12.930800, 77.583800, '08:30', '21:30'),
+  ('cccccccc-6666-4666-8666-cccccccccc04', '44444444-4444-4444-8444-444444444404',
+   'Whitefield Wellness Pharmacy', 'KA-DL-DEMO-0004', '+919876500304',
+   '3 ITPL Main Road, Whitefield', 'Bengaluru', '560066', 12.969800, 77.750000, '09:00', '22:00'),
+  ('cccccccc-6666-4666-8666-cccccccccc05', '44444444-4444-4444-8444-444444444405',
+   'NightOwl Medicos', 'KA-DL-DEMO-0005', '+919876500305',
+   '48 MG Road', 'Bengaluru', '560001', 12.975600, 77.606800, '22:00', '06:00')
+ON CONFLICT DO NOTHING;

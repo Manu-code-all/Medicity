@@ -27,6 +27,8 @@ export function homeFor(role: Role): string {
       return "/portal";
     case "DOCTOR":
       return "/doctor";
+    case "PHARMACIST":
+      return "/pharmacist";
     default:
       return "/";
   }

@@ -6,6 +6,7 @@ const SECTIONS = [
   { to: "/portal", label: "Overview", end: true },
   { to: "/portal/visits", label: "Visits", end: false },
   { to: "/portal/prescriptions", label: "Prescriptions", end: false },
+  { to: "/portal/pharmacies", label: "Pharmacies", end: false },
   { to: "/portal/profile", label: "Profile", end: false },
 ];
 
@@ -22,6 +23,8 @@ export function PortalLayout() {
           <p className="muted">You are signed in as {session.role.toLowerCase()}.</p>
           {session.role === "DOCTOR" ? (
             <Link to="/doctor">Go to your workspace</Link>
+          ) : session.role === "PHARMACIST" ? (
+            <Link to="/pharmacist">Go to your shop</Link>
           ) : (
             <Link to="/doctors">Go to the doctor directory</Link>
           )}

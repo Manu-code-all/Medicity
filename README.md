@@ -219,7 +219,8 @@ SPRING_PROFILES_ACTIVE=demo docker compose up --build
 | `arjun@medicity.demo`, `kavya@medicity.demo` | PATIENT — on Dr. Rao's calendar today |
 | `dr.rao@medicity.demo` | DOCTOR — one visit waiting to be closed, one later today |
 | `dr.iyer@medicity.demo` | DOCTOR — useful for checking that doctors cannot reach each other's patients |
-| `admin@medicity.demo` | ADMIN — pharmacy and audit trail |
+| `admin@medicity.demo` | ADMIN — pharmacy, audit trail, pharmacy onboarding |
+| `sunrise@medicity.demo`, `citycare@medicity.demo`, `jayanagar@medicity.demo`, `whitefield@medicity.demo`, `nightowl@medicity.demo` | PHARMACIST — one demo shop each, around central Bengaluru |
 
 Password for all of them: `demo-password-2026`
 
@@ -280,6 +281,11 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/doctors/me/visits/{id}/prescriptions` | own doctor | Issue the visit's prescription |
 | `POST` | `/api/v1/doctors/me/prescriptions/{id}/corrections` | author | Correct (supersede) a prescription |
 | `GET` | `/api/v1/doctors/me/patients/{id}/history` | treating doctor | A patient's history (audited) |
+| `GET` | `/api/v1/pharmacies/nearby?lat&lng&radiusKm&limit` | signed in | Active pharmacies near a point, nearest first (max 50 km) |
+| `GET` / `PUT` | `/api/v1/pharmacies/me` | PHARMACIST | Read / edit own shop (licence and status are not editable) |
+| `GET` | `/api/v1/admin/pharmacies` | ADMIN | Every pharmacy |
+| `POST` | `/api/v1/admin/pharmacies` | ADMIN | Create a pharmacist account together with its shop |
+| `POST` | `/api/v1/admin/pharmacies/{id}/suspend` · `/reinstate` | ADMIN | Hide / show a shop in search |
 | `GET` | `/api/v1/pharmacy/medicines` | signed in | Medicine catalogue |
 | `GET` | `/api/v1/pharmacy/stock/low` | ADMIN | Medicines below reorder level |
 | `POST` | `/api/v1/pharmacy/medicines/{id}/restock` | ADMIN | Add stock |
@@ -305,7 +311,7 @@ machine-readable `code`, so clients branch on the code rather than on prose:
 }
 ```
 
-Registration always creates a `PATIENT`. Doctor and admin accounts are
+Registration always creates a `PATIENT`. Doctor, pharmacist and admin accounts are
 provisioned by an administrator — taking the role from the request body would let
 anyone mint themselves an admin account.
 
@@ -349,8 +355,9 @@ backend/
     scheduling/   BookingService  ← the interesting part
     clinical/     prescriptions
     pharmacy/     catalogue, stock ledger
+    chemist/      independent pharmacies: shops, nearby search, onboarding
     audit/        append-only audit trail
-  src/main/resources/db/migration/   V1–V11, the real specification
+  src/main/resources/db/migration/   V1–V12, the real specification
   src/test/java/com/medicity/
     scheduling/SlotBookingConcurrencyTest.java   ← the proof
     security/AppointmentAccessControlTest.java   ← IDOR coverage
@@ -456,6 +463,22 @@ missed visit, a corrected prescription and an upcoming appointment.
 
 Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
 
+## Pharmacies
+
+- **Patients** — *Pharmacies* in the portal lists shops near them, nearest first,
+  with distance, hours, whether the shop is open now, a call button and
+  directions. It uses the browser's location, or a city centre if that is blocked.
+  The position is used for the one request and never stored.
+- **Pharmacists** — *My shop* edits the shop's name, phone, address, hours and map
+  position. The drug licence and visibility are the administrator's.
+- **Administrators** onboard a shop (`POST /api/v1/admin/pharmacies`) after
+  checking its licence; self-registration is deliberately not offered. There is
+  no admin screen for this yet, only the API.
+
+Search is a straight-line distance over a latitude/longitude bounding box plus an
+exact haversine test, with no PostGIS. Patients cannot yet ask a shop whether it
+stocks their medicines; shops here have no stock.
+
 ---
 
 ## Roadmap
@@ -466,6 +489,11 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
 - [x] Refresh-token rotation with reuse detection
 - [x] Login rate limiting
 - [x] Idempotency keys on booking
+- [x] Pharmacies: shop accounts and a nearby search
+- [ ] Ask nearby pharmacies whether they stock a prescription's medicines
+- [ ] Reserve medicines at a pharmacy and pick up with a code
+- [ ] Doctor attaches a photo of a handwritten prescription
+- [ ] Password change and reset
 - [ ] Editable patient profile
 - [ ] Notification service (email/SMS) on booking and cancellation
 - [ ] Prometheus metrics + Grafana dashboard
