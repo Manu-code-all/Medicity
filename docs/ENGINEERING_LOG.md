@@ -2607,6 +2607,82 @@ Known leftover: the stylesheet still holds rules for the removed landing
 sections (station screenshots, the tagline); they are unused and harmless,
 and a later pass should delete them.
 
+## 69. Sign-in codes by email
+
+**Why.** Sign-in by code existed only for mobile numbers, and an SMS provider
+costs money and needs a registered sender in India. For this project a code to
+the account's email address does the same job at no cost.
+
+**What.** Under *Email* on the sign-in page, *Email me a code instead* asks for
+an address and then a six digit code. `POST /api/v1/auth/otp/email/send` and
+`/otp/email/verify`, beside the phone ones. Delivery is through Resend's HTTP
+API (`ResendEmailOtpSender`), switched on by `RESEND_API_KEY` and `RESEND_FROM`;
+unset, nothing is emailed and only the demo accounts can use a code, shown on
+screen as before.
+
+**It is the same code, not a second system.** `OtpService` gained
+`sendToEmail` and `verifyEmail` and shares everything else with the phone path:
+the stored hash, five minutes, five guesses, one sign-in, "the newest code
+wins", and the limit of three codes per account per fifteen minutes. The limit
+is one budget across both channels, so adding email did not double the guesses
+an attacker gets (`EmailOtpSignInTest.limitIsSharedAcrossChannels`).
+
+**Decisions.**
+
+- **The email is sent after the reply, and after the commit.** Calling the
+  provider takes a few hundred milliseconds. If the reply waited for it, an
+  address with an account would answer visibly slower than one without, and
+  "does not say whether the address has an account" would be a promise the clock
+  breaks. So the code is committed, then the message is queued
+  (`BackgroundMailDispatcher`, two threads, a bounded queue) and the reply goes
+  out. Measured against a mock provider that takes a full second: 11-15 ms for a
+  known address, 8-9 ms for an unknown one, the remaining ~3 ms being one insert
+  (the phone path has the same difference, already documented). Sending only
+  after commit also means the email can never arrive for a code that was rolled
+  back.
+- **The price of that:** a failed send is not shown to the person asking. It is
+  logged, and audited as `OTP_SEND_FAILED`; they ask again. A queue that is full
+  drops the message and logs it rather than sending on the request thread, which
+  would make a flood of requests slow exactly the requests it should protect.
+- **The dispatcher is not an `Executor` bean.** Spring Boot only builds its own
+  application task executor when no `Executor` bean exists, so defining one for
+  email would have quietly replaced it for everything else.
+- **HTTP API, not SMTP.** Railway's smaller plans block outbound SMTP, which
+  would work on a laptop and fail once deployed. I did not verify that against
+  Railway; the HTTP API makes it moot.
+- **The request body is built as a string.** The first end-to-end run against a
+  mock provider showed the app sending the JSON with chunked transfer encoding
+  and no `Content-Length` (Spring streams a `Map`). That is valid HTTP, and the
+  mock was what could not read it, but a fixed length is the form every server
+  and proxy in front of a third-party API is certain to handle.
+- **The subject does not carry the code**, so it does not appear on a lock
+  screen preview.
+- **Frontend.** The mobile and email paths share one hook (`useCodeFlow`) and
+  one second step (`CodeStep`), instead of two copies of the same 100 lines.
+
+**What Resend requires, which no test can check.** `RESEND_FROM` has to be on a
+domain verified in Resend. Without a domain, `onboarding@resend.dev` only
+delivers to the address the Resend account was created with, so a recruiter
+cannot receive a code and should use the demo accounts. Free-plan limits were
+100 emails a day and 3000 a month when I looked; check before relying on them.
+
+**Verified.** 25 new backend tests and 5 new frontend tests; the whole backend
+suite (262) and frontend suite (143) pass. Two of the tests were checked by
+breaking the code on purpose: sending immediately instead of after commit, and
+sending on the request thread, each made the matching tests fail. Then the real
+app ran against a mock Resend server (1 s per request) and a headless browser:
+a registered address got an email carrying the right bearer key, sender,
+recipient and code; the wrong code was refused and cleared the box; the right
+code signed in once and the same code again was refused; a demo account got
+its code on screen and nothing was emailed; the audit trail shows
+`OTP_SENT` with channel `email`.
+
+**Not verified.** The app has never talked to the real Resend; only a mock that
+follows its documented request. And the backend tests ran against a local
+PostgreSQL 16 (this sandbox has no Docker), not the 18 CI and production use.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -2650,12 +2726,17 @@ and a later pass should delete them.
   written from general medical knowledge. It errs towards emergency care and
   says it is not a diagnosis, but it needs a doctor's review before real
   patients rely on it.
-- **Codes are not texted yet.** No SMS provider is configured, so only the
-  demo accounts can sign in with a code (shown on screen); real numbers are
-  told to use email. The MSG91 sender has only been tested against a mock.
-  "Send a code" also takes slightly longer for a number with an account
-  (one insert), a timing difference far smaller than network jitter but not
-  zero.
+- **Codes are not texted yet, and emailed ones are untested against Resend.**
+  No SMS provider is configured, so only the demo accounts can sign in with a
+  code by phone (shown on screen). Codes by email work once `RESEND_API_KEY`
+  and a verified `RESEND_FROM` are set (entry 69), but both senders have only
+  been tested against a mock. "Send a code" also takes slightly longer for an
+  address or number with an account (one insert), a timing difference far
+  smaller than network jitter but not zero.
+- **A failed email of a sign-in code is not shown to the person asking.** The
+  send happens in the background so the reply cannot reveal which addresses
+  have accounts; a failure is logged and audited as `OTP_SEND_FAILED`, and the
+  person asks again after the 30 second wait.
 - **Prescription photos are stored in PostgreSQL.** `BYTEA`, capped at 5 MB by
   a CHECK. Fine at demo scale; at volume they belong in object storage with
   the database holding a key, so backups and replicas stay small.

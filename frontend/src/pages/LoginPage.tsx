@@ -37,8 +37,10 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Mobile first, as Indian health platforms do; email stays one tap away.
+  // Mobile first, as Indian health platforms do; email stays one tap away, and
+  // under it a password or a code sent to the address.
   const [method, setMethod] = useState<"mobile" | "email">("mobile");
+  const [emailMode, setEmailMode] = useState<"password" | "code">("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -151,7 +153,20 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
           </div>
 
           {method === "mobile" ? (
-            <MobileSignIn demoPhone={demo.phone} onSignedIn={signedIn} useEmail={() => setMethod("email")} />
+            <MobileSignIn
+              demoPhone={demo.phone}
+              onSignedIn={signedIn}
+              useEmail={() => {
+                setEmailMode("password");
+                setMethod("email");
+              }}
+            />
+          ) : emailMode === "code" ? (
+            <EmailCodeSignIn
+              demoEmail={demo.email}
+              onSignedIn={signedIn}
+              usePassword={() => setEmailMode("password")}
+            />
           ) : (
             <form
               className="lm-form"
@@ -183,6 +198,9 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
               <button type="submit" className="lm-button lm-button--block" disabled={busy !== null}>
                 {busy === "form" ? "Signing in…" : "Sign in"}
               </button>
+              <button type="button" className="lm-link-button" onClick={() => setEmailMode("code")}>
+                Email me a code instead
+              </button>
             </form>
           )}
 
@@ -212,20 +230,14 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
 const RESEND_AFTER_SECONDS = 30;
 
 /**
- * Mobile number, then a six digit code. Until an SMS provider is configured,
- * only the demo accounts can use this: their code is shown on screen.
+ * What both ways of signing in with a code share: ask for a code, wait before
+ * it can be asked for again, then exchange it for a session.
  */
-function MobileSignIn({
-  demoPhone,
-  onSignedIn,
-  useEmail,
-}: {
-  demoPhone: string;
-  onSignedIn: (session: Session) => void;
-  useEmail: () => void;
-}) {
-  const { loginWithCode } = useAuth();
-  const [phone, setPhone] = useState("");
+function useCodeFlow(
+  ask: () => Promise<CodeSent>,
+  exchange: (code: string) => Promise<Session>,
+  onSignedIn: (session: Session) => void,
+) {
   const [sent, setSent] = useState<CodeSent | null>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -242,7 +254,7 @@ function MobileSignIn({
     setError(null);
     setBusy(true);
     try {
-      const reply = await authApi.sendCode(phone);
+      const reply = await ask();
       setSent(reply);
       setCode("");
       setWait(reply.delivery === "UNAVAILABLE" ? 0 : RESEND_AFTER_SECONDS);
@@ -257,7 +269,7 @@ function MobileSignIn({
     setError(null);
     setBusy(true);
     try {
-      onSignedIn(await loginWithCode(phone, code));
+      onSignedIn(await exchange(code));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not sign in. Check your connection.");
       setCode("");
@@ -266,7 +278,28 @@ function MobileSignIn({
     }
   }
 
-  if (sent?.delivery === "UNAVAILABLE") {
+  return { sent, setSent, code, setCode, error, busy, wait, send, verify };
+}
+
+type CodeFlow = ReturnType<typeof useCodeFlow>;
+
+/** Mobile number, then a six digit code. Until an SMS provider is configured,
+ * only the demo accounts can use this: their code is shown on screen.
+ */
+function MobileSignIn({
+  demoPhone,
+  onSignedIn,
+  useEmail,
+}: {
+  demoPhone: string;
+  onSignedIn: (session: Session) => void;
+  useEmail: () => void;
+}) {
+  const { loginWithCode } = useAuth();
+  const [phone, setPhone] = useState("");
+  const flow = useCodeFlow(() => authApi.sendCode(phone), (code) => loginWithCode(phone, code), onSignedIn);
+
+  if (flow.sent?.delivery === "UNAVAILABLE") {
     return (
       <div className="lm-form">
         <p className="lm-note" role="status">
@@ -276,25 +309,25 @@ function MobileSignIn({
         <button type="button" className="lm-button lm-button--block" onClick={useEmail}>
           Use email instead
         </button>
-        <button type="button" className="lm-link-button" onClick={() => setSent(null)}>
+        <button type="button" className="lm-link-button" onClick={() => flow.setSent(null)}>
           Change number
         </button>
       </div>
     );
   }
 
-  if (!sent) {
+  if (!flow.sent) {
     return (
       <form
         className="lm-form"
         onSubmit={(e) => {
           e.preventDefault();
-          void send();
+          void flow.send();
         }}
       >
-        {error && (
+        {flow.error && (
           <p className="lm-error" role="alert">
-            {error}
+            {flow.error}
           </p>
         )}
         <label htmlFor="phone">Mobile number</label>
@@ -316,19 +349,104 @@ function MobileSignIn({
         <p className="lm-hint">
           Demo number: <span className="lm-num">{demoPhone}</span>
         </p>
-        <button type="submit" className="lm-button lm-button--block" disabled={busy}>
-          {busy ? "Sending…" : "Send code"}
+        <button type="submit" className="lm-button lm-button--block" disabled={flow.busy}>
+          {flow.busy ? "Sending…" : "Send code"}
         </button>
       </form>
     );
   }
 
+  return <CodeStep flow={flow} via="SMS" changeLabel="Change number" />;
+}
+
+/**
+ * An email address, then a six digit code sent to it. The reply to "send" is
+ * the same for every address, so this page never says whether one has an
+ * account. Until an email provider is configured, only the demo accounts can
+ * use this: their code is shown on screen.
+ */
+function EmailCodeSignIn({
+  demoEmail,
+  onSignedIn,
+  usePassword,
+}: {
+  demoEmail: string;
+  onSignedIn: (session: Session) => void;
+  usePassword: () => void;
+}) {
+  const { loginWithEmailCode } = useAuth();
+  const [email, setEmail] = useState("");
+  const flow = useCodeFlow(
+    () => authApi.sendEmailCode(email.trim()),
+    (code) => loginWithEmailCode(email.trim(), code),
+    onSignedIn,
+  );
+
+  if (flow.sent?.delivery === "UNAVAILABLE") {
+    return (
+      <div className="lm-form">
+        <p className="lm-note" role="status">
+          Codes by email are not switched on yet, so only the demo accounts can use them. Sign in with your
+          password instead, or try the demo account <span className="lm-num">{demoEmail}</span>.
+        </p>
+        <button type="button" className="lm-button lm-button--block" onClick={usePassword}>
+          Use password instead
+        </button>
+        <button type="button" className="lm-link-button" onClick={() => flow.setSent(null)}>
+          Change email
+        </button>
+      </div>
+    );
+  }
+
+  if (!flow.sent) {
+    return (
+      <form
+        className="lm-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void flow.send();
+        }}
+      >
+        {flow.error && (
+          <p className="lm-error" role="alert">
+            {flow.error}
+          </p>
+        )}
+        <label htmlFor="code-email">Email</label>
+        <input
+          id="code-email"
+          type="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <p className="lm-hint">
+          Demo email: <span className="lm-num">{demoEmail}</span>
+        </p>
+        <button type="submit" className="lm-button lm-button--block" disabled={flow.busy}>
+          {flow.busy ? "Sending…" : "Email me a code"}
+        </button>
+        <button type="button" className="lm-link-button" onClick={usePassword}>
+          Use password instead
+        </button>
+      </form>
+    );
+  }
+
+  return <CodeStep flow={flow} via="email" changeLabel="Change email" />;
+}
+
+/** The second step of either: type the code that arrived, or ask for another. */
+function CodeStep({ flow, via, changeLabel }: { flow: CodeFlow; via: "SMS" | "email"; changeLabel: string }) {
+  const { sent, code, setCode, error, busy, wait } = flow;
   return (
     <form
       className="lm-form"
       onSubmit={(e) => {
         e.preventDefault();
-        void verify();
+        void flow.verify();
       }}
     >
       {error && (
@@ -337,15 +455,15 @@ function MobileSignIn({
         </p>
       )}
       <p className="lm-note" role="status">
-        {sent.delivery === "DEMO" ? (
+        {sent?.delivery === "DEMO" ? (
           <>
-            Demo account, so no SMS: your code is <strong className="lm-num">{sent.demoCode}</strong>.{" "}
+            Demo account, so no {via}: your code is <strong className="lm-num">{sent.demoCode}</strong>.{" "}
             <button type="button" className="lm-link-button" onClick={() => setCode(sent.demoCode ?? "")}>
               Fill it in
             </button>
           </>
         ) : (
-          <>If {sent.sentTo} has an account, a code is on its way. It works for 5 minutes.</>
+          <>If {sent?.sentTo} has an account, a code is on its way. It works for 5 minutes.</>
         )}
       </p>
       <label htmlFor="code">6 digit code</label>
@@ -364,10 +482,10 @@ function MobileSignIn({
         {busy ? "Signing in…" : "Verify and sign in"}
       </button>
       <div className="lm-form__row">
-        <button type="button" className="lm-link-button" onClick={() => setSent(null)}>
-          Change number
+        <button type="button" className="lm-link-button" onClick={() => flow.setSent(null)}>
+          {changeLabel}
         </button>
-        <button type="button" className="lm-link-button" disabled={wait > 0 || busy} onClick={() => void send()}>
+        <button type="button" className="lm-link-button" disabled={wait > 0 || busy} onClick={() => void flow.send()}>
           {wait > 0 ? `Send again in ${wait}s` : "Send again"}
         </button>
       </div>

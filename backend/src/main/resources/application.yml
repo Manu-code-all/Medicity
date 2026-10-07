@@ -77,6 +77,15 @@ medicity:
       auth-key: ${MSG91_AUTH_KEY:}
       otp-template-id: ${MSG91_OTP_TEMPLATE_ID:}
 
+  email:
+    # Sign-in codes by email, through Resend. Both unset: nothing is emailed,
+    # and only the demo accounts can use a code. `from` must be an address on a
+    # domain verified in Resend (onboarding@resend.dev only delivers to the
+    # address the Resend account was created with).
+    resend:
+      api-key: ${RESEND_API_KEY:}
+      from: ${RESEND_FROM:}
+
   auth:
     otp:
       # Shows the demo accounts' codes on screen. On only in the demo profile.

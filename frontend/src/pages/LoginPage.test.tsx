@@ -11,8 +11,9 @@ function renderAt(
   path: string,
   login: AuthContextValue["login"],
   loginWithCode: AuthContextValue["loginWithCode"] = vi.fn(),
+  loginWithEmailCode: AuthContextValue["loginWithEmailCode"] = vi.fn(),
 ) {
-  const value = { session: null, login, loginWithCode } as unknown as AuthContextValue;
+  const value = { session: null, login, loginWithCode, loginWithEmailCode } as unknown as AuthContextValue;
   render(
     <AuthContext.Provider value={value}>
       <MemoryRouter initialEntries={[path]}>
@@ -127,5 +128,99 @@ describe("LoginPage", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("wrong or has expired");
     expect(screen.getByLabelText("6 digit code")).toHaveValue("");
+  });
+
+  describe("with a code sent to the email address", () => {
+    async function openEmailCode() {
+      await userEvent.click(screen.getByRole("tab", { name: "Email" }));
+      await userEvent.click(screen.getByRole("button", { name: "Email me a code instead" }));
+    }
+
+    it("asks for a code by email, then signs in with it", async () => {
+      const calls = mockFetch(() =>
+        json(200, { delivery: "EMAIL", sentTo: "m•••@example.com", demoCode: null, expiresInSeconds: 300 }),
+      );
+      const loginWithEmailCode = vi.fn(async () => as("PATIENT"));
+      renderAt("/login", vi.fn(), vi.fn(), loginWithEmailCode);
+
+      await openEmailCode();
+      await userEvent.type(screen.getByLabelText("Email"), "  meera@example.com ");
+      await userEvent.click(screen.getByRole("button", { name: "Email me a code" }));
+
+      expect(await screen.findByText(/If m•••@example.com has an account, a code is on its way/)).toBeInTheDocument();
+      // Trimmed before it is sent, and it is the email endpoint, not the SMS one.
+      expect(calls[0]).toMatchObject({ url: "/api/v1/auth/otp/email/send", body: { email: "meera@example.com" } });
+      expect(screen.getByRole("button", { name: /Send again in/ })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Change email" })).toBeInTheDocument();
+
+      await userEvent.type(screen.getByLabelText("6 digit code"), "482913");
+      await userEvent.click(screen.getByRole("button", { name: "Verify and sign in" }));
+
+      expect(await screen.findByText("Patient portal")).toBeInTheDocument();
+      expect(loginWithEmailCode).toHaveBeenCalledWith("meera@example.com", "482913");
+    });
+
+    it("shows a demo account's code on screen instead of saying it was emailed", async () => {
+      mockFetch(() => json(200, { delivery: "DEMO", sentTo: "p•••@medicity.demo", demoCode: "110022", expiresInSeconds: 300 }));
+      const loginWithEmailCode = vi.fn(async () => as("PATIENT"));
+      renderAt("/login", vi.fn(), vi.fn(), loginWithEmailCode);
+
+      await openEmailCode();
+      expect(screen.getByText("patient@medicity.demo")).toBeInTheDocument();
+      await userEvent.type(screen.getByLabelText("Email"), "patient@medicity.demo");
+      await userEvent.click(screen.getByRole("button", { name: "Email me a code" }));
+
+      expect(await screen.findByText(/Demo account, so no email/)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Fill it in" }));
+      await userEvent.click(screen.getByRole("button", { name: "Verify and sign in" }));
+
+      expect(await screen.findByText("Patient portal")).toBeInTheDocument();
+      expect(loginWithEmailCode).toHaveBeenCalledWith("patient@medicity.demo", "110022");
+    });
+
+    it("says plainly when codes by email are not switched on, and goes back to the password", async () => {
+      mockFetch(() => json(200, { delivery: "UNAVAILABLE", sentTo: null, demoCode: null, expiresInSeconds: 0 }));
+      renderAt("/login", vi.fn());
+
+      await openEmailCode();
+      await userEvent.type(screen.getByLabelText("Email"), "someone@example.com");
+      await userEvent.click(screen.getByRole("button", { name: "Email me a code" }));
+
+      expect(await screen.findByText(/Codes by email are not switched on yet/)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Use password instead" }));
+      expect(screen.getByLabelText("Password")).toBeInTheDocument();
+    });
+
+    it("shows the server's answer to a wrong code and clears the box", async () => {
+      mockFetch(() => json(200, { delivery: "EMAIL", sentTo: "s•••@example.com", demoCode: null, expiresInSeconds: 300 }));
+      const loginWithEmailCode = vi.fn().mockRejectedValue(
+        new ApiError(401, { code: "WRONG_CODE", detail: "That code is wrong or has expired. Ask for a new one." }),
+      );
+      renderAt("/login", vi.fn(), vi.fn(), loginWithEmailCode);
+
+      await openEmailCode();
+      await userEvent.type(screen.getByLabelText("Email"), "someone@example.com");
+      await userEvent.click(screen.getByRole("button", { name: "Email me a code" }));
+      await userEvent.type(await screen.findByLabelText("6 digit code"), "111111");
+      await userEvent.click(screen.getByRole("button", { name: "Verify and sign in" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("wrong or has expired");
+      expect(screen.getByLabelText("6 digit code")).toHaveValue("");
+    });
+
+    it("the password form is still the default under Email, and Change email returns to the address box", async () => {
+      mockFetch(() => json(200, { delivery: "EMAIL", sentTo: "s•••@example.com", demoCode: null, expiresInSeconds: 300 }));
+      renderAt("/login", vi.fn());
+
+      await userEvent.click(screen.getByRole("tab", { name: "Email" }));
+      expect(screen.getByLabelText("Password")).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "Email me a code instead" }));
+      await userEvent.type(screen.getByLabelText("Email"), "someone@example.com");
+      await userEvent.click(screen.getByRole("button", { name: "Email me a code" }));
+      await userEvent.click(await screen.findByRole("button", { name: "Change email" }));
+
+      expect(screen.getByLabelText("Email")).toHaveValue("someone@example.com");
+    });
   });
 });
