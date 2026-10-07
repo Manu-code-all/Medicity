@@ -171,7 +171,8 @@ flowchart TB
 
     subgraph ext [Outside services]
         AI["Claude / Gemini<br/>read handwritten prescriptions"]
-        SMS["MSG91<br/>sign-in codes"]
+        SMS["MSG91<br/>sign-in codes by SMS"]
+        MAIL["Resend<br/>sign-in codes by email"]
     end
 
     WEB -->|"Bearer JWT"| SEC
@@ -184,6 +185,7 @@ flowchart TB
     JOBS --> PG
     SVC -.-> AI
     SVC -.-> SMS
+    SVC -.-> MAIL
 
     style PG fill:#1a5f3f,color:#fff
     style SEC fill:#7a3b1f,color:#fff
@@ -298,6 +300,17 @@ code. No SMS is sent for these public numbers: the sign-in page shows the code.
 Real numbers need an SMS provider: set `MSG91_AUTH_KEY` and
 `MSG91_OTP_TEMPLATE_ID`, and codes are texted with no code change.
 
+**Codes by email** are the no-cost alternative to SMS: on the sign-in page,
+*Email*, then *Email me a code instead*. The demo accounts show their code on
+screen, as above. For real addresses set `RESEND_API_KEY` and `RESEND_FROM`
+(for example `Medicity <login@yourdomain.com>`), and codes are emailed through
+[Resend](https://resend.com). `RESEND_FROM` must be on a domain verified in
+Resend; until you have one, Resend's `onboarding@resend.dev` works but only
+delivers to the address your Resend account was created with, so nobody else
+can receive a code. Email and SMS codes share one limit (three codes per
+account in fifteen minutes) and one set of rules (five minutes, five guesses,
+one sign-in).
+
 The seed lives in `db/seed/`, which is added to the Flyway path *only* by the
 `demo` profile — a deployed environment has no path by which these accounts
 could be created.
@@ -370,6 +383,7 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/auth/register` | — | Register a patient |
 | `POST` | `/api/v1/auth/login` | — | Obtain a token pair |
 | `POST` | `/api/v1/auth/otp/send` | — | Send a sign-in code to a mobile number (same reply for every number) |
+| `POST` | `/api/v1/auth/otp/email/send` | — | Email a sign-in code to an account's address (same reply for every address) |
 | `POST` | `/api/v1/auth/register/doctor` | — | A doctor signs up; unlisted and unbookable until verified |
 | `GET`/`PUT` | `/api/v1/doctors/me/hours` | DOCTOR | Weekly hours, up to three sessions a day; saving opens slots four weeks ahead |
 | `GET`/`POST` | `/api/v1/doctors/me/leave` | DOCTOR | Days off: no slots, no walk-in tokens; booked visits kept and counted |
@@ -378,6 +392,7 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `GET` | `/api/v1/admin/doctors/pending` | ADMIN | Doctors waiting for their registration check |
 | `POST` | `/api/v1/admin/doctors/{id}/verify` | ADMIN | Registration checked: the doctor becomes bookable |
 | `POST` | `/api/v1/auth/otp/verify` | — | Mobile number and code for a token pair |
+| `POST` | `/api/v1/auth/otp/email/verify` | — | Email address and code for a token pair |
 | `POST` | `/api/v1/auth/refresh` | — | Rotate: spend a refresh token for a new pair (reuse ends the session) |
 | `POST` | `/api/v1/auth/logout` | — | End the session the refresh token belongs to |
 | `GET` | `/api/v1/doctors` | — | Search doctors (`specialization`, `q`, `insurance`), each with next open times, rating, accepted insurers and price list |
@@ -547,6 +562,7 @@ reach its database is never routed traffic.
 | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` — a Railway reference, not a literal |
 | `JWT_SECRET` | 32+ bytes of random; the app refuses to start below that |
 | `MEDICITY_CORS_ORIGINS` | your Vercel origin, e.g. `https://medicity.vercel.app` |
+| `RESEND_API_KEY`, `RESEND_FROM` | optional; turn on sign-in codes by email (see *Codes by email* above) |
 | `SPRING_PROFILES_ACTIVE` | `demo`, to seed clickable data |
 
 Generate the secret with:
@@ -727,7 +743,8 @@ The design notes for each piece are in `docs/ENGINEERING_LOG.md`, entries 21–2
 - [x] Idempotency keys on booking
 - [ ] Editable patient profile
 - [x] In-app notifications through a transactional outbox
-- [ ] Email/SMS delivery (another outbox consumer)
+- [x] Sign-in codes by email (Resend)
+- [ ] Email/SMS delivery of notifications (another outbox consumer)
 - [x] Prometheus metrics (`/actuator/prometheus`, ADMIN only)
 - [ ] Grafana dashboard
 - [ ] Doctor availability rules engine (recurring weekly templates)

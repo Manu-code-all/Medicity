@@ -57,7 +57,7 @@ class OtpSignInTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void rulesUnderTest() {
-        otp = new OtpService(users, jdbc, auth, auditLog, sms, clock, true, "test-secret");
+        otp = new OtpService(users, jdbc, auth, auditLog, sms, new NoEmail(), Runnable::run, clock, true, "test-secret");
     }
 
     // --- through the API, as deployed without SMS ---------------------------
@@ -174,14 +174,14 @@ class OtpSignInTest extends AbstractIntegrationTest {
     void demoCodes() throws Exception {
         String mobile = randomMobile();
         register("visitor-" + System.nanoTime() + "@medicity.demo", mobile);
-        OtpService withoutSms = new OtpService(users, jdbc, auth, auditLog, new NoSms(), clock, true, "test-secret");
+        OtpService withoutSms = new OtpService(users, jdbc, auth, auditLog, new NoSms(), new NoEmail(), Runnable::run, clock, true, "test-secret");
 
         OtpService.CodeSent sent = withoutSms.send(mobile);
         assertThat(sent.delivery()).isEqualTo(OtpService.Delivery.DEMO);
         assertThat(sent.demoCode()).matches("[0-9]{6}");
         assertThat(withoutSms.verify(mobile, sent.demoCode()).accessToken()).isNotBlank();
 
-        OtpService demoOff = new OtpService(users, jdbc, auth, auditLog, new NoSms(), clock, false, "test-secret");
+        OtpService demoOff = new OtpService(users, jdbc, auth, auditLog, new NoSms(), new NoEmail(), Runnable::run, clock, false, "test-secret");
         assertThat(demoOff.send(mobile).delivery()).isEqualTo(OtpService.Delivery.UNAVAILABLE);
     }
 
@@ -247,6 +247,11 @@ class OtpSignInTest extends AbstractIntegrationTest {
     static class NoSms implements OtpSender {
         @Override public boolean available() { return false; }
         @Override public void send(String phone, String code) { throw new AssertionError("nothing may be texted"); }
+    }
+
+    static class NoEmail implements EmailOtpSender {
+        @Override public boolean available() { return false; }
+        @Override public void send(String email, String code) { throw new AssertionError("nothing may be emailed"); }
     }
 
     static class MovableClock extends Clock {

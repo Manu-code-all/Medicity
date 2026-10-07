@@ -70,6 +70,13 @@ export const auth = {
   verifyCode: (phone: string, code: string) =>
     request<TokenPair>("/api/v1/auth/otp/verify", { method: "POST", body: { phone, code } }),
 
+  /** Same reply whether or not the address has an account, and it does not wait for the email to go out. */
+  sendEmailCode: (email: string) =>
+    request<CodeSent>("/api/v1/auth/otp/email/send", { method: "POST", body: { email } }),
+
+  verifyEmailCode: (email: string, code: string) =>
+    request<TokenPair>("/api/v1/auth/otp/email/verify", { method: "POST", body: { email, code } }),
+
   register: (input: {
     email: string;
     password: string;

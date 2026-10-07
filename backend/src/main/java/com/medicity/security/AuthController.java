@@ -50,6 +50,19 @@ public class AuthController {
         return otpService.verify(request.phone(), request.code());
     }
 
+    @PostMapping("/otp/email/send")
+    @Operation(summary = "Email a sign-in code to the address an account was registered with",
+            description = "The reply is the same whether or not the address has an account, and does not wait for the email to be sent.")
+    public OtpService.CodeSent sendEmailCode(@Valid @RequestBody EmailRequest request) {
+        return otpService.sendToEmail(request.email());
+    }
+
+    @PostMapping("/otp/email/verify")
+    @Operation(summary = "Exchange an email address and the code sent to it for a token pair")
+    public AuthService.TokenPair verifyEmailCode(@Valid @RequestBody EmailCodeRequest request) {
+        return otpService.verifyEmail(request.email(), request.code());
+    }
+
     @PostMapping("/refresh")
     @Operation(summary = "Exchange a refresh token for a new token pair",
             description = "Each refresh token works once. Presenting a used one ends the whole session.")
@@ -93,6 +106,11 @@ public class AuthController {
     public record RefreshRequest(@NotBlank String refreshToken) {}
 
     public record PhoneRequest(@NotBlank @Size(max = 20) String phone) {}
+
+    public record EmailRequest(@NotBlank @Email @Size(max = 254) String email) {}
+
+    public record EmailCodeRequest(@NotBlank @Email @Size(max = 254) String email,
+                                   @NotBlank @Size(max = 6) String code) {}
 
     public record CodeRequest(@NotBlank @Size(max = 20) String phone, @NotBlank @Size(max = 6) String code) {}
 }

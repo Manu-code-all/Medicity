@@ -2,6 +2,7 @@ package com.medicity.security;
 
 import com.medicity.audit.AuditLog;
 import com.medicity.common.DomainException;
+import com.medicity.common.EmailAddresses;
 import com.medicity.common.PhoneNumbers;
 import com.medicity.common.ValidationException;
 import com.medicity.user.User;
@@ -12,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -46,6 +49,10 @@ import java.util.UUID;
  *       limit cannot be used to discover accounts either.</li>
  *   <li><b>The code is stored only as an HMAC</b> keyed by the server secret
  *       and bound to its row, and checked in constant time.</li>
+ *   <li><b>A code can also go to the account's email address.</b> It is the
+ *       same code, with the same lifetime, guess limit and send limit, and the
+ *       limits are shared: three codes in fifteen minutes, whichever way they
+ *       were sent. See {@link #sendToEmail}.</li>
  * </ul>
  */
 @Service
@@ -64,13 +71,15 @@ public class OtpService {
     private final AuthService auth;
     private final AuditLog auditLog;
     private final OtpSender sender;
+    private final EmailOtpSender emailSender;
+    private final MailDispatcher mail;
     private final Clock clock;
     private final boolean showDemoCodes;
     private final byte[] secret;
     private final SecureRandom random = new SecureRandom();
 
     public OtpService(UserRepository users, JdbcTemplate jdbc, AuthService auth, AuditLog auditLog,
-                      OtpSender sender, Clock clock,
+                      OtpSender sender, EmailOtpSender emailSender, MailDispatcher mail, Clock clock,
                       @Value("${medicity.auth.otp.show-demo-codes:false}") boolean showDemoCodes,
                       @Value("${medicity.jwt.secret}") String secret) {
         this.users = users;
@@ -78,12 +87,14 @@ public class OtpService {
         this.auth = auth;
         this.auditLog = auditLog;
         this.sender = sender;
+        this.emailSender = emailSender;
+        this.mail = mail;
         this.clock = clock;
         this.showDemoCodes = showDemoCodes;
         this.secret = secret.getBytes(StandardCharsets.UTF_8);
     }
 
-    public enum Delivery { SMS, DEMO, UNAVAILABLE }
+    public enum Delivery { SMS, EMAIL, DEMO, UNAVAILABLE }
 
     /** What the caller is told. {@code demoCode} is set only for a demo account without SMS. */
     public record CodeSent(Delivery delivery, String sentTo, String demoCode, int expiresInSeconds) {}
@@ -107,22 +118,14 @@ public class OtpService {
             return same;
         }
         User user = account.get();
-        Instant now = clock.instant();
 
         // Demo codes are never texted, and many visitors share a demo account,
         // so only real numbers are limited.
-        if (!demo && sentRecently(user.getId(), now) >= MAX_SENDS) {
-            auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "OTP_THROTTLED", "USER",
-                    user.getId(), AuditLog.Outcome.DENIED, null);
+        if (!demo && throttled(user)) {
             return same;
         }
 
-        String code = "%06d".formatted(random.nextInt(1_000_000));
-        UUID id = UUID.randomUUID();
-        jdbc.update("""
-                INSERT INTO otp_challenges (id, user_id, code_hash, created_at, expires_at)
-                VALUES (?, ?, ?, ?, ?)
-                """, id, user.getId(), hash(id, code), Timestamp.from(now), Timestamp.from(now.plus(LIFETIME)));
+        String code = issue(user);
 
         if (demo) {
             return new CodeSent(Delivery.DEMO, same.sentTo(), code, same.expiresInSeconds());
@@ -131,6 +134,102 @@ public class OtpService {
         auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "OTP_SENT", "USER", user.getId(),
                 AuditLog.Outcome.SUCCESS, null);
         return same;
+    }
+
+    /**
+     * Emails a sign-in code to the address an account was registered with.
+     *
+     * <p>As for a mobile number, the answer never says whether the address has
+     * an account. It must not take longer for one that does, either: calling
+     * the email provider takes a few hundred milliseconds, and a reply that
+     * waited for it would tell anyone with a stopwatch which addresses are
+     * registered. So the message is queued to go out <em>after</em> the code
+     * is committed and the reply does not wait for it. The cost is that a
+     * failed send is not reported to the person asking; it is logged and
+     * audited, and they ask again.
+     */
+    @Transactional
+    public CodeSent sendToEmail(String typedEmail) {
+        String email = EmailAddresses.normalise(typedEmail);
+        if (email == null || !email.matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")) {
+            throw new ValidationException("INVALID_EMAIL", "Enter a valid email address");
+        }
+        Optional<User> account = users.findByEmail(email).filter(User::isEnabled);
+        boolean demo = showDemoCodes && account.isPresent() && email.endsWith(DEMO_DOMAIN);
+
+        if (!demo && !emailSender.available()) {
+            return new CodeSent(Delivery.UNAVAILABLE, null, null, 0);
+        }
+        CodeSent same = new CodeSent(demo ? Delivery.DEMO : Delivery.EMAIL, EmailAddresses.masked(email), null,
+                (int) LIFETIME.toSeconds());
+        if (account.isEmpty()) {
+            return same;
+        }
+        User user = account.get();
+        if (!demo && throttled(user)) {
+            return same;
+        }
+
+        String code = issue(user);
+
+        if (demo) {
+            return new CodeSent(Delivery.DEMO, same.sentTo(), code, same.expiresInSeconds());
+        }
+        afterCommit(() -> mail.dispatch(() -> deliver(user, email, code)));
+        return same;
+    }
+
+    /** Runs on the mail thread, where there is no request to fail: report to the log and the audit trail. */
+    private void deliver(User user, String email, String code) {
+        try {
+            emailSender.send(email, code);
+            auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "OTP_SENT", "USER", user.getId(),
+                    AuditLog.Outcome.SUCCESS, Map.of("channel", "email"));
+        } catch (RuntimeException e) {
+            log.warn("Sign-in code email to user {} not sent: {}", user.getId(), e.getMessage());
+            auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "OTP_SEND_FAILED", "USER",
+                    user.getId(), AuditLog.Outcome.ERROR, Map.of("channel", "email"));
+        }
+    }
+
+    /**
+     * Only once the code row is committed: the email can arrive within a second
+     * and the person types it straight away, and a code emailed for a
+     * transaction that then rolled back would be a code that never works.
+     */
+    private static void afterCommit(Runnable task) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    task.run();
+                }
+            });
+        } else {
+            task.run();
+        }
+    }
+
+    /** At most {@link #MAX_SENDS} codes per account per {@link #SEND_WINDOW}, whichever way they were sent. */
+    private boolean throttled(User user) {
+        if (sentRecently(user.getId(), clock.instant()) < MAX_SENDS) {
+            return false;
+        }
+        auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "OTP_THROTTLED", "USER",
+                user.getId(), AuditLog.Outcome.DENIED, null);
+        return true;
+    }
+
+    /** Records a new live code for the account and returns it; the only copy outside the hash. */
+    private String issue(User user) {
+        Instant now = clock.instant();
+        String code = "%06d".formatted(random.nextInt(1_000_000));
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO otp_challenges (id, user_id, code_hash, created_at, expires_at)
+                VALUES (?, ?, ?, ?, ?)
+                """, id, user.getId(), hash(id, code), Timestamp.from(now), Timestamp.from(now.plus(LIFETIME)));
+        return code;
     }
 
     /**
@@ -146,6 +245,21 @@ public class OtpService {
             throw wrongCode();
         }
         User user = users.findByLoginPhone(phone).filter(User::isEnabled).orElseThrow(OtpService::wrongCode);
+        return verifyFor(user, code);
+    }
+
+    /** As {@link #verify}, for a code that was emailed. The same code, limits and single use. */
+    @Transactional(noRollbackFor = OtpService.WrongCode.class)
+    public AuthService.TokenPair verifyEmail(String typedEmail, String code) {
+        String email = EmailAddresses.normalise(typedEmail);
+        if (email == null || code == null || !code.matches("[0-9]{6}")) {
+            throw wrongCode();
+        }
+        User user = users.findByEmail(email).filter(User::isEnabled).orElseThrow(OtpService::wrongCode);
+        return verifyFor(user, code);
+    }
+
+    private AuthService.TokenPair verifyFor(User user, String code) {
         Instant now = clock.instant();
 
         // Locked, so two guesses at once are counted one after the other.

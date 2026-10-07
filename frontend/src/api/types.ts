@@ -617,9 +617,12 @@ export interface ScanDraft {
 
 // --- Signing in with a mobile number -------------------------------------------
 
-/** SMS: texted. DEMO: a public demo account, code shown here. UNAVAILABLE: no SMS provider yet. */
+/**
+ * SMS: texted. EMAIL: emailed. DEMO: a public demo account, code shown here.
+ * UNAVAILABLE: no SMS or email provider is configured yet.
+ */
 export interface CodeSent {
-  delivery: "SMS" | "DEMO" | "UNAVAILABLE";
+  delivery: "SMS" | "EMAIL" | "DEMO" | "UNAVAILABLE";
   sentTo: string | null;
   demoCode: string | null;
   expiresInSeconds: number;
