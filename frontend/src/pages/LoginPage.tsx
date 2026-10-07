@@ -37,9 +37,7 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Mobile first, as Indian health platforms do; email stays one tap away, and
-  // under it a password or a code sent to the address.
-  const [method, setMethod] = useState<"mobile" | "email">("mobile");
+  // Email and password, or a code sent to the address.
   const [emailMode, setEmailMode] = useState<"password" | "code">("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -131,37 +129,10 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
           </button>
 
           <p className="lm-auth__or">
-            <span>or sign in with</span>
+            <span>or sign in with email</span>
           </p>
 
-          <div className="lm-method" role="tablist" aria-label="Sign in with">
-            {(["mobile", "email"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                role="tab"
-                aria-selected={method === m}
-                className="lm-method__tab"
-                onClick={() => {
-                  setError(null);
-                  setMethod(m);
-                }}
-              >
-                {m === "mobile" ? "Mobile number" : "Email"}
-              </button>
-            ))}
-          </div>
-
-          {method === "mobile" ? (
-            <MobileSignIn
-              demoPhone={demo.phone}
-              onSignedIn={signedIn}
-              useEmail={() => {
-                setEmailMode("password");
-                setMethod("email");
-              }}
-            />
-          ) : emailMode === "code" ? (
+          {emailMode === "code" ? (
             <EmailCodeSignIn
               demoEmail={demo.email}
               onSignedIn={signedIn}
@@ -283,82 +254,6 @@ function useCodeFlow(
 
 type CodeFlow = ReturnType<typeof useCodeFlow>;
 
-/** Mobile number, then a six digit code. Until an SMS provider is configured,
- * only the demo accounts can use this: their code is shown on screen.
- */
-function MobileSignIn({
-  demoPhone,
-  onSignedIn,
-  useEmail,
-}: {
-  demoPhone: string;
-  onSignedIn: (session: Session) => void;
-  useEmail: () => void;
-}) {
-  const { loginWithCode } = useAuth();
-  const [phone, setPhone] = useState("");
-  const flow = useCodeFlow(() => authApi.sendCode(phone), (code) => loginWithCode(phone, code), onSignedIn);
-
-  if (flow.sent?.delivery === "UNAVAILABLE") {
-    return (
-      <div className="lm-form">
-        <p className="lm-note" role="status">
-          Codes by SMS are not switched on yet, so only the demo numbers can use them. Sign in with your email
-          instead, or try the demo number <span className="lm-num">{demoPhone}</span>.
-        </p>
-        <button type="button" className="lm-button lm-button--block" onClick={useEmail}>
-          Use email instead
-        </button>
-        <button type="button" className="lm-link-button" onClick={() => flow.setSent(null)}>
-          Change number
-        </button>
-      </div>
-    );
-  }
-
-  if (!flow.sent) {
-    return (
-      <form
-        className="lm-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void flow.send();
-        }}
-      >
-        {flow.error && (
-          <p className="lm-error" role="alert">
-            {flow.error}
-          </p>
-        )}
-        <label htmlFor="phone">Mobile number</label>
-        <div className="lm-phone">
-          <span className="lm-phone__prefix" aria-hidden="true">
-            +91
-          </span>
-          <input
-            id="phone"
-            type="tel"
-            inputMode="numeric"
-            autoComplete="tel-national"
-            required
-            placeholder="98765 43210"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/[^0-9 ]/g, ""))}
-          />
-        </div>
-        <p className="lm-hint">
-          Demo number: <span className="lm-num">{demoPhone}</span>
-        </p>
-        <button type="submit" className="lm-button lm-button--block" disabled={flow.busy}>
-          {flow.busy ? "Sending…" : "Send code"}
-        </button>
-      </form>
-    );
-  }
-
-  return <CodeStep flow={flow} via="SMS" changeLabel="Change number" />;
-}
-
 /**
  * An email address, then a six digit code sent to it. The reply to "send" is
  * the same for every address, so this page never says whether one has an
@@ -439,7 +334,7 @@ function EmailCodeSignIn({
 }
 
 /** The second step of either: type the code that arrived, or ask for another. */
-function CodeStep({ flow, via, changeLabel }: { flow: CodeFlow; via: "SMS" | "email"; changeLabel: string }) {
+function CodeStep({ flow, via, changeLabel }: { flow: CodeFlow; via: "email"; changeLabel: string }) {
   const { sent, code, setCode, error, busy, wait } = flow;
   return (
     <form

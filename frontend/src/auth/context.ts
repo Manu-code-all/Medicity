@@ -12,8 +12,6 @@ export interface AuthContextValue {
   session: Session | null;
   /** Resolves with the new session, so the caller can route by role. */
   login: (email: string, password: string) => Promise<Session>;
-  /** Signs in with a mobile number and the code sent to it. */
-  loginWithCode: (phone: string, code: string) => Promise<Session>;
   /** Signs in with an email address and the code sent to it. */
   loginWithEmailCode: (email: string, code: string) => Promise<Session>;
   register: (input: Parameters<typeof authApi.register>[0]) => Promise<void>;

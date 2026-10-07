@@ -93,7 +93,7 @@ export function RegisterPage() {
         <option value="UNDISCLOSED">Prefer not to say</option>
       </select>
 
-      <label htmlFor="phone">Mobile number (optional, lets you sign in with a code)</label>
+      <label htmlFor="phone">Mobile number (optional)</label>
       <input id="phone" value={form.phone} onChange={update("phone")} />
       {fieldErrors.phone && <small className="error">{fieldErrors.phone}</small>}
 

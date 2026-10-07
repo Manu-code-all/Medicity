@@ -44,7 +44,7 @@ public class StoreService {
      */
     @Transactional
     public TokenPair register(String email, String rawPassword, String fullName, StoreDetails details) {
-        User owner = authService.createAccount(email, rawPassword, fullName, details.phone(), Role.CHEMIST, false);
+        User owner = authService.createAccount(email, rawPassword, fullName, details.phone(), Role.CHEMIST);
         Store store = Store.builder().owner(owner).build();
         details.applyTo(store);
         store.setLicenceNumber(details.licenceNumber().trim().toUpperCase());

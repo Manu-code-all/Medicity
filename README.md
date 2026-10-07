@@ -171,7 +171,6 @@ flowchart TB
 
     subgraph ext [Outside services]
         AI["Claude / Gemini<br/>read handwritten prescriptions"]
-        SMS["MSG91<br/>sign-in codes by SMS"]
         MAIL["Resend<br/>sign-in codes by email"]
     end
 
@@ -184,7 +183,6 @@ flowchart TB
     OUT -->|"notifications"| PG
     JOBS --> PG
     SVC -.-> AI
-    SVC -.-> SMS
     SVC -.-> MAIL
 
     style PG fill:#1a5f3f,color:#fff
@@ -288,28 +286,15 @@ SPRING_PROFILES_ACTIVE=demo docker compose up --build
 
 Password for all of them: `demo-password-2026`
 
-Every demo account can also sign in with its mobile number and a one-time
-code. No SMS is sent for these public numbers: the sign-in page shows the code.
-
-| Try it as | Mobile number |
-|---|---|
-| Meera (patient) | 98765 00101 |
-| Dr. Anjali Rao (doctor) | 98765 00001 |
-| Ravi Kumar (chemist) | 98765 00301 |
-
-Real numbers need an SMS provider: set `MSG91_AUTH_KEY` and
-`MSG91_OTP_TEMPLATE_ID`, and codes are texted with no code change.
-
-**Codes by email** are the no-cost alternative to SMS: on the sign-in page,
-*Email*, then *Email me a code instead*. The demo accounts show their code on
-screen, as above. For real addresses set `RESEND_API_KEY` and `RESEND_FROM`
-(for example `Medicity <login@yourdomain.com>`), and codes are emailed through
+**Codes by email.** On the sign-in page, *Email me a code instead*. The demo
+accounts show their code on screen, since their addresses are public. For real
+addresses set `RESEND_API_KEY` and `RESEND_FROM` (for example
+`Medicity <login@yourdomain.com>`), and codes are emailed through
 [Resend](https://resend.com). `RESEND_FROM` must be on a domain verified in
 Resend; until you have one, Resend's `onboarding@resend.dev` works but only
 delivers to the address your Resend account was created with, so nobody else
-can receive a code. Email and SMS codes share one limit (three codes per
-account in fifteen minutes) and one set of rules (five minutes, five guesses,
-one sign-in).
+can receive a code. A code is good for five minutes, five guesses and one
+sign-in, and an account gets at most three codes in fifteen minutes.
 
 The seed lives in `db/seed/`, which is added to the Flyway path *only* by the
 `demo` profile — a deployed environment has no path by which these accounts
@@ -382,7 +367,6 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 |---|---|---|---|
 | `POST` | `/api/v1/auth/register` | — | Register a patient |
 | `POST` | `/api/v1/auth/login` | — | Obtain a token pair |
-| `POST` | `/api/v1/auth/otp/send` | — | Send a sign-in code to a mobile number (same reply for every number) |
 | `POST` | `/api/v1/auth/otp/email/send` | — | Email a sign-in code to an account's address (same reply for every address) |
 | `POST` | `/api/v1/auth/register/doctor` | — | A doctor signs up; unlisted and unbookable until verified |
 | `GET`/`PUT` | `/api/v1/doctors/me/hours` | DOCTOR | Weekly hours, up to three sessions a day; saving opens slots four weeks ahead |

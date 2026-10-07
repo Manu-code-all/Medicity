@@ -70,13 +70,6 @@ medicity:
     gemini-api-key: ${GEMINI_API_KEY:}
     gemini-model: ${GEMINI_MODEL:gemini-3.8-flash}
 
-  sms:
-    # Sign-in codes by SMS. Both unset: no texts are sent, and only the demo
-    # accounts can use a code (see auth.otp); everyone else uses email.
-    msg91:
-      auth-key: ${MSG91_AUTH_KEY:}
-      otp-template-id: ${MSG91_OTP_TEMPLATE_ID:}
-
   email:
     # Sign-in codes by email, through Resend. Both unset: nothing is emailed,
     # and only the demo accounts can use a code. `from` must be an address on a
