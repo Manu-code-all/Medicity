@@ -4,7 +4,6 @@ import com.medicity.audit.AuditLog;
 import com.medicity.common.ConflictException;
 import com.medicity.common.Constraints;
 import com.medicity.common.DomainMetrics;
-import com.medicity.common.PhoneNumbers;
 import com.medicity.common.TooManyRequestsException;
 import com.medicity.common.ValidationException;
 import com.medicity.patient.Patient;
@@ -117,28 +116,10 @@ public class AuthService {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public User createAccount(String email, String rawPassword, String fullName, String phone, Role role) {
-        return createAccount(email, rawPassword, fullName, phone, role, true);
-    }
-
-    /**
-     * @param phoneMustSignIn true when the number was typed as the person's own
-     *        mobile, so another account already using it is an error. False for a
-     *        store's number, often a landline or shared: it becomes a sign-in
-     *        number only when no account has it yet.
-     */
-    @Transactional(propagation = Propagation.MANDATORY)
-    public User createAccount(String email, String rawPassword, String fullName, String phone, Role role,
-                              boolean phoneMustSignIn) {
-        String loginPhone = PhoneNumbers.normalise(phone);
-        if (loginPhone != null && !phoneMustSignIn && userRepository.findByLoginPhone(loginPhone).isPresent()) {
-            loginPhone = null;
-        }
         User user = User.builder()
                 .passwordHash(passwordEncoder.encode(rawPassword))
                 .fullName(fullName.trim())
                 .phone(phone == null || phone.isBlank() ? null : phone)
-                // A mobile number registered here is also a way to sign in.
-                .loginPhone(loginPhone)
                 .role(role)
                 .enabled(true)
                 .build();
@@ -149,9 +130,6 @@ public class AuthService {
         } catch (DataIntegrityViolationException e) {
             // Checking existsByEmail() first would leave a race between the check
             // and the insert. Let the unique index decide, then translate.
-            if (Constraints.isViolationOf(e, "uq_users_login_phone")) {
-                throw new ConflictException("PHONE_TAKEN", "An account with that mobile number already exists");
-            }
             throw new ConflictException("EMAIL_TAKEN", "An account with that email already exists");
         }
     }

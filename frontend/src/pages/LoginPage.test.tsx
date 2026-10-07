@@ -10,10 +10,9 @@ import { LoginPage } from "./LoginPage";
 function renderAt(
   path: string,
   login: AuthContextValue["login"],
-  loginWithCode: AuthContextValue["loginWithCode"] = vi.fn(),
   loginWithEmailCode: AuthContextValue["loginWithEmailCode"] = vi.fn(),
 ) {
-  const value = { session: null, login, loginWithCode, loginWithEmailCode } as unknown as AuthContextValue;
+  const value = { session: null, login, loginWithEmailCode } as unknown as AuthContextValue;
   render(
     <AuthContext.Provider value={value}>
       <MemoryRouter initialEntries={[path]}>
@@ -64,7 +63,6 @@ describe("LoginPage", () => {
       .mockResolvedValueOnce(as("PATIENT"));
     renderAt("/login", login);
 
-    await userEvent.click(screen.getByRole("tab", { name: "Email" }));
     await userEvent.type(screen.getByLabelText("Email"), "meera@example.com");
     await userEvent.type(screen.getByLabelText("Password"), "wrong");
     await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
@@ -75,64 +73,8 @@ describe("LoginPage", () => {
     expect(login).toHaveBeenLastCalledWith("meera@example.com", "wrong");
   });
 
-  it("signs in with a mobile number: the demo account's code is shown, filled in and verified", async () => {
-    const calls = mockFetch(() =>
-      json(200, { delivery: "DEMO", sentTo: "+91 98765 •••01", demoCode: "482913", expiresInSeconds: 300 }),
-    );
-    const loginWithCode = vi.fn(async () => as("DOCTOR"));
-    renderAt("/login/doctor", vi.fn(), loginWithCode);
-
-    expect(screen.getByRole("tab", { name: "Mobile number" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByText("98765 00001")).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText("Mobile number"), "98765 00001");
-    await userEvent.click(screen.getByRole("button", { name: "Send code" }));
-
-    expect(await screen.findByText("482913")).toBeInTheDocument();
-    expect(calls[0]).toMatchObject({ url: "/api/v1/auth/otp/send", body: { phone: "98765 00001" } });
-    const verify = screen.getByRole("button", { name: "Verify and sign in" });
-    expect(verify).toBeDisabled();
-
-    await userEvent.click(screen.getByRole("button", { name: "Fill it in" }));
-    await userEvent.click(verify);
-
-    expect(await screen.findByText("Doctor workspace")).toBeInTheDocument();
-    expect(loginWithCode).toHaveBeenCalledWith("98765 00001", "482913");
-  });
-
-  it("says plainly when codes by SMS are not switched on, and offers email instead", async () => {
-    mockFetch(() => json(200, { delivery: "UNAVAILABLE", sentTo: null, demoCode: null, expiresInSeconds: 0 }));
-    renderAt("/login", vi.fn());
-
-    await userEvent.type(screen.getByLabelText("Mobile number"), "99887 76655");
-    await userEvent.click(screen.getByRole("button", { name: "Send code" }));
-
-    expect(await screen.findByText(/Codes by SMS are not switched on yet/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Use email instead" }));
-    expect(screen.getByLabelText("Email")).toBeInTheDocument();
-  });
-
-  it("shows the server's answer to a wrong code and clears the box", async () => {
-    mockFetch(() => json(200, { delivery: "SMS", sentTo: "+91 99887 •••55", demoCode: null, expiresInSeconds: 300 }));
-    const loginWithCode = vi.fn().mockRejectedValue(
-      new ApiError(401, { code: "WRONG_CODE", detail: "That code is wrong or has expired. Ask for a new one." }),
-    );
-    renderAt("/login", vi.fn(), loginWithCode);
-
-    await userEvent.type(screen.getByLabelText("Mobile number"), "99887 76655");
-    await userEvent.click(screen.getByRole("button", { name: "Send code" }));
-    expect(await screen.findByText(/If \+91 99887 •••55 has an account, a code is on its way/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Send again in/ })).toBeDisabled();
-
-    await userEvent.type(screen.getByLabelText("6 digit code"), "111111");
-    await userEvent.click(screen.getByRole("button", { name: "Verify and sign in" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("wrong or has expired");
-    expect(screen.getByLabelText("6 digit code")).toHaveValue("");
-  });
-
   describe("with a code sent to the email address", () => {
     async function openEmailCode() {
-      await userEvent.click(screen.getByRole("tab", { name: "Email" }));
       await userEvent.click(screen.getByRole("button", { name: "Email me a code instead" }));
     }
 
@@ -141,14 +83,14 @@ describe("LoginPage", () => {
         json(200, { delivery: "EMAIL", sentTo: "m•••@example.com", demoCode: null, expiresInSeconds: 300 }),
       );
       const loginWithEmailCode = vi.fn(async () => as("PATIENT"));
-      renderAt("/login", vi.fn(), vi.fn(), loginWithEmailCode);
+      renderAt("/login", vi.fn(), loginWithEmailCode);
 
       await openEmailCode();
       await userEvent.type(screen.getByLabelText("Email"), "  meera@example.com ");
       await userEvent.click(screen.getByRole("button", { name: "Email me a code" }));
 
       expect(await screen.findByText(/If m•••@example.com has an account, a code is on its way/)).toBeInTheDocument();
-      // Trimmed before it is sent, and it is the email endpoint, not the SMS one.
+      // Trimmed before it is sent.
       expect(calls[0]).toMatchObject({ url: "/api/v1/auth/otp/email/send", body: { email: "meera@example.com" } });
       expect(screen.getByRole("button", { name: /Send again in/ })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Change email" })).toBeInTheDocument();
@@ -163,7 +105,7 @@ describe("LoginPage", () => {
     it("shows a demo account's code on screen instead of saying it was emailed", async () => {
       mockFetch(() => json(200, { delivery: "DEMO", sentTo: "p•••@medicity.demo", demoCode: "110022", expiresInSeconds: 300 }));
       const loginWithEmailCode = vi.fn(async () => as("PATIENT"));
-      renderAt("/login", vi.fn(), vi.fn(), loginWithEmailCode);
+      renderAt("/login", vi.fn(), loginWithEmailCode);
 
       await openEmailCode();
       expect(screen.getByText("patient@medicity.demo")).toBeInTheDocument();
@@ -196,7 +138,7 @@ describe("LoginPage", () => {
       const loginWithEmailCode = vi.fn().mockRejectedValue(
         new ApiError(401, { code: "WRONG_CODE", detail: "That code is wrong or has expired. Ask for a new one." }),
       );
-      renderAt("/login", vi.fn(), vi.fn(), loginWithEmailCode);
+      renderAt("/login", vi.fn(), loginWithEmailCode);
 
       await openEmailCode();
       await userEvent.type(screen.getByLabelText("Email"), "someone@example.com");
@@ -212,7 +154,6 @@ describe("LoginPage", () => {
       mockFetch(() => json(200, { delivery: "EMAIL", sentTo: "s•••@example.com", demoCode: null, expiresInSeconds: 300 }));
       renderAt("/login", vi.fn());
 
-      await userEvent.click(screen.getByRole("tab", { name: "Email" }));
       expect(screen.getByLabelText("Password")).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole("button", { name: "Email me a code instead" }));

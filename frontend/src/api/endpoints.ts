@@ -63,13 +63,6 @@ export const auth = {
       body: { email, password },
     }),
 
-  /** Same reply whether or not the number has an account. */
-  sendCode: (phone: string) =>
-    request<CodeSent>("/api/v1/auth/otp/send", { method: "POST", body: { phone } }),
-
-  verifyCode: (phone: string, code: string) =>
-    request<TokenPair>("/api/v1/auth/otp/verify", { method: "POST", body: { phone, code } }),
-
   /** Same reply whether or not the address has an account, and it does not wait for the email to go out. */
   sendEmailCode: (email: string) =>
     request<CodeSent>("/api/v1/auth/otp/email/send", { method: "POST", body: { email } }),

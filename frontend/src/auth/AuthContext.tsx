@@ -50,11 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [adopt],
   );
 
-  const loginWithCode = useCallback(
-    async (phone: string, code: string) => adopt(await authApi.verifyCode(phone, code)),
-    [adopt],
-  );
-
   const loginWithEmailCode = useCallback(
     async (email: string, code: string) => adopt(await authApi.verifyEmailCode(email, code)),
     [adopt],
@@ -94,8 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const value = useMemo(
-    () => ({ session, login, loginWithCode, loginWithEmailCode, register, registerChemist, registerDoctor, logout }),
-    [session, login, loginWithCode, loginWithEmailCode, register, registerChemist, registerDoctor, logout],
+    () => ({ session, login, loginWithEmailCode, register, registerChemist, registerDoctor, logout }),
+    [session, login, loginWithEmailCode, register, registerChemist, registerDoctor, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

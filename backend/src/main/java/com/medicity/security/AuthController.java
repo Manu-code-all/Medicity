@@ -37,19 +37,6 @@ public class AuthController {
         return authService.login(request.email(), request.password());
     }
 
-    @PostMapping("/otp/send")
-    @Operation(summary = "Send a sign-in code to a mobile number",
-            description = "The reply is the same whether or not the number has an account.")
-    public OtpService.CodeSent sendCode(@Valid @RequestBody PhoneRequest request) {
-        return otpService.send(request.phone());
-    }
-
-    @PostMapping("/otp/verify")
-    @Operation(summary = "Exchange a mobile number and its code for a token pair")
-    public AuthService.TokenPair verifyCode(@Valid @RequestBody CodeRequest request) {
-        return otpService.verify(request.phone(), request.code());
-    }
-
     @PostMapping("/otp/email/send")
     @Operation(summary = "Email a sign-in code to the address an account was registered with",
             description = "The reply is the same whether or not the address has an account, and does not wait for the email to be sent.")
@@ -105,12 +92,8 @@ public class AuthController {
 
     public record RefreshRequest(@NotBlank String refreshToken) {}
 
-    public record PhoneRequest(@NotBlank @Size(max = 20) String phone) {}
-
     public record EmailRequest(@NotBlank @Email @Size(max = 254) String email) {}
 
     public record EmailCodeRequest(@NotBlank @Email @Size(max = 254) String email,
                                    @NotBlank @Size(max = 6) String code) {}
-
-    public record CodeRequest(@NotBlank @Size(max = 20) String phone, @NotBlank @Size(max = 6) String code) {}
 }

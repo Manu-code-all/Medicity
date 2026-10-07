@@ -2683,6 +2683,31 @@ PostgreSQL 16 (this sandbox has no Docker), not the 18 CI and production use.
 
 ---
 
+## 70. Sign-in by mobile number removed
+
+Email and password, and a code emailed to the account's address, are the two
+ways to sign in. Texting codes needed an SMS provider nobody had configured,
+so on the live site the mobile path only ever worked for the demo accounts.
+
+- **Backend.** `Msg91OtpSender`, `OtpSender`, `PhoneNumbers`, the phone
+  endpoints (`/otp/send`, `/otp/verify`), `findByLoginPhone` and the
+  `PHONE_TAKEN` conflict are gone. `OtpService` keeps only the email path.
+- **Database.** V36 drops `users.login_phone`, its unique index and its format
+  check. `users.phone` stays as contact detail; `otp_challenges` stays, since
+  emailed codes use it. V20 is left as it was: migrations already applied are
+  never edited.
+- **Frontend.** The sign-in page no longer has the Mobile number / Email tabs;
+  it opens on email and password, with "Email me a code instead" under it.
+- **Tests.** The SMS sender and phone sign-in tests were deleted. The one test
+  that mixed the two channels' send limit was removed; the email-only limit
+  test covers the same rule.
+
+**Verified.** The backend compiles with its tests; frontend type check and
+all 140 frontend tests pass. The backend integration tests were not run here
+(no Docker in this sandbox); CI runs them.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -2726,13 +2751,12 @@ PostgreSQL 16 (this sandbox has no Docker), not the 18 CI and production use.
   written from general medical knowledge. It errs towards emergency care and
   says it is not a diagnosis, but it needs a doctor's review before real
   patients rely on it.
-- **Codes are not texted yet, and emailed ones are untested against Resend.**
-  No SMS provider is configured, so only the demo accounts can sign in with a
-  code by phone (shown on screen). Codes by email work once `RESEND_API_KEY`
-  and a verified `RESEND_FROM` are set (entry 69), but both senders have only
-  been tested against a mock. "Send a code" also takes slightly longer for an
-  address or number with an account (one insert), a timing difference far
-  smaller than network jitter but not zero.
+- **Emailed sign-in codes are untested against Resend.** Only the demo
+  accounts can sign in with a code until `RESEND_API_KEY` and a verified
+  `RESEND_FROM` are set (entry 69); the sender has only been tested against a
+  mock. "Send a code" also takes slightly longer for an address with an
+  account (one insert), a timing difference far smaller than network jitter
+  but not zero.
 - **A failed email of a sign-in code is not shown to the person asking.** The
   send happens in the background so the reply cannot reveal which addresses
   have accounts; a failure is logged and audited as `OTP_SEND_FAILED`, and the

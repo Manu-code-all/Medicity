@@ -94,7 +94,7 @@ export function RegisterDoctorPage() {
       <input id="d-email" type="email" required value={form.email} onChange={set("email")} />
       {fieldError("email")}
 
-      <label htmlFor="d-phone">Mobile number (you can sign in with a code)</label>
+      <label htmlFor="d-phone">Mobile number</label>
       <input id="d-phone" type="tel" inputMode="numeric" required value={form.phone} onChange={set("phone")} />
       {fieldError("phone")}
 
