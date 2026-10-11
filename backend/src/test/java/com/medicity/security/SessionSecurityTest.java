@@ -313,7 +313,7 @@ class SessionSecurityTest extends AbstractIntegrationTest {
         String body = mvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"%s","password":"%s","fullName":"Test Patient","dateOfBirth":"1990-01-01"}
+                                {"email":"%s","password":"%s","fullName":"Test Patient","dateOfBirth":"1990-01-01","acceptedTerms":true,"acceptedHealthData":true}
                                 """.formatted(email, PASSWORD)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();

@@ -2746,6 +2746,158 @@ client tests pass with a new one for the logout header.
 no Docker), not the Testcontainers 18 that CI uses. Nothing was run against
 Railway: the trusted-proxy setting has never been given real edge ranges, so
 the per-address limits are untested behind the real proxy.
+## 72. Privacy: consent records, a copy of your data, deleting your account, retention
+
+**Why.** India's Digital Personal Data Protection Act, 2023 and Google Play both
+ask for things the app did not have: proof of what a person agreed to, a way to
+get their data out, a way to delete their account (in the app, and on a public
+web page), a limit on how long data is kept, and a published notice naming
+someone to complain to. The patient data here is health data, so this is not
+optional polish.
+
+**What.** Migrations V39 to V41 (V42 unused).
+
+1. **Consent records (V39, `ConsentService`).** `consent_records` has one row per
+   agreement: who clicked, the type (`TERMS_OF_SERVICE`, `PRIVACY_NOTICE`,
+   `HEALTH_DATA_PROCESSING`), the policy version, the time, where it was
+   captured, and the capacity. Sign-up records them in the same transaction as
+   the account (patients: three rows, from two tick boxes; doctors and chemists:
+   two, from one). Adding a family member needs a third tick box, and records
+   the account holder's consent for that person as `GUARDIAN_OF_MINOR` (under
+   18) or `REPRESENTATIVE_OF_ADULT`. The current versions are configuration
+   (`medicity.privacy.*-version`); change one and `GET /api/v1/consents/me`
+   reports `pending`, and the web app's `ConsentGate` blocks the screen until
+   each outstanding text is ticked on its own (`POST /api/v1/consents/me`).
+   Rows are only inserted, never edited; agreeing twice is one row.
+2. **Export (`DataExportService`).** `GET /api/v1/patients/me/export` returns
+   one JSON file: the account, the account holder and every family member they
+   manage, visits, prescriptions with medicines, the pharmacy's fill date,
+   follow-up messages, uploaded-file names, medicine questions and reservations,
+   reviews, queue and waiting-list places, notifications, consents, and the
+   account's recent activity. Profile page: "Download my data". Left out on
+   purpose: password hashes, sessions, reservation pickup codes, file bytes.
+3. **Deletion (V40, `AccountDeletionService`).** Profile page: "Delete my
+   account", with a warning and the password typed again;
+   `POST /api/v1/patients/me/delete-account`. It **anonymises, it does not
+   remove**, in one transaction under a lock on the account row. See below.
+   The public page `/delete-account` explains the same for Play, including the
+   email route for people who cannot sign in and for doctors and chemists.
+4. **Retention (V41, `LocationRetentionJob`).** Nightly at 03:45 UTC, the
+   latitude and longitude of medicine questions that have been `CLOSED` or
+   `EXPIRED` for longer than `medicity.retention.request-location.after`
+   (default 30 days) are cleared, or with `mode: COARSEN` rounded to
+   `coarsen-decimals` places (1 is about 11 km). Nothing read those columns
+   after the answers were in. The columns became nullable (both or neither),
+   and `location_minimised_at` marks handled rows so each is visited once and
+   a partial index keeps the scan cheap.
+5. **Public pages.** `/privacy`, `/terms`, `/disclaimer`, `/delete-account`,
+   each with a DRAFT banner ("not yet reviewed by a lawyer") and `[bracketed]`
+   blanks, including a Grievance Officer placeholder (`lib/policies.ts`, the
+   one place to fill in). Linked from the landing footer, a new footer on the
+   other public pages, the sign-up forms and the profile page.
+
+**What deletion keeps, and why (the decision).**
+
+| Data | Treatment |
+|---|---|
+| Name, email, phone, sign-in number, password | Overwritten (unusable hash); email becomes `deleted-<id>@deleted.invalid`; account disabled with `deleted_at` set (V40 CHECK: deleted implies disabled) |
+| Address, city, emergency contact, height, weight, blood group, allergies, conditions, medicines, home location (holder and family) | Cleared |
+| Family members' names | "Deleted family member" |
+| Date of birth | Reduced to 1 January of the birth year: a prescription still has to be read against an age |
+| Sessions, sign-in codes, notifications, idempotency keys, walk-in places, waiting-list entries, files the patient attached, delivered outbox events about their visits | Deleted |
+| Upcoming visits, held reservations, open medicine questions | Cancelled / released / closed; the place of every question cleared |
+| Review comments | Cleared; the rating stays in the doctor's average |
+| Visits, prescriptions and items, dispensations, doctors' notes, follow-up messages | **Kept**, linked to an anonymised person |
+| Audit log | **Kept** (append-only by design, V5/V6); names the account by id |
+| Consent records | **Kept**, as proof of what was agreed and when |
+
+The reason for keeping the clinical record is that it is the doctor's and the
+pharmacy's record as much as the patient's: Indian medical-practice rules
+(the 2002 Professional Conduct Regulations, reg. 1.3, say three years; the
+2020 Telemedicine Practice Guidelines likewise) oblige the doctor to keep it,
+and DPDP s.8(7) lets data be kept where a law requires. **This is my reading,
+not legal advice**; the period and the reading need a lawyer, and the privacy
+notice says so.
+
+Anonymise-and-keep rather than delete-and-cascade is also a mechanical
+necessity: appointments, prescriptions and dispensations reference the user and
+patient rows by foreign key, and the audit log may not lose rows.
+
+**Honest limits of "anonymised".** A date of birth year, a gender, free-text
+visit reasons, intake summaries and a doctor's notes remain on the clinical
+rows, and could identify someone who already knows the facts. This is
+pseudonymisation of a record the law makes us keep, not a guarantee of
+anonymity. Doctors' own notifications ("Meera booked ...") are the doctor's
+data and are not rewritten.
+
+**Decisions.**
+
+- **Patients only, in the app.** A doctor's or chemist's account carries a
+  professional registration and a listing others rely on, so removal is by the
+  Grievance Officer. The service refuses those roles (409), the route is
+  patients-only, and the public page says how to ask.
+- **Sessions end at once, not in 15 minutes.** The request filter already loads
+  the account on every call and ignores a disabled one, so disabling the
+  account kills an already issued access token immediately; the refresh tokens
+  are deleted. (The old Known gap about access tokens outliving sign-out is
+  about *signing out*, which does not disable the account.)
+- **The password check is throttled with the sign-in's own limit.** Five wrong
+  passwords in 15 minutes, counted from the same `LOGIN_FAILED` audit rows,
+  answer 429 even for the right one. A thief holding a stolen access token can
+  therefore also lock the owner out of signing in for those minutes; the same
+  trade the sign-in already makes.
+- **Unbundled consent.** Terms/privacy and health-data processing are separate
+  tick boxes, because DPDP consent must be specific to a purpose and a person
+  has to be able to refuse one. Refusing the health box means no patient
+  account.
+- **Consent is enforced in the app, not by the API.** `ConsentGate` blocks the
+  screen; the API does not refuse requests from an account that is behind. A
+  hand-made request still works. The record exists to prove what was shown and
+  agreed, and gating every endpoint on it would turn a policy bump into an
+  outage.
+- **Consent types are checked by role.** An account is only offered the texts
+  that apply to its role (a doctor is never asked for the health-data consent).
+- **The export is built from SQL, not response classes,** so a column cannot be
+  forgotten because a record class did not mention it; it names columns in
+  camelCase and drops binary ones.
+
+**Verified (against PostgreSQL 16, see below).** 15 new backend tests
+(`PrivacyTest`): sign-up records the right rows and is refused without either
+box, leaving no account; a chemist's two; a version change asks again, agreeing
+clears it, old rows stay, twice is one row; family consent capacity for a child
+and an adult; the export holds the right data and none of another patient's or
+any secret, with an audit row and `no-store`; a wrong password deletes nothing;
+deletion anonymises the account and the family, ends refresh and access tokens,
+cancels the upcoming visit, closes the open question and clears its place, and
+keeps the prescription, the completed visit, the consent rows and the audit
+rows; five wrong passwords throttle; the retention job clears only old closed
+questions, once, and coarsens in `COARSEN` mode; bad settings stop startup.
+Existing tests that sign up or add family members were updated for the new
+required boxes. About 27 frontend tests added or changed. Whole backend suite (277)
+and frontend suite (167), typecheck and lint pass.
+
+**Not verified.**
+
+- The backend tests ran against a local **PostgreSQL 16** started by hand in the
+  sandbox (no Docker here), not the 18 that CI and production use, and with the
+  Testcontainers base class temporarily pointed at it (the change is not
+  committed). CI is the first run on 18.
+- Nobody has read the legal text who is qualified to. The retention periods,
+  the three-year reading, the hosting region, the processors and the
+  Grievance Officer's details are placeholders.
+- No real browser walk-through of the new screens was done; they are covered by
+  component tests only.
+- Google Play's data-safety form and the store listing's privacy URL are
+  filled in by a person in the Play console, not by this code.
+
+**Not done.**
+
+- A purge of clinical records after the retention period; today they are kept
+  indefinitely, anonymised.
+- Withdrawing one consent without deleting the account.
+- Scrubbing `outbox_events` that were never delivered, and old audit `detail`
+  that holds an email typed at a failed sign-in.
+- Doctors and chemists cannot delete from the app.
 
 ---
 
@@ -2806,10 +2958,14 @@ the per-address limits are untested behind the real proxy.
 - **Prescription photos are stored in PostgreSQL.** `BYTEA`, capped at 5 MB by
   a CHECK. Fine at demo scale; at volume they belong in object storage with
   the database holding a key, so backups and replicas stay small.
-- **A question keeps the patient's location.** The latitude and longitude it
-  was asked from stay on the row for distance and insights. They are never
-  shown to a store (stores see a distance) but are not coarsened or deleted
-  after the question closes.
+- **Privacy features rest on draft legal text and unconfirmed periods.** The
+  privacy notice, terms and disclaimer (entry 72) are marked DRAFT for a
+  lawyer; the Grievance Officer, operator name, hosting region, processors and
+  the clinical-record retention period are placeholders. Clinical records of a
+  deleted account are kept indefinitely (anonymised), with no purge job.
+  Doctors and chemists cannot delete their account from the app; consent is
+  enforced by the web app, not the API; a deleted patient's undelivered outbox
+  events and failed-sign-in audit rows still hold their name or email.
 - **An automatic answer trusts the store's stock list completely.** There is
   no check that the prices are plausible or that the list came from billing
   software rather than being typed in.

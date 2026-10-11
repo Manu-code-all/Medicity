@@ -30,12 +30,14 @@ describe("FamilyPage", () => {
     await userEvent.type(screen.getByLabelText("Full name"), "Lalitha Nair");
     await userEvent.type(screen.getByLabelText("Date of birth"), "1962-04-10");
     await userEvent.selectOptions(screen.getByLabelText("Gender"), "FEMALE");
+    await userEvent.click(screen.getByLabelText(/I am this person's parent or guardian/));
     await userEvent.click(screen.getByRole("button", { name: "Add" }));
 
     expect(await screen.findByText("Lalitha Nair")).toBeInTheDocument();
     expect(screen.getByText("Parent · 63 yrs")).toBeInTheDocument();
     expect(calls.find((c) => c.method === "POST")?.body).toEqual({
       fullName: "Lalitha Nair", relationship: "PARENT", dateOfBirth: "1962-04-10", gender: "FEMALE",
+      guardianConsent: true,
     });
   });
 
@@ -51,6 +53,7 @@ describe("FamilyPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "+ Add a family member" }));
     await userEvent.type(screen.getByLabelText("Full name"), "Aarav Nair");
     await userEvent.type(screen.getByLabelText("Date of birth"), "2019-06-01");
+    await userEvent.click(screen.getByLabelText(/I am this person's parent or guardian/));
     await userEvent.click(screen.getByRole("button", { name: "Add" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("up to 8 family members");

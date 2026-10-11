@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "../../api/client";
 import type { StoreInput } from "../../api/types";
 import { useAuth } from "../../auth/context";
+import { TermsAgreement } from "../../components/Agreements";
 import { EMPTY_STORE } from "../../lib/store";
 import { StoreFields } from "./StoreFields";
 
@@ -13,6 +14,7 @@ export function StoreRegisterPage() {
 
   const [account, setAccount] = useState({ fullName: "", email: "", password: "" });
   const [store, setStore] = useState<StoreInput>(EMPTY_STORE);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -27,7 +29,7 @@ export function StoreRegisterPage() {
     setFieldErrors({});
     setBusy(true);
     try {
-      await registerChemist({ ...account, store });
+      await registerChemist({ ...account, store, acceptedTerms });
       navigate("/store", { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
@@ -76,6 +78,8 @@ export function StoreRegisterPage() {
       {fieldErrors.password && <small className="error">{fieldErrors.password}</small>}
 
       <StoreFields value={store} onChange={setStore} fieldErrors={fieldErrors} errorPrefix="store." />
+
+      <TermsAgreement checked={acceptedTerms} onChange={setAcceptedTerms} error={fieldErrors.acceptedTerms} />
 
       <button type="submit" disabled={busy}>
         {busy ? "Registering…" : "Register store"}

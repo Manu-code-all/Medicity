@@ -44,7 +44,9 @@ export const actingFor = {
 /** Requests that act "as the patient": the portal, bookings, questions to chemists. */
 export function actsAsPatient(path: string): boolean {
   return (
-    (path.startsWith("/api/v1/patients/me") && !path.startsWith("/api/v1/patients/me/family")) ||
+    // The family list, the data export and account deletion are about the whole
+    // account, whichever family member is selected.
+    (path.startsWith("/api/v1/patients/me") && !/^\/api\/v1\/patients\/me\/(family|export|delete-account)/.test(path)) ||
     path.startsWith("/api/v1/appointments")
   );
 }

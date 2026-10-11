@@ -341,7 +341,7 @@ class EmailOtpSignInTest extends AbstractIntegrationTest {
         String phone = mobile == null ? "" : ",\"phone\":\"%s\"".formatted(mobile);
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"%s","password":"%s","fullName":"Test Patient","dateOfBirth":"1990-01-01"%s}
+                                {"email":"%s","password":"%s","fullName":"Test Patient","dateOfBirth":"1990-01-01"%s,"acceptedTerms":true,"acceptedHealthData":true}
                                 """.formatted(address, PASSWORD, phone)))
                 .andExpect(status().isCreated());
         return address;

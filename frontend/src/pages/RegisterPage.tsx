@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/context";
+import { HealthDataAgreement, TermsAgreement } from "../components/Agreements";
+import { LegalLinks } from "../components/LegalLinks";
 
 export function RegisterPage() {
   const { register } = useAuth();
@@ -17,6 +19,8 @@ export function RegisterPage() {
     dateOfBirth: "",
     gender: "UNDISCLOSED",
   });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedHealthData, setAcceptedHealthData] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -32,7 +36,7 @@ export function RegisterPage() {
     setFieldErrors({});
     setBusy(true);
     try {
-      await register(form);
+      await register({ ...form, acceptedTerms, acceptedHealthData });
       // The health questions come next; they hand on to where the person was headed.
       navigate("/welcome", { replace: true, state: { from: returnTo ?? "/portal" } });
     } catch (err) {
@@ -97,9 +101,19 @@ export function RegisterPage() {
       <input id="phone" value={form.phone} onChange={update("phone")} />
       {fieldErrors.phone && <small className="error">{fieldErrors.phone}</small>}
 
+      <TermsAgreement checked={acceptedTerms} onChange={setAcceptedTerms} error={fieldErrors.acceptedTerms} />
+      <HealthDataAgreement
+        checked={acceptedHealthData}
+        onChange={setAcceptedHealthData}
+        error={fieldErrors.acceptedHealthData}
+      />
+
       <button type="submit" disabled={busy}>
         {busy ? "Creating…" : "Create account"}
       </button>
+      <p className="muted legal-line">
+        <LegalLinks />
+      </p>
       <p className="muted">
         Run a pharmacy? <Link to="/register/store">Register your store</Link>, free.
       </p>

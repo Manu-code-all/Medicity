@@ -86,4 +86,14 @@ describe("LandingPage", () => {
     expect(screen.getByRole("link", { name: "Join as a doctor" })).toHaveAttribute("href", "/register/doctor");
     expect(screen.getByLabelText("Pick up code 482913")).toBeInTheDocument();
   });
+
+  it("links the privacy notice, terms, medical disclaimer and account deletion page from the footer", () => {
+    renderLanding();
+
+    const footer = within(screen.getByRole("navigation", { name: "Footer" }));
+    expect(footer.getByRole("link", { name: "Privacy notice" })).toHaveAttribute("href", "/privacy");
+    expect(footer.getByRole("link", { name: "Terms of service" })).toHaveAttribute("href", "/terms");
+    expect(footer.getByRole("link", { name: "Medical disclaimer" })).toHaveAttribute("href", "/disclaimer");
+    expect(footer.getByRole("link", { name: "Delete your account" })).toHaveAttribute("href", "/delete-account");
+  });
 });

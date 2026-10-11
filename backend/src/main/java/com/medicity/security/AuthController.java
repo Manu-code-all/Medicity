@@ -1,6 +1,8 @@
 package com.medicity.security;
 
 import com.medicity.patient.Patient;
+import com.medicity.privacy.ConsentService;
+import com.medicity.user.Role;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -8,9 +10,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -22,15 +26,21 @@ public class AuthController {
     private final AuthService authService;
     private final OtpService otpService;
     private final AddressThrottle addressThrottle;
+    private final ConsentService consents;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Register a patient account")
+    @Transactional
+    @Operation(summary = "Register a patient account",
+            description = "Both agreements must be given: the terms and privacy notice, and, separately, "
+                    + "the use of health information. They are recorded with the account, in one transaction.")
     public AuthService.TokenPair register(@Valid @RequestBody RegisterRequest request) {
         addressThrottle.checkSignUp("patient");
-        return authService.register(
+        AuthService.TokenPair pair = authService.register(
                 request.email(), request.password(), request.fullName(),
                 request.phone(), request.dateOfBirth(), request.gender());
+        consents.recordSignUp(UUID.fromString(pair.userId()), Role.PATIENT, request.acceptedHealthData());
+        return pair;
     }
 
     @PostMapping("/login")
@@ -101,7 +111,13 @@ public class AuthController {
 
             @NotNull @Past(message = "Date of birth must be in the past") LocalDate dateOfBirth,
 
-            Patient.Gender gender
+            Patient.Gender gender,
+
+            // Two separate agreements (DPDP: consent specific to its purpose),
+            // neither pre-ticked by the server. @AssertTrue gives the form a field error.
+            @AssertTrue(message = "Please accept the Terms of Service and read the Privacy Notice") boolean acceptedTerms,
+            @AssertTrue(message = "We need your agreement to keep your health information to run your account")
+            boolean acceptedHealthData
     ) {}
 
     public record LoginRequest(
