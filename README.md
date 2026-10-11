@@ -229,10 +229,23 @@ The `EXCLUDE` constraint uses a half-open range `'[)'`, so 10:00–10:30 and
 - **Short-lived access tokens, single-use refresh tokens.** Access tokens are
   15-minute JWTs. Refresh tokens are opaque, stored only as a SHA-256 hash, and
   work once; presenting a spent one is treated as theft and ends that whole
-  session. Signing out revokes it server-side. Tested in `SessionSecurityTest`.
+  session. Signing out revokes it server-side, and also denylists the access
+  token presented with the request (by its `jti`, in `revoked_access_tokens`,
+  checked on every request and cleaned by the nightly housekeeping job), so a
+  signed-out token stops working at once. A refresh-token reuse (theft) still
+  leaves the thief's access token alive for up to 15 minutes. Tested in
+  `SessionSecurityTest`.
 - **Login limit.** 5 failed logins per email in 15 minutes, then `429` with
   `Retry-After`. Counted from the audit log, so it holds across instances and
   restarts; unknown emails are limited identically, so it reveals nothing.
+- **Per-address limits.** Also per client IP, counted from the same audit log:
+  30 failed logins in 15 minutes (whatever emails were tried), and 10 patient,
+  doctor or chemist sign-ups per hour, then `429` with `Retry-After`. Tunable
+  with `medicity.auth.address-login-throttle.*` and `medicity.auth.signup-throttle.*`.
+  These are only meaningful once the real client address reaches the app; see
+  *Trusted proxies* under Deployment.
+- **Roles.** `PHARMACIST` dispenses and restocks (`ADMIN` still may); only
+  `ADMIN` reads the audit log and verifies doctors and stores.
 - **Safe retries.** Booking accepts an `Idempotency-Key`, so a retry after a
   dropped response returns the original booking instead of an error.
 - **Row-level authorization.** Role checks alone are insufficient: every patient
@@ -282,7 +295,8 @@ SPRING_PROFILES_ACTIVE=demo docker compose up --build
 | `arjun@medicity.demo`, `kavya@medicity.demo` | PATIENT — on Dr. Rao's calendar today |
 | `dr.rao@medicity.demo` | DOCTOR — one visit waiting to be closed, one later today |
 | `dr.iyer@medicity.demo` | DOCTOR — useful for checking that doctors cannot reach each other's patients |
-| `admin@medicity.demo` | ADMIN — pharmacy, audit trail, and the store and doctor verification queues |
+| `admin@medicity.demo` | ADMIN — audit trail, and the store and doctor verification queues |
+| `pharmacist@medicity.demo` | PHARMACIST — dispensing and stock through the API (no web screens yet); cannot read the audit log |
 | `chemist@medicity.demo` | CHEMIST — Sri Sai Medicals, with a patient's question waiting |
 | `dr.menon@`, `dr.kulkarni@`, `dr.shetty@`, … `@medicity.demo` | DOCTOR — one per speciality (14 in all), so every body-guide answer is bookable |
 
@@ -436,9 +450,9 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/doctors/me/prescriptions/{id}/corrections` | author | Correct (supersede) a prescription |
 | `GET` | `/api/v1/doctors/me/patients/{id}/history` | treating doctor | A patient's history (audited) |
 | `GET` | `/api/v1/pharmacy/medicines` | signed in | Medicine catalogue |
-| `GET` | `/api/v1/pharmacy/stock/low` | ADMIN | Medicines below reorder level |
-| `POST` | `/api/v1/pharmacy/medicines/{id}/restock` | ADMIN | Add stock |
-| `POST` | `/api/v1/pharmacy/prescriptions/{id}/dispense` | ADMIN | Dispense, decrementing stock atomically |
+| `GET` | `/api/v1/pharmacy/stock/low` | PHARMACIST, ADMIN | Medicines below reorder level |
+| `POST` | `/api/v1/pharmacy/medicines/{id}/restock` | PHARMACIST, ADMIN | Add stock |
+| `POST` | `/api/v1/pharmacy/prescriptions/{id}/dispense` | PHARMACIST, ADMIN | Dispense, decrementing stock atomically |
 | `GET` | `/api/v1/admin/audit` | ADMIN | Search the audit trail |
 | `POST` | `/api/v1/auth/register/chemist` | — | Register a chemist and their store (unverified) |
 | `GET` | `/api/v1/stores/nearby?lat&lng&radiusM` | signed in | Verified stores in a radius, nearest first |
@@ -564,6 +578,19 @@ reach its database is never routed traffic.
 | `MEDICITY_CORS_ORIGINS` | your Vercel origin, e.g. `https://medicity.vercel.app` |
 | `RESEND_API_KEY`, `RESEND_FROM` | optional; turn on sign-in codes by email (see *Codes by email* above) |
 | `SPRING_PROFILES_ACTIVE` | `demo`, to seed clickable data |
+| `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` | optional; regex of the proxy addresses whose `X-Forwarded-For` is trusted (see below) |
+
+**Trusted proxies (client IP in the audit log and the per-address limits).**
+By default only loopback, private and carrier-grade-NAT proxies are believed
+when they send `X-Forwarded-For` (Tomcat's own default), because trusting any
+other address would let a client forge the IP it is recorded under. Railway's
+edge uses public addresses, so until you set
+`SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` the audit log records the edge, not the
+client, and every visitor shares the per-address limits. Set it to a regular
+expression of Railway's *published* edge ranges (take them from Railway's
+documentation; do not guess). The value **replaces** the default, so keep the
+private ranges in it if they should stay trusted. Check afterwards by calling
+the API from two machines and comparing `ip_address` in the audit log.
 
 Generate the secret with:
 
@@ -739,7 +766,9 @@ The design notes for each piece are in `docs/ENGINEERING_LOG.md`, entries 21–2
 - [x] Audit trail, pharmacy dispensing
 - [x] Doctor workspace: close a visit and issue or correct a prescription
 - [x] Refresh-token rotation with reuse detection
-- [x] Login rate limiting
+- [x] Login rate limiting (per email and per address), sign-up rate limiting
+- [x] Access-token denylist, so sign-out is immediate
+- [x] Pharmacist role separate from administrator
 - [x] Idempotency keys on booking
 - [ ] Editable patient profile
 - [x] In-app notifications through a transactional outbox

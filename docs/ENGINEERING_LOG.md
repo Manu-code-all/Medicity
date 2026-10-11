@@ -2683,6 +2683,72 @@ PostgreSQL 16 (this sandbox has no Docker), not the 18 CI and production use.
 
 ---
 
+## 71. Closing the security gaps: limits, roles, revocation
+
+Four items from Known gaps, done together because they share the same
+plumbing (the audit log, the authentication filter, the client address).
+
+**1. Per-address limits and sign-up limits** (`AddressThrottle`, V37). It
+copies `LoginThrottle`: the count comes from audit rows, so it is shared by
+every instance, survives restarts and cannot be reset by an attacker. Failed
+logins per address (any email) default to 30 per 15 minutes; patient, doctor
+and chemist sign-ups share one allowance of 10 per hour per address. Each
+sign-up request writes a `SIGNUP_ATTEMPT` row; a refusal writes
+`SIGNUP_THROTTLED`, which is not counted, so hammering does not extend the
+limit. Requests the validator rejects are not counted. V37 adds a partial
+index on `(action, ip_address, occurred_at)` so neither check scans the log.
+The defaults are deliberately generous: an office or mobile carrier shares one
+address. The test profile switches them off (every test comes from one
+address); `AddressThrottleTest` sets small limits and gives each test its own
+address.
+
+**2. The trusted-proxy setting.** `server.tomcat.remoteip.internal-proxies` is
+now in `application.yml`, overridable with `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES`.
+Its default is Tomcat's own regex, copied exactly, so setting nothing changes
+nothing; a test compares it with `new RemoteIpValve().getInternalProxies()`
+(my first copy missed the 100.64.0.0/10 range, which is how I know the test
+earns its place). I did not put in Railway's ranges: I do not have their
+published list, and a guessed range lets a client forge its recorded IP. The
+README says how to set it and how to check it. `ClientIp` now holds the one
+place the address is read.
+
+**3. A PHARMACIST role** (V37 widens `users_role_check`). Stock and dispensing
+accept `PHARMACIST` or `ADMIN`; the audit log and both verification queues stay
+`ADMIN`. I kept ADMIN on the pharmacy endpoints on purpose: with no admin
+screen for creating accounts, removing it would leave production unable to
+dispense until someone ran SQL. The cost is listed under Known gaps.
+`pharmacist@medicity.demo` is in the seed. The frontend only needed the type, the
+home label and a landing route, because every existing route guard is a strict
+equality on one role, so a pharmacist is already refused everywhere else; there
+are no pharmacy screens.
+
+**4. An access-token denylist** (`AccessTokenDenylist`, V38). Access tokens now
+carry a `jti`; sign-out (`POST /auth/logout`) reads the bearer token if one is
+sent, and records its id and expiry in `revoked_access_tokens`. The filter
+checks it on every request, one primary-key lookup beside the user lookup it
+already makes. `HousekeepingJob` deletes rows past their expiry. The web client
+now sends its access token with the logout call. Giving every token an id also
+fixed something nobody had noticed: two sign-ins in the same second produced
+byte-identical access tokens (same subject, issue time and expiry), which would
+have made revoking one revoke both. A token issued before this deploy has no
+`jti` and cannot be revoked; it expires within 15 minutes.
+
+**Verified.** Backend suite: 271 tests pass (270 in one full run, plus the proxy-default test run alone), 9 of them new (address
+limits for sign-up, login, all three sign-up kinds sharing one allowance,
+validation failures not counted, the proxy default; sign-out revoking the
+token at once while another sign-in of the same person keeps working, sign-out
+without a bearer token, repeated and garbage tokens; housekeeping cleaning the
+denylist; a pharmacist dispensing but refused the audit log). The existing
+dispensing tests still pass with ADMIN. Frontend: type check clean, the API
+client tests pass with a new one for the logout header.
+
+**Not verified.** The tests ran against a local PostgreSQL 16 (this sandbox has
+no Docker), not the Testcontainers 18 that CI uses. Nothing was run against
+Railway: the trusted-proxy setting has never been given real edge ranges, so
+the per-address limits are untested behind the real proxy.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -2744,9 +2810,6 @@ PostgreSQL 16 (this sandbox has no Docker), not the 18 CI and production use.
   was asked from stay on the row for distance and insights. They are never
   shown to a store (stores see a distance) but are not coarsened or deleted
   after the question closes.
-- **Chemist sign-up is not rate-limited either,** for the same reason as
-  patient registration below. A store is inert until an administrator checks
-  its licence, which limits the harm.
 - **An automatic answer trusts the store's stock list completely.** There is
   no check that the prices are plausible or that the list came from billing
   software rather than being typed in.
@@ -2755,31 +2818,28 @@ PostgreSQL 16 (this sandbox has no Docker), not the 18 CI and production use.
   pharmacist checking it. It is deliberately small and falls back to the
   doctor's English for anything it does not recognise, but each phrase needs
   review before real patients rely on it.
-- **Audit IP addresses are Railway's edge proxies, not clients.** Found when
-  checking the audit trail on production: consecutive requests from one
-  machine were recorded as 152.233.15.120, .121, .123 and 152.233.68.97.
-  Tomcat's RemoteIpValve only trusts `X-Forwarded-For` from private-range
-  proxies, and Railway's edge uses public addresses, so the header is
-  (correctly) ignored. Trusting it needs Railway's published edge ranges in
-  `server.tomcat.remoteip.internal-proxies`; guessing a range would let
-  clients forge addresses, which is worse than recording the proxy.
-- **An access token outlives sign-out by up to 15 minutes.** Access tokens
-  are never looked up, so revoking the session (sign-out, detected token
-  theft) stops refreshes at once but not the access token already issued.
-  Closing that needs a denylist checked on every request; the short lifetime
-  is the trade-off taken instead.
-- **Only login is rate-limited, and only per email.** Registration has no
-  limit, so one client can create accounts in bulk. There is no per-IP limit,
-  because every client appears to come from a few Railway edge addresses
-  (see the first gap); one becomes possible once client IPs are trusted.
+- **Audit IP addresses are still Railway's edge proxies until configured.**
+  Found when checking the audit trail on production (entry 71 made the setting
+  configurable). Tomcat's RemoteIpValve only trusts `X-Forwarded-For` from
+  private-range proxies, and Railway's edge uses public addresses. Someone
+  must set `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` to Railway's published
+  edge ranges; until then the per-address limits (entry 71) treat all clients
+  as one.
+- **A stolen refresh token's access token is not revoked.** Sign-out now
+  denylists the access token at once (entry 71), but reuse detection ends the
+  session without knowing which access tokens were issued from it, so those
+  live out their 15 minutes.
 - **Only booking accepts an `Idempotency-Key`.** Cancelling is idempotent
   by design (a second cancel returns the cancelled appointment unchanged), but a retried
   prescription or dispense gets a 409 rather than the original response.
 - **Notifications are in-app only.** No email or SMS provider is configured,
   so a patient who does not open the app does not hear about a cancellation or
   a corrected prescription. Both would be further outbox consumers.
-- **Pharmacy actions use the ADMIN role.** There is no dedicated pharmacist
-  role yet, so whoever dispenses can also read the whole audit log.
+- **The pharmacist has no screens.** `PHARMACIST` can dispense and restock
+  through the API (entry 71) but the web app has no pharmacy page, and
+  `ADMIN` can still dispense, so an administrator account is more powerful
+  than it needs to be there. Accounts are created by SQL; there is no
+  admin screen to add one.
 - **The demo resets only nightly.** Between resets, one visitor's changes
   (closing the waiting visit, booking slots) are what the next visitor sees.
 - **Nothing collects the metrics in production.** `/actuator/prometheus`
