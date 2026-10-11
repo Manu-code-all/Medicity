@@ -268,6 +268,9 @@ public class BookingService {
                 Map.of("from", appointmentId, "fromScheduledAt", from, "scheduledAt", moved.getScheduledAt()));
         outbox.publish(Outbox.APPOINTMENT_RESCHEDULED, moved.getId(), Map.of(
                 "doctorUserId", old.getSlot().getDoctor().getUser().getId(),
+                "patientUserId", old.getPatient().accountUserId(),
+                "forName", old.getPatient().forName(),
+                "doctorName", old.getSlot().getDoctor().getUser().getFullName(),
                 "patientName", old.getPatient().displayName(),
                 "fromLabel", INDIA_TIME.format(from),
                 "scheduledAt", moved.getScheduledAt()));
@@ -321,6 +324,9 @@ public class BookingService {
         // The doctor's calendar just gained a gap; the patient knows already.
         outbox.publish(Outbox.APPOINTMENT_CANCELLED, appointmentId, Map.of(
                 "doctorUserId", saved.getSlot().getDoctor().getUser().getId(),
+                "patientUserId", saved.getPatient().accountUserId(),
+                "forName", saved.getPatient().forName(),
+                "doctorName", saved.getSlot().getDoctor().getUser().getFullName(),
                 "patientName", saved.getPatient().displayName(),
                 "scheduledAt", saved.getScheduledAt(),
                 "late", late));

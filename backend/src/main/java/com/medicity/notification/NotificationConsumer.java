@@ -19,9 +19,10 @@ import java.util.UUID;
  * NOTHING} means an event delivered twice (the relay crashed after this ran
  * but before marking the event published) leaves one notification, not two.
  *
- * <p>Email or SMS would be further consumers of the same events. They are not
- * built: there is no provider configured, and a stub that pretends to send
- * would be worse than none.
+ * <p>Email is a further consumer of the same events
+ * ({@link com.medicity.notification.email.EmailConsumer}). SMS is not built:
+ * there is no provider configured, and a stub that pretends to send would be
+ * worse than none.
  */
 @Component
 public class NotificationConsumer implements OutboxConsumer {
@@ -51,6 +52,12 @@ public class NotificationConsumer implements OutboxConsumer {
                     p.path("patientName").asText() + " moved their visit from "
                             + p.path("fromLabel").asText() + ".",
                     "/doctor", instant(p, "scheduledAt"));
+
+            case Outbox.DOCTOR_LEAVE_VISIT_AFFECTED -> notify(event, uuid(p, "patientUserId"),
+                    p.path("doctorName").asText() + " will be away",
+                    forWhom(p, "Your visit with ") + p.path("doctorName").asText()
+                            + " may not go ahead. Move it to another time or cancel it.",
+                    "/portal/visits", instant(p, "scheduledAt"));
 
             case Outbox.FOLLOWUP_ASKED -> notify(event, uuid(p, "doctorUserId"),
                     "Follow-up question", p.path("patientName").asText() + " asked a question after their visit.",

@@ -270,6 +270,12 @@ export interface NotificationList {
   items: AppNotification[];
 }
 
+/** Whether notification emails are on, and whether the server can send them at all. */
+export interface EmailPreference {
+  enabled: boolean;
+  available: boolean;
+}
+
 // --- Chemists' stores -----------------------------------------------------
 
 /** Local wall-clock times, "HH:mm:ss", in the store's own zone. */

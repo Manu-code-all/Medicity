@@ -2683,15 +2683,115 @@ PostgreSQL 16 (this sandbox has no Docker), not the 18 CI and production use.
 
 ---
 
+## 73. Notification emails: another outbox consumer
+
+**Why.** The outbox existed so email could be "another consumer", and the
+README's roadmap still listed it. No-shows were the practical reason: a patient
+told the day before is a patient who cancels instead of not coming.
+
+**What.** With `RESEND_API_KEY` and `RESEND_FROM` set (the same two as sign-in
+codes), the patient is emailed when a visit is booked, moved or cancelled; 24
+hours before a visit; when the doctor marks leave on a day they have a visit
+(who also now get the in-app notice, which this gap lacked: the old Known gaps
+bullet said patients were not told); and when a prescription is issued or
+corrected. Unset, the feature is a no-op: nothing is queued and the reminder
+job writes nothing.
+
+**Design.**
+
+- **Two steps, one consumer.** `EmailConsumer` first *fans out*: for each
+  domain event it writes one `EMAIL_SEND` outbox event per recipient, with an
+  id derived from (source event, user), so redelivering the source queues
+  nothing twice. It then *delivers* those events. The alternative, sending
+  inside the original event's handling, makes one provider outage fail the
+  event, roll back its in-app notification and retry both, and resends to
+  everyone before the failing recipient. As separate events each email
+  succeeds, retries and gives up alone, on the relay's existing backoff (5 s
+  doubling to an hour, ten attempts, then set aside). Nothing runs in the
+  request that caused the event.
+- **Failures are audited as they happen.** Each failed attempt logs a warning
+  and writes `EMAIL_SEND_FAILED` (account and template, never the address) in
+  its own transaction, because the delivering transaction is about to roll
+  back and the failure is what must survive.
+- **Reminder.** `AppointmentReminderJob` (every 15 minutes, `JobLock` like the
+  others) queues one `APPOINTMENT_REMINDER` per booked visit that starts within
+  24 hours *and was booked at least 24 hours before it starts*. The second half
+  is deliberate: a visit booked this morning for tonight gets no reminder, since
+  the confirmation is hours old; and because the rule is a window rather than
+  "exactly 24 h", a missed run is made up by the next. `publishOnce` with an id
+  from the visit makes repeats free. A rescheduled visit is a new row and earns
+  its own reminder.
+- **Moving a visit sends one email.** The booking path publishes "booked" for
+  the new time as well as "moved"; the consumer skips "booked" when the
+  appointment has `rescheduled_from`.
+- **Leave.** `addLeave` publishes `DOCTOR_LEAVE_VISIT_AFFECTED` per booked
+  visit on the day (later than now), with an id from (visit, day): saving the
+  same day again to edit the note tells nobody twice. The doctor's note is not
+  in the event or the email.
+- **Opt-out.** `user_email_preferences` (V43), a row only for people who chose;
+  none means on. `GET/PUT /api/v1/notifications/email-preference` and a checkbox
+  on the patient profile, hidden when the server cannot send email. It is
+  checked when fanning out *and* when sending, so turning it off stops emails
+  already queued. In-app notifications are unaffected.
+- **Unsubscribe-safe.** Every email has a footer link and `List-Unsubscribe` /
+  `List-Unsubscribe-Post` headers (when `MEDICITY_PUBLIC_API_URL` is set). The
+  link carries the user id and an HMAC scoped to unsubscribing, keyed from the
+  server secret; it never expires and can do one thing, switch that account's
+  emails off. GET only shows a button and POST acts: mail scanners fetch every
+  link in a message, and an unsubscribe-on-GET would unsubscribe people who
+  never asked. The POST is also what RFC 8058 one-click clients send.
+- **Privacy.** Visit emails name the doctor and the time (the reader needs both)
+  and not the reason for the visit. Prescription emails say "You have a new
+  prescription. Sign in to view it." and nothing else: no doctor, diagnosis or
+  medicine, and the fan-out does not even copy them into the `EMAIL_SEND`
+  payload. Subjects are generic for lock screens. HTML is escaped.
+  `EmailTemplatesTest` pins this with a payload that does contain a diagnosis.
+
+**Migrations.** Only V43 was needed. V44 is unused: an index for the reminder's
+"already queued?" check was the obvious candidate, but `publishOnce` already
+relies on the unique `event_id`, so there was nothing to index.
+
+**Trade-offs.**
+
+- The email is sent inside the relay's transaction for that event, so a slow
+  provider holds a database connection and the event's row lock for up to the
+  timeouts (5 s connect, 10 s read). Other events are not blocked
+  (`SKIP LOCKED`), but a prolonged outage with many emails queued ties up the
+  relay for that long per attempt.
+- At least once: if the process dies after Resend accepted a message and before
+  the event is marked published, the person gets two. Closing that window needs
+  a provider-side idempotency key; not done.
+- Only patients (the account that signs in for the patient, including family
+  members) are emailed. Doctors, chemists and admins are not, and no email says
+  anything about queue calls, waitlist slots or medicine reminders yet.
+- The reminder is in the doctor's clinic time zone (IST) throughout, like the
+  rest of the app.
+
+**Verified.** Backend compiles including all tests (`mvn test-compile`). New
+unit tests `EmailTemplatesTest` (7) and `ResendEmailSenderTest` (4) were run and
+pass. Frontend typecheck, lint and the whole suite (147, 4 new) pass.
+
+**Not verified.** `EmailNotificationsTest` (23 integration tests with a
+recording fake sender: each event type, privacy, opt-out before and after
+queueing, the unsubscribe link and forged links, reminder boundaries and
+idempotence, retry with backoff, giving up after ten attempts with ten audit
+rows, one failing recipient not holding back another, no-op without a
+provider) is written and compiles but **has not been run**: it needs
+Testcontainers, and this sandbox has no Docker. The V43 migration has likewise
+not been applied to a database, and nothing has talked to the real Resend.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
   registration number against the council's register by hand; there is no
   certificate upload and no automatic check (the National Medical
   Commission's register has no public API).
-- **A day off does not tell booked patients.** Marking leave keeps visits
-  already booked and shows the doctor how many; contacting those patients,
-  or cancelling, is left to the doctor.
+- **A day off tells booked patients but does not cancel their visits.**
+  Marking leave keeps visits already booked, tells each patient (in the app
+  and by email, entry 73) and shows the doctor how many; cancelling or
+  moving them is left to the doctor or the patient.
 - **Video calls use STUN only, and the relay is in one process.** Two
   browsers behind strict firewalls or carrier-grade NAT may fail to connect
   directly; that needs a TURN server (relayed media), which costs money to

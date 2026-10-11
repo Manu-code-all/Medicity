@@ -3,11 +3,13 @@ package com.medicity.doctor;
 import com.medicity.audit.AuditLog;
 import com.medicity.common.NotFoundException;
 import com.medicity.common.ValidationException;
+import com.medicity.outbox.Outbox;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -39,8 +41,8 @@ import java.util.stream.Collectors;
  * no-overlap rule. A nightly job tops the four weeks up as days pass.
  *
  * <p>Leave days get no slots. Marking one removes that day's slots nobody
- * booked; visits already booked are kept and counted, so the doctor can
- * decide what to tell those patients.
+ * booked; visits already booked are kept and counted, and each affected
+ * patient is told (in the app and, if they have not opted out, by email).
  */
 @Service
 @RequiredArgsConstructor
@@ -56,6 +58,7 @@ public class DoctorHoursService {
     private final DoctorRepository doctors;
     private final Clock clock;
     private final AuditLog auditLog;
+    private final Outbox outbox;
 
     public record Window(int weekday, LocalTime startsAt, LocalTime endsAt, int slotMinutes) {}
 
@@ -159,9 +162,51 @@ public class DoctorHoursService {
                 """, doctorId, Timestamp.from(clock.instant()),
                 Timestamp.from(day.atStartOfDay(CLINIC_ZONE).toInstant()),
                 Timestamp.from(day.plusDays(1).atStartOfDay(CLINIC_ZONE).toInstant()));
+        int told = tellAffectedPatients(doctorId, day);
         auditLog.recordChange("DOCTOR_LEAVE_ADDED", "DOCTOR", doctorId,
-                Map.of("day", day.toString(), "slotsRemoved", removed));
+                Map.of("day", day.toString(), "slotsRemoved", removed, "patientsTold", told));
         return leave(doctorUserId).stream().filter(l -> l.day().equals(day)).findFirst().orElseThrow();
+    }
+
+    /**
+     * Tells each patient with a visit still ahead on the day that the doctor is
+     * away. The visits are kept (cancelling is the doctor's or the patient's
+     * decision), but nobody should learn at the door.
+     *
+     * <p>One event per visit, with an id derived from the visit and the day:
+     * marking the same day again (to change its note) tells nobody twice.
+     */
+    private int tellAffectedPatients(UUID doctorId, LocalDate day) {
+        record Affected(UUID appointmentId, UUID patientUserId, String forName, String doctorName, Instant at) {}
+        List<Affected> affected = jdbc.query("""
+                SELECT a.id, coalesce(p.user_id, p.guardian_user_id) AS patient_user_id,
+                       CASE WHEN p.guardian_user_id IS NULL THEN '' ELSE split_part(p.full_name, ' ', 1) END AS for_name,
+                       du.full_name AS doctor_name, a.scheduled_at
+                FROM appointments a
+                JOIN appointment_slots s ON s.id = a.slot_id
+                JOIN patients p ON p.id = a.patient_id
+                JOIN doctors d ON d.id = s.doctor_id
+                JOIN users du ON du.id = d.user_id
+                WHERE s.doctor_id = ? AND a.status = 'BOOKED' AND s.starts_at > ?
+                  AND s.starts_at >= ? AND s.starts_at < ?
+                """, (rs, i) -> new Affected(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class),
+                        rs.getString(3), rs.getString(4), rs.getTimestamp(5).toInstant()),
+                doctorId, Timestamp.from(clock.instant()),
+                Timestamp.from(day.atStartOfDay(CLINIC_ZONE).toInstant()),
+                Timestamp.from(day.plusDays(1).atStartOfDay(CLINIC_ZONE).toInstant()));
+        int told = 0;
+        for (Affected a : affected) {
+            UUID eventId = UUID.nameUUIDFromBytes(
+                    ("leave:" + a.appointmentId() + ":" + day).getBytes(StandardCharsets.UTF_8));
+            if (outbox.publishOnce(Outbox.DOCTOR_LEAVE_VISIT_AFFECTED, eventId, a.appointmentId(), Map.of(
+                    "patientUserId", a.patientUserId(),
+                    "forName", a.forName(),
+                    "doctorName", a.doctorName(),
+                    "scheduledAt", a.at()))) {
+                told++;
+            }
+        }
+        return told;
     }
 
     /** Back at work that day: its slots open again. */

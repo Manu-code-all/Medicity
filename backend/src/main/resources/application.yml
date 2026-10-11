@@ -85,6 +85,12 @@ medicity:
     resend:
       api-key: ${RESEND_API_KEY:}
       from: ${RESEND_FROM:}
+    # Notification emails (booked, cancelled, prescription, reminder). Sent only
+    # when the Resend settings above are set. Both addresses are optional: with
+    # app-url the emails link to the sign-in page, with api-url they carry a
+    # one-click unsubscribe link (the API's public address, no trailing slash).
+    app-url: ${MEDICITY_APP_URL:}
+    api-url: ${MEDICITY_PUBLIC_API_URL:}
 
   auth:
     otp:
