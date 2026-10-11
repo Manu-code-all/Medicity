@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ApiError } from "./api/client";
 import { AuthProvider } from "./auth/AuthContext";
 import { App } from "./App";
+import { registerServiceWorker } from "./lib/registerServiceWorker";
 import "./styles.css";
 import "./workspace.css";
 
@@ -47,3 +48,5 @@ void ready.then(() => ReactDOM.createRoot(document.getElementById("root")!).rend
     </QueryClientProvider>
   </React.StrictMode>,
 ));
+
+registerServiceWorker();
