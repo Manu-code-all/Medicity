@@ -36,7 +36,6 @@ export function uniqueTag(): string {
 /** Signs in through the real form with email and password and waits for the role's home page. */
 export async function signIn(page: Page, email: string, password = DEMO_PASSWORD): Promise<void> {
   await page.goto("/login");
-  await page.getByRole("tab", { name: "Email" }).click();
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
@@ -60,7 +59,7 @@ export async function registerStore(request: APIRequestContext, tag: string) {
     holdHours: 3,
   };
   const response = await request.post("/api/v1/auth/register/chemist", {
-    data: { email, password: DEMO_PASSWORD, fullName: `Owner ${tag}`, store },
+    data: { email, password: DEMO_PASSWORD, fullName: `Owner ${tag}`, store, acceptedTerms: true },
   });
   expect(response.ok(), await response.text()).toBe(true);
   return { email, store };
