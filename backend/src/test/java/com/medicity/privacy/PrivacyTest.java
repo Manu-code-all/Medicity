@@ -253,7 +253,7 @@ class PrivacyTest extends NetworkTestSupport {
                 + "home_latitude = 12.9, home_longitude = 77.6, blood_group = 'O+' WHERE id = ?", aarav);
         jdbc.update("UPDATE patients SET allergies = 'Dust', city = 'Bengaluru', emergency_contact = '9800000000', "
                 + "height_cm = 160 WHERE user_id = ?", meeraUser.getId());
-        jdbc.update("UPDATE users SET phone = '9811111111', login_phone = '+919811111111' WHERE id = ?", meeraUser.getId());
+        jdbc.update("UPDATE users SET phone = '9811111111' WHERE id = ?", meeraUser.getId());
         UUID meeraPatient = meera.getId();
 
         Appointment upcoming = bookedVisit(meera, clock.instant().plus(3, ChronoUnit.DAYS));
@@ -280,7 +280,6 @@ class PrivacyTest extends NetworkTestSupport {
         assertThat(user.get("full_name")).isEqualTo("Deleted user");
         assertThat((String) user.get("email")).endsWith("@deleted.invalid").doesNotContain("meera");
         assertThat(user.get("phone")).isNull();
-        assertThat(user.get("login_phone")).isNull();
         assertThat(user.get("enabled")).isEqualTo(false);
         assertThat(user.get("deleted_at")).isNotNull();
         assertThat(passwordEncoder.matches(PASSWORD, (String) user.get("password_hash"))).isFalse();

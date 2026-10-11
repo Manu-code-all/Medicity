@@ -150,7 +150,8 @@ class AddressThrottleTest extends AbstractIntegrationTest {
         return mvc.perform(post("/api/v1/auth/register").with(from(address))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"email":"%s","password":"%s","fullName":"Test Patient","dateOfBirth":"1990-01-01"}
+                        {"email":"%s","password":"%s","fullName":"Test Patient","dateOfBirth":"1990-01-01",
+                         "acceptedTerms":true,"acceptedHealthData":true}
                         """.formatted(email, PASSWORD)));
     }
 
@@ -161,7 +162,7 @@ class AddressThrottleTest extends AbstractIntegrationTest {
                         {"email":"dr-%s@medicity.test","password":"%s","fullName":"Dr. Limit","phone":"9%09d",
                          "specialization":"Dermatology","medicalCouncil":"Karnataka Medical Council",
                          "registrationNumber":"KMC-%s","qualification":"MBBS, MD","yearsExperience":6,
-                         "consultationFee":800}
+                         "consultationFee":800,"acceptedTerms":true}
                         """.formatted(suffix, PASSWORD, ThreadLocalRandom.current().nextInt(100_000_000, 999_999_999),
                         suffix)));
     }
@@ -174,7 +175,7 @@ class AddressThrottleTest extends AbstractIntegrationTest {
                          "store":{"name":"Limit Medicals","licenceNumber":"KA-%s","phone":"+919800000001",
                                   "addressLine":"1 Main Road","city":"Bengaluru",
                                   "latitude":12.97,"longitude":77.64,"opensAt":"08:00","closesAt":"22:00",
-                                  "open24h":false,"holdHours":3}}
+                                  "open24h":false,"holdHours":3},"acceptedTerms":true}
                         """.formatted(suffix, PASSWORD, suffix)));
     }
 

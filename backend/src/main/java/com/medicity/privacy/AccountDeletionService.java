@@ -179,7 +179,7 @@ public class AccountDeletionService {
         // The email stays well-formed and unique (V1's CHECK and index) without
         // being anyone's address; ".invalid" is reserved and never delivers.
         jdbc.update("""
-                UPDATE users SET email = ?, full_name = 'Deleted user', phone = NULL, login_phone = NULL,
+                UPDATE users SET email = ?, full_name = 'Deleted user', phone = NULL,
                        password_hash = ?, enabled = FALSE, deleted_at = ?, updated_at = ?, version = version + 1
                 WHERE id = ?""",
                 "deleted-" + userId + "@deleted.invalid", passwordEncoder.encode(UUID.randomUUID().toString()),

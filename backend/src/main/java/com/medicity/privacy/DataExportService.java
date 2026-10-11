@@ -50,7 +50,7 @@ public class DataExportService {
     @Transactional(readOnly = true)
     public Map<String, Object> export(UUID userId) {
         List<Map<String, Object>> account = rows("""
-                SELECT id, email, full_name, phone, login_phone, role, created_at
+                SELECT id, email, full_name, phone, role, created_at
                 FROM users WHERE id = ? AND deleted_at IS NULL""", userId);
         if (account.isEmpty()) {
             throw new NotFoundException("Account", userId);
