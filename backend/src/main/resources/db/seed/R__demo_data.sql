@@ -29,7 +29,10 @@ INSERT INTO users (id, email, password_hash, full_name, phone, role) VALUES
    'Meera Nair', '+919876500101', 'PATIENT'),
   ('33333333-3333-4333-8333-333333333301', 'admin@medicity.demo',
    '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
-   'Ops Admin', '+919876500201', 'ADMIN')
+   'Ops Admin', '+919876500201', 'ADMIN'),
+  ('33333333-3333-4333-8333-333333333302', 'pharmacist@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Hospital Pharmacist', '+919876500202', 'PHARMACIST')
 ON CONFLICT (email) DO NOTHING;
 
 

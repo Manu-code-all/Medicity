@@ -17,7 +17,7 @@ export interface TokenPair {
   fullName: string;
 }
 
-export type Role = "PATIENT" | "DOCTOR" | "ADMIN" | "CHEMIST";
+export type Role = "PATIENT" | "DOCTOR" | "ADMIN" | "CHEMIST" | "PHARMACIST";
 
 export type AppointmentStatus = "BOOKED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 

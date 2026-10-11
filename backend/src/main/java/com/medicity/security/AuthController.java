@@ -21,11 +21,13 @@ public class AuthController {
 
     private final AuthService authService;
     private final OtpService otpService;
+    private final AddressThrottle addressThrottle;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Register a patient account")
     public AuthService.TokenPair register(@Valid @RequestBody RegisterRequest request) {
+        addressThrottle.checkSignUp("patient");
         return authService.register(
                 request.email(), request.password(), request.fullName(),
                 request.phone(), request.dateOfBirth(), request.gender());
@@ -73,9 +75,13 @@ public class AuthController {
     /** Takes the refresh token rather than a bearer token, so an expired access token can still sign out. */
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "End the session the refresh token belongs to")
-    public void logout(@Valid @RequestBody RefreshRequest request) {
-        authService.logout(request.refreshToken());
+    @Operation(summary = "End the session the refresh token belongs to",
+            description = "If the request also carries the session's access token, that token is revoked at once.")
+    public void logout(@Valid @RequestBody RefreshRequest request,
+                       @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String accessToken = authorization != null && authorization.startsWith("Bearer ")
+                ? authorization.substring("Bearer ".length()) : null;
+        authService.logout(request.refreshToken(), accessToken);
     }
 
     public record RegisterRequest(

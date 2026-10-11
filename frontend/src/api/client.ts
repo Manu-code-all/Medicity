@@ -102,9 +102,14 @@ async function withRefreshLock(task: () => Promise<boolean>): Promise<boolean> {
 export function revokeSession(): void {
   const refreshToken = tokenStore.refresh();
   if (!refreshToken) return;
+  // The access token goes along so the server can revoke it now, not at its expiry.
+  const accessToken = tokenStore.access();
   void fetch(`${BASE_URL}/api/v1/auth/logout`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
     body: JSON.stringify({ refreshToken }),
     keepalive: true,
   }).catch(() => undefined);

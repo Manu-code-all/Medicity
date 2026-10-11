@@ -13,6 +13,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,8 +23,10 @@ import java.util.UUID;
  *
  * <p>Refresh tokens are not JWTs; they are opaque, stored and single-use (see
  * {@link RefreshTokenStore}). An access token cannot be revoked before it
- * expires, which is why it lives 15 minutes: signing out, or a detected refresh
- * token theft, cuts a session off within that window at most.
+ * expires on its own, which is why it lives 15 minutes; signing out revokes the
+ * presented token at once through {@link AccessTokenDenylist} (by its {@code jti}).
+ * A detected refresh token theft still cuts the thief's access token off only
+ * within that window, because the stolen token's id is not known to the server.
  */
 @Service
 @Slf4j
@@ -55,6 +58,7 @@ public class JwtService {
     public String issueAccessToken(User user) {
         Date now = Date.from(clock.instant());
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())   // jti: lets sign-out revoke this token (AccessTokenDenylist)
                 .subject(user.getId().toString())
                 .claim(CLAIM_ROLE, user.getRole().name())
                 .claim(CLAIM_TYPE, TYPE_ACCESS)
@@ -64,8 +68,15 @@ public class JwtService {
                 .compact();
     }
 
-    /** @return the user id if this is a valid, unexpired access token. */
-    public Optional<UUID> verifyAccessToken(String token) {
+    /** A verified access token: whose it is, which token it is, and when it stops working anyway. */
+    public record VerifiedToken(UUID userId, UUID tokenId, Instant expiresAt) {}
+
+    /**
+     * @return the token's details if this is a valid, unexpired access token.
+     *         {@code tokenId} is null for a token issued before ids were added
+     *         (at most one access lifetime after that deploy); those cannot be revoked.
+     */
+    public Optional<VerifiedToken> verifyAccessToken(String token) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(key)
@@ -81,7 +92,9 @@ public class JwtService {
                 // this check keeps them from being accepted as bearer credentials.
                 return Optional.empty();
             }
-            return Optional.of(UUID.fromString(claims.getSubject()));
+            String jti = claims.getId();
+            return Optional.of(new VerifiedToken(UUID.fromString(claims.getSubject()),
+                    jti == null ? null : UUID.fromString(jti), claims.getExpiration().toInstant()));
 
         } catch (JwtException | IllegalArgumentException e) {
             // Expired / tampered / malformed. Logged at DEBUG: an invalid token is

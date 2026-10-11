@@ -34,6 +34,7 @@ public class StoreController {
     private final StoreService storeService;
     private final StoreDirectory directory;
     private final StoreRepository storeRepository;
+    private final com.medicity.security.AddressThrottle addressThrottle;
     private final Clock clock;
 
     /** Under /auth so it is reachable without a token, like patient sign-up. */
@@ -43,6 +44,7 @@ public class StoreController {
     @Operation(summary = "Register a chemist account and its store",
             description = "The store receives no patient questions until an administrator verifies its licence.")
     public TokenPair register(@Valid @RequestBody ChemistRegistration request) {
+        addressThrottle.checkSignUp("chemist");
         return storeService.register(request.email(), request.password(), request.fullName(),
                 request.store().toDetails());
     }

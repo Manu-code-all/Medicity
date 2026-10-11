@@ -8,12 +8,16 @@ package com.medicity.user;
  * <p>{@code CHEMIST} runs a neighbourhood store outside the hospital. It sees
  * only what patients send to its store, and nothing until an administrator
  * has verified the store's drug licence.
+ *
+ * <p>{@code PHARMACIST} works the hospital pharmacy counter: dispenses and
+ * restocks, but cannot read the audit log (that stays with {@code ADMIN}).
  */
 public enum Role {
     PATIENT,
     DOCTOR,
     ADMIN,
-    CHEMIST;
+    CHEMIST,
+    PHARMACIST;
 
     /** Spring Security expects the {@code ROLE_} prefix on authorities. */
     public String authority() {
