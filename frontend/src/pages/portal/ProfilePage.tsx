@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "../../api/client";
-import { portal } from "../../api/endpoints";
+import { notifications, portal } from "../../api/endpoints";
 import { HealthForm } from "../../components/HealthForm";
 import { PrivacyPanel } from "../../components/PrivacyPanel";
 import { ageFrom, formatDate, initials } from "../../lib/format";
@@ -12,6 +12,42 @@ const GENDER_LABEL = {
   OTHER: "Other",
   UNDISCLOSED: "Prefer not to say",
 } as const;
+
+/**
+ * Whether Medicity may email about visits and prescriptions. Hidden when the
+ * server cannot send email, so the page never offers a switch that does nothing.
+ */
+function EmailNotifications() {
+  const queryClient = useQueryClient();
+  const key = ["notifications", "email-preference"];
+  const preference = useQuery({ queryKey: key, queryFn: notifications.emailPreference });
+  const change = useMutation({
+    mutationFn: notifications.setEmailPreference,
+    onSuccess: (saved) => queryClient.setQueryData(key, saved),
+  });
+
+  if (!preference.data?.available) return null;
+
+  return (
+    <section className="card">
+      <h2 className="portal__subtitle">Email</h2>
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={preference.data.enabled}
+          disabled={change.isPending}
+          onChange={(e) => change.mutate(e.target.checked)}
+        />
+        <span>Email me about my visits and prescriptions</span>
+      </label>
+      <p className="muted small">
+        Emails say when a visit is booked, moved or cancelled, remind you the day before, and tell you when a
+        prescription is ready. They never include medical details: you sign in to see those.
+      </p>
+      {change.isError && <p className="error">Could not save this. Try again.</p>}
+    </section>
+  );
+}
 
 export function ProfilePage() {
   const queryClient = useQueryClient();
@@ -110,6 +146,8 @@ export function ProfilePage() {
           <dd>{p.emergencyContact ?? notSet}</dd>
         </dl>
       </section>
+
+      <EmailNotifications />
         </>
       )}
 

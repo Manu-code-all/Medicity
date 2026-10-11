@@ -35,6 +35,7 @@ import type {
   HoursWindow,
   Medicine,
   NearbyStore,
+  EmailPreference,
   NotificationList,
   Page,
   PatientHistory,
@@ -243,6 +244,9 @@ export const notifications = {
   mine: () => request<NotificationList>("/api/v1/notifications"),
   markRead: (id: string) => request<void>(`/api/v1/notifications/${id}/read`, { method: "POST" }),
   markAllRead: () => request<void>("/api/v1/notifications/read-all", { method: "POST" }),
+  emailPreference: () => request<EmailPreference>("/api/v1/notifications/email-preference"),
+  setEmailPreference: (enabled: boolean) =>
+    request<EmailPreference>("/api/v1/notifications/email-preference", { method: "PUT", body: { enabled } }),
 };
 
 export const stores = {

@@ -47,6 +47,8 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                // The link in a notification email; it proves itself with a signed token.
+                .requestMatchers("/api/v1/notifications/email/unsubscribe").permitAll()
                 // Must come before the public rule below: matchers are checked in
                 // order and the first match wins, so without this line every GET
                 // under /doctors/me/ would be open to anonymous callers.

@@ -325,6 +325,17 @@ can receive a code. Email and SMS codes share one limit (three codes per
 account in fifteen minutes) and one set of rules (five minutes, five guesses,
 one sign-in).
 
+**Notification emails** use the same two settings, so there is nothing more to
+configure: with them set, Medicity also emails a patient when a visit is booked,
+moved or cancelled, the day before a visit, when the doctor marks leave on a day
+they have a visit, and when a prescription is issued or corrected. Prescription
+emails say only "you have a new prescription, sign in to view". Each person can
+turn them off under *Profile*, or with the unsubscribe link in the email.
+`MEDICITY_APP_URL` (the web app's address) adds a sign-in link, and
+`MEDICITY_PUBLIC_API_URL` (the API's public address) adds the unsubscribe link.
+With no `RESEND_API_KEY` none of this runs. See entry 73 in
+`docs/ENGINEERING_LOG.md`.
+
 The seed lives in `db/seed/`, which is added to the Flyway path *only* by the
 `demo` profile — a deployed environment has no path by which these accounts
 could be created.
@@ -576,7 +587,8 @@ reach its database is never routed traffic.
 | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` — a Railway reference, not a literal |
 | `JWT_SECRET` | 32+ bytes of random; the app refuses to start below that |
 | `MEDICITY_CORS_ORIGINS` | your Vercel origin, e.g. `https://medicity.vercel.app` |
-| `RESEND_API_KEY`, `RESEND_FROM` | optional; turn on sign-in codes by email (see *Codes by email* above) |
+| `RESEND_API_KEY`, `RESEND_FROM` | optional; turn on sign-in codes and notification emails (see *Codes by email* above) |
+| `MEDICITY_APP_URL`, `MEDICITY_PUBLIC_API_URL` | optional; the web app's and the API's public addresses, for the sign-in and unsubscribe links in notification emails |
 | `SPRING_PROFILES_ACTIVE` | `demo`, to seed clickable data |
 | `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` | optional; regex of the proxy addresses whose `X-Forwarded-For` is trusted (see below) |
 
@@ -773,7 +785,8 @@ The design notes for each piece are in `docs/ENGINEERING_LOG.md`, entries 21–2
 - [ ] Editable patient profile
 - [x] In-app notifications through a transactional outbox
 - [x] Sign-in codes by email (Resend)
-- [ ] Email/SMS delivery of notifications (another outbox consumer)
+- [x] Email delivery of notifications (another outbox consumer)
+- [ ] SMS delivery of notifications
 - [x] Prometheus metrics (`/actuator/prometheus`, ADMIN only)
 - [ ] Grafana dashboard
 - [ ] Doctor availability rules engine (recurring weekly templates)
