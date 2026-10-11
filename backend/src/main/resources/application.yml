@@ -96,6 +96,27 @@ medicity:
       max-failures: 5
       window: PT15M
 
+  privacy:
+    # The version of each text people agree to (ConsentService). These are the
+    # DRAFT texts the web app shows at /terms and /privacy; change one, and
+    # the matching one in the frontend's lib/policies.ts, to ask every account
+    # to agree again at its next visit. The date-and-draft form is a label,
+    # not a legal reference.
+    terms-version: ${MEDICITY_TERMS_VERSION:2026-10-draft1}
+    privacy-version: ${MEDICITY_PRIVACY_VERSION:2026-10-draft1}
+    health-data-version: ${MEDICITY_HEALTH_DATA_VERSION:2026-10-draft1}
+
+  retention:
+    # The place a medicine question was asked from (latitude, longitude) is
+    # kept this long after the question closes, then handled by the nightly
+    # LocationRetentionJob. Nothing reads it after the answers are in.
+    request-location:
+      after: ${MEDICITY_LOCATION_RETENTION:P30D}
+      # CLEAR removes it; COARSEN keeps it to `coarsen-decimals` decimal places
+      # (1 is about 11 km: a district, no longer a street).
+      mode: ${MEDICITY_LOCATION_RETENTION_MODE:CLEAR}
+      coarsen-decimals: ${MEDICITY_LOCATION_COARSEN_DECIMALS:1}
+
 management:
   endpoints:
     web:

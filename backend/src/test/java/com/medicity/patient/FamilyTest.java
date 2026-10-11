@@ -176,7 +176,7 @@ class FamilyTest extends NetworkTestSupport {
     }
 
     private static String memberJson(String name, String relationship, String dateOfBirth) {
-        return "{\"fullName\":\"%s\",\"relationship\":\"%s\",\"dateOfBirth\":\"%s\",\"gender\":\"MALE\"}"
+        return "{\"fullName\":\"%s\",\"relationship\":\"%s\",\"dateOfBirth\":\"%s\",\"gender\":\"MALE\",\"guardianConsent\":true}"
                 .formatted(name, relationship, dateOfBirth);
     }
 

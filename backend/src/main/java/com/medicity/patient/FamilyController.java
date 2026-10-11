@@ -2,6 +2,7 @@ package com.medicity.patient;
 
 import com.medicity.audit.AuditLog;
 import com.medicity.common.ConflictException;
+import com.medicity.privacy.ConsentService;
 import com.medicity.security.AppUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,6 +44,7 @@ public class FamilyController {
     private final AuditLog auditLog;
     private final Clock clock;
     private final JdbcTemplate jdbc;
+    private final ConsentService consents;
 
     @GetMapping
     @Operation(summary = "Me and the family members I manage")
@@ -68,7 +70,7 @@ public class FamilyController {
             throw new ConflictException("FAMILY_FULL", "An account can manage up to %d family members".formatted(MAX_MEMBERS));
         }
         Patient self = acting.self(principal.getId());
-        Patient member = patients.save(Patient.builder()
+        Patient member = patients.saveAndFlush(Patient.builder()
                 .guardianUserId(principal.getId())
                 .fullName(request.fullName().trim())
                 .relationship(request.relationship())
@@ -79,8 +81,13 @@ public class FamilyController {
                 .addressLine(self.getAddressLine())
                 .city(self.getCity())
                 .build());
+        // The account holder agrees to the health-data processing for them: as the
+        // guardian of a child, or as the representative of an adult they care for.
+        boolean minor = Period.between(request.dateOfBirth(), LocalDate.now(clock)).getYears() < 18;
+        consents.recordOnBehalf(principal.getId(), member.getId(), minor, ConsentService.Source.FAMILY_MEMBER_ADDED);
         auditLog.recordChange("FAMILY_MEMBER_ADDED", "PATIENT", member.getId(),
-                Map.of("relationship", request.relationship().name()));
+                Map.of("relationship", request.relationship().name(),
+                        "consentCapacity", minor ? "GUARDIAN_OF_MINOR" : "REPRESENTATIVE_OF_ADULT"));
         return Member.from(member, LocalDate.now(clock));
     }
 
@@ -89,7 +96,9 @@ public class FamilyController {
             @NotNull Patient.Relationship relationship,
             @NotNull @Past LocalDate dateOfBirth,
             Patient.Gender gender,
-            @Pattern(regexp = "^(A|B|AB|O)[+-]$", message = "Blood group like O+ or AB-") String bloodGroup
+            @Pattern(regexp = "^(A|B|AB|O)[+-]$", message = "Blood group like O+ or AB-") String bloodGroup,
+            /** The account holder confirms they may agree to Medicity keeping this person's health records. */
+            @AssertTrue(message = "Please confirm you may agree on their behalf") boolean guardianConsent
     ) {}
 
     public record Member(UUID patientId, String fullName, String relationship, boolean self, int age,

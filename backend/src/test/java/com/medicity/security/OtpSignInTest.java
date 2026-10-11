@@ -222,7 +222,7 @@ class OtpSignInTest extends AbstractIntegrationTest {
 
     private static String registration(String email, String phone) {
         return """
-                {"email":"%s","password":"%s","fullName":"Test Patient","dateOfBirth":"1990-01-01","phone":"%s"}
+                {"email":"%s","password":"%s","fullName":"Test Patient","dateOfBirth":"1990-01-01","phone":"%s","acceptedTerms":true,"acceptedHealthData":true}
                 """.formatted(email, PASSWORD, phone);
     }
 

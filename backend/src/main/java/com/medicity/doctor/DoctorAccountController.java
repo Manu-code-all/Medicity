@@ -2,6 +2,7 @@ package com.medicity.doctor;
 
 import com.medicity.doctor.DoctorHoursService.Window;
 import com.medicity.doctor.DoctorSignUpService.Registration;
+import com.medicity.privacy.ConsentService;
 import com.medicity.security.AppUserPrincipal;
 import com.medicity.security.AuthService.TokenPair;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,11 +10,13 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import com.medicity.user.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -32,6 +35,7 @@ public class DoctorAccountController {
     private final DoctorSignUpService signUp;
     private final DoctorHoursService hours;
     private final DoctorRepository doctors;
+    private final ConsentService consents;
 
     /** Under /auth so it is reachable without a token, like patient and chemist sign-up. */
     @PostMapping("/api/v1/auth/register/doctor")
@@ -39,10 +43,14 @@ public class DoctorAccountController {
     @SecurityRequirements
     @Operation(summary = "Register as a doctor",
             description = "The doctor is not listed or bookable until an administrator checks the registration number.")
+    @Transactional
     public TokenPair register(@Valid @RequestBody DoctorRegistration r) {
-        return signUp.register(new Registration(r.email(), r.password(), r.fullName(), r.phone(), r.specialization(),
+        TokenPair pair = signUp.register(new Registration(r.email(), r.password(), r.fullName(), r.phone(), r.specialization(),
                 r.medicalCouncil(), r.registrationNumber(), r.qualification(), r.yearsExperience(),
                 r.consultationFee(), r.bio()));
+        // Same transaction as the account: see ConsentService.recordSignUp.
+        consents.recordSignUp(UUID.fromString(pair.userId()), Role.DOCTOR, false);
+        return pair;
     }
 
     @GetMapping("/api/v1/doctors/me/profile")
@@ -127,7 +135,8 @@ public class DoctorAccountController {
             @NotBlank @Size(max = 120) String qualification,
             @Min(0) @Max(70) int yearsExperience,
             @NotNull @DecimalMin("0") @DecimalMax("100000") BigDecimal consultationFee,
-            @Size(max = 1000) String bio
+            @Size(max = 1000) String bio,
+            @AssertTrue(message = "Please accept the Terms of Service and read the Privacy Notice") boolean acceptedTerms
     ) {}
 
     /** Up to three sessions on each of the seven days. */

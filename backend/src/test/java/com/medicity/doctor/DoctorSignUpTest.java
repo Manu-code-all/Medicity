@@ -260,7 +260,7 @@ class DoctorSignUpTest extends AbstractIntegrationTest {
         return mvc.perform(post("/api/v1/auth/register/doctor").contentType(MediaType.APPLICATION_JSON).content("""
                 {"email":"%s","password":"%s","fullName":"%s","phone":"%s","specialization":"%s",
                  "medicalCouncil":"Karnataka Medical Council","registrationNumber":"%s",
-                 "qualification":"MBBS, MD (Dermatology)","yearsExperience":6,"consultationFee":800}
+                 "qualification":"MBBS, MD (Dermatology)","yearsExperience":6,"consultationFee":800,"acceptedTerms":true}
                 """.formatted(email, PASSWORD, name, randomMobile(), speciality, number)));
     }
 
@@ -280,7 +280,7 @@ class DoctorSignUpTest extends AbstractIntegrationTest {
 
     private String patientToken() throws Exception {
         String body = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content("""
-                        {"email":"patient-%s@doctor.test","password":"%s","fullName":"Test Patient","dateOfBirth":"1990-01-01"}
+                        {"email":"patient-%s@doctor.test","password":"%s","fullName":"Test Patient","dateOfBirth":"1990-01-01","acceptedTerms":true,"acceptedHealthData":true}
                         """.formatted(UUID.randomUUID(), PASSWORD)))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         return json.readTree(body).path("accessToken").asText();
