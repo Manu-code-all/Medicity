@@ -63,7 +63,7 @@ public class ConsentService {
         return switch (role) {
             case PATIENT -> Set.of(ConsentType.values());
             case DOCTOR, CHEMIST -> Set.of(ConsentType.TERMS_OF_SERVICE, ConsentType.PRIVACY_NOTICE);
-            case ADMIN -> Set.of();
+            case ADMIN, PHARMACIST -> Set.of();
         };
     }
 
