@@ -811,3 +811,15 @@ UPDATE doctors SET clinic_name = 'Women''s Health Clinic', clinic_address = 'Kor
 UPDATE doctors SET clinic_name = 'Kidney Care Centre', clinic_address = 'Whitefield Main Road, Bengaluru', clinic_latitude = 12.9698, clinic_longitude = 77.7499 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa12';
 UPDATE doctors SET clinic_name = 'Surgical Clinic', clinic_address = 'MG Road, Bengaluru', clinic_latitude = 12.9756, clinic_longitude = 77.6097 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa13';
 UPDATE doctors SET clinic_name = 'Smile Dental Studio', clinic_address = '100 Feet Road, Indiranagar, Bengaluru', clinic_latitude = 12.98, clinic_longitude = 77.64 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa14';
+
+-- The demo accounts have already agreed to the current draft texts, so the
+-- consent screen (ConsentGate) does not stand in front of a visitor's first
+-- click. A real account is asked at sign-up and again whenever a version
+-- changes; if the versions in application.yml are changed, change them here.
+INSERT INTO consent_records (user_id, consent_type, policy_version, capacity, source)
+SELECT u.id, t.consent_type, '2026-10-draft1', 'SELF', 'SIGN_UP'
+FROM users u
+CROSS JOIN (VALUES ('TERMS_OF_SERVICE'), ('PRIVACY_NOTICE'), ('HEALTH_DATA_PROCESSING')) AS t (consent_type)
+WHERE u.email LIKE '%@medicity.demo'
+  AND (t.consent_type <> 'HEALTH_DATA_PROCESSING' OR u.role = 'PATIENT')
+ON CONFLICT DO NOTHING;
