@@ -32,6 +32,7 @@ public class DoctorAccountController {
     private final DoctorSignUpService signUp;
     private final DoctorHoursService hours;
     private final DoctorRepository doctors;
+    private final com.medicity.security.AddressThrottle addressThrottle;
 
     /** Under /auth so it is reachable without a token, like patient and chemist sign-up. */
     @PostMapping("/api/v1/auth/register/doctor")
@@ -40,6 +41,7 @@ public class DoctorAccountController {
     @Operation(summary = "Register as a doctor",
             description = "The doctor is not listed or bookable until an administrator checks the registration number.")
     public TokenPair register(@Valid @RequestBody DoctorRegistration r) {
+        addressThrottle.checkSignUp("doctor");
         return signUp.register(new Registration(r.email(), r.password(), r.fullName(), r.phone(), r.specialization(),
                 r.medicalCouncil(), r.registrationNumber(), r.qualification(), r.yearsExperience(),
                 r.consultationFee(), r.bio()));

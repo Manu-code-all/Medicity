@@ -20,9 +20,11 @@ import java.util.List;
  *
  * <p>Decisions worth knowing:
  * <ul>
- *   <li><b>Per email, not per IP.</b> Behind Railway's edge every request arrives
- *       from one of a few proxy addresses (see Known gaps in the engineering log),
- *       so a per-IP limit would throttle all users together.</li>
+ *   <li><b>Per email here; per address in {@link AddressThrottle}.</b> This limit
+ *       protects one account from guessing. A client address is only the real
+ *       client's once the trusted proxies are configured (see Known gaps in the
+ *       engineering log), so the address limit is a separate, more generous
+ *       one that also catches one machine trying many accounts.</li>
  *   <li><b>Unknown emails are limited exactly like real ones,</b> and the check
  *       runs before the account is looked up, so a 429 reveals nothing about
  *       whether an account exists.</li>

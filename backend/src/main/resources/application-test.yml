@@ -13,6 +13,15 @@ medicity:
     access-ttl: PT15M
     refresh-ttl: P7D
 
+  auth:
+    # Every test reaches the API from one address and registers many accounts
+    # (and fails many logins), so the per-address limits are effectively off.
+    # AddressThrottleTest sets small ones of its own.
+    address-login-throttle:
+      max-failures: 1000000
+    signup-throttle:
+      max-attempts: 1000000
+
 logging:
   level:
     com.medicity: DEBUG

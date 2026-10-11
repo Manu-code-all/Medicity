@@ -57,6 +57,7 @@ const HOME_LABEL: Record<Role, string> = {
   DOCTOR: "My workspace",
   CHEMIST: "My store",
   ADMIN: "Verification",
+  PHARMACIST: "Pharmacy",
 };
 
 export function App() {

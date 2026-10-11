@@ -46,6 +46,18 @@ server:
   # "native" is Tomcat's RemoteIpValve, which only trusts X-Forwarded-For from
   # proxies on private ranges; "framework" would trust any client's header.
   forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      # Regular expression of the proxy addresses whose X-Forwarded-For is
+      # believed. The default is Tomcat's own: loopback, private and carrier-grade NAT ranges
+      # only, so a client cannot forge its address. On Railway the edge uses
+      # public addresses, so the audit log and the per-address limits see the
+      # edge, not the client, until this lists Railway's published edge ranges
+      # (set SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES; it REPLACES the default,
+      # so keep the private ranges in it if they should stay trusted). Never
+      # guess a range: trusting an address a client can reach lets it forge
+      # any IP it likes. See the README.
+      internal-proxies: ${SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|169\.254\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|100\.6[4-9]{1}\.\d{1,3}\.\d{1,3}|100\.[7-9]{1}\d{1}\.\d{1,3}\.\d{1,3}|100\.1[0-1]{1}\d{1}\.\d{1,3}\.\d{1,3}|100\.12[0-7]{1}\.\d{1,3}\.\d{1,3}|172\.1[6-9]{1}\.\d{1,3}\.\d{1,3}|172\.2[0-9]{1}\.\d{1,3}\.\d{1,3}|172\.3[0-1]{1}\.\d{1,3}\.\d{1,3}|0:0:0:0:0:0:0:1|::1}
 
 medicity:
   cors:
@@ -95,6 +107,17 @@ medicity:
       # attempts get 429. Counted from the audit log; see LoginThrottle.
       max-failures: 5
       window: PT15M
+    # The same, per client address, whatever email was tried. Generous, because
+    # several people can share one address (an office, a mobile carrier), and
+    # because the address is only the real client's once the trusted proxies
+    # are configured (server.tomcat.remoteip.internal-proxies). See AddressThrottle.
+    address-login-throttle:
+      max-failures: 30
+      window: PT15M
+    # Patient, doctor and chemist sign-up requests allowed per client address.
+    signup-throttle:
+      max-attempts: 10
+      window: PT1H
 
 management:
   endpoints:

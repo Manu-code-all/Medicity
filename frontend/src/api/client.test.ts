@@ -139,6 +139,14 @@ describe("revokeSession", () => {
     expect(calls[0]).toMatchObject({ url: "/api/v1/auth/logout", method: "POST", body: { refreshToken: "refresh-1" } });
   });
 
+  it("sends the access token too, so the server can revoke it at once", () => {
+    const calls = mockFetch(() => json(204, null));
+
+    revokeSession();
+
+    expect(calls[0]?.headers).toMatchObject({ Authorization: "Bearer access-1" });
+  });
+
   it("does nothing when there is no session", () => {
     tokenStore.clear();
     const calls = mockFetch(() => json(204, null));

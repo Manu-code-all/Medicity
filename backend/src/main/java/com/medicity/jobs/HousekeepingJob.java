@@ -20,6 +20,8 @@ import java.time.Instant;
  *       kept until then on purpose: reuse detection needs to recognise a spent
  *       token when it comes back. Once expired, a token is refused for that
  *       reason alone, so the row has no job left.</li>
+ *   <li><b>Revoked access tokens past their expiry.</b> The denylist only has
+ *       to remember a token until it would be refused anyway.</li>
  *   <li><b>Idempotency keys older than a day.</b> {@code Idempotency} already
  *       ignores them.</li>
  * </ul>
@@ -48,7 +50,7 @@ public class HousekeepingJob {
         this.clock = clock;
     }
 
-    public record Result(boolean ran, int refreshTokens, int idempotencyKeys) {}
+    public record Result(boolean ran, int refreshTokens, int idempotencyKeys, int revokedAccessTokens) {}
 
     /** 03:30 UTC, when traffic is lowest. */
     @Scheduled(cron = "0 30 3 * * *", zone = "UTC")
@@ -56,16 +58,19 @@ public class HousekeepingJob {
     public Result run() {
         if (!lock.tryAcquire("housekeeping")) {
             log.info("Housekeeping skipped: another instance is running it");
-            return new Result(false, 0, 0);
+            return new Result(false, 0, 0, 0);
         }
         Instant now = clock.instant();
         int tokens = deleteInBatches("refresh_tokens", "expires_at < ?", now);
         int keys = deleteInBatches("idempotency_keys", "created_at < ?", now.minus(IDEMPOTENCY_RETENTION));
 
+        int revoked = deleteInBatches("revoked_access_tokens", "expires_at < ?", now);
         metrics.counter("medicity.housekeeping.deleted", "table", "refresh_tokens").increment(tokens);
         metrics.counter("medicity.housekeeping.deleted", "table", "idempotency_keys").increment(keys);
-        log.info("Housekeeping deleted {} expired refresh tokens and {} idempotency keys", tokens, keys);
-        return new Result(true, tokens, keys);
+        metrics.counter("medicity.housekeeping.deleted", "table", "revoked_access_tokens").increment(revoked);
+        log.info("Housekeeping deleted {} expired refresh tokens, {} idempotency keys and {} expired revoked access tokens",
+                tokens, keys, revoked);
+        return new Result(true, tokens, keys, revoked);
     }
 
     private int deleteInBatches(String table, String condition, Instant cutoff) {

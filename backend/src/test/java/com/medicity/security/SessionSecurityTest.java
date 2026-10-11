@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -156,6 +157,58 @@ class SessionSecurityTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("signing out revokes the access token at once, not 15 minutes later")
+    void logoutRevokesTheAccessToken() throws Exception {
+        String email = uniqueEmail();
+        JsonNode session = register(email);
+        String access = session.path("accessToken").asText();
+        // A second sign-in of the same person, which must not be affected.
+        String otherAccess = login(email).path("accessToken").asText();
+
+        whoami(access).andExpect(status().isOk());
+
+        mvc.perform(post("/api/v1/auth/logout")
+                        .header("Authorization", "Bearer " + access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\":\"%s\"}".formatted(session.path("refreshToken").asText())))
+                .andExpect(status().isNoContent());
+
+        whoami(access).andExpect(status().isUnauthorized());
+        whoami(otherAccess).andExpect(status().isOk());
+
+        Integer denied = jdbc.queryForObject("SELECT count(*) FROM revoked_access_tokens WHERE expires_at > now()",
+                Integer.class);
+        assertThat(denied).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("signing out without an access token still works, and revoking twice is harmless")
+    void logoutWithoutAccessTokenOrTwice() throws Exception {
+        JsonNode session = register();
+        String access = session.path("accessToken").asText();
+        String body = "{\"refreshToken\":\"%s\"}".formatted(session.path("refreshToken").asText());
+
+        mvc.perform(post("/api/v1/auth/logout").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isNoContent());
+        // The access token was never presented, so it still works until it expires.
+        whoami(access).andExpect(status().isOk());
+
+        for (int i = 0; i < 2; i++) {
+            mvc.perform(post("/api/v1/auth/logout")
+                            .header("Authorization", "Bearer " + access)
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isNoContent());
+        }
+        whoami(access).andExpect(status().isUnauthorized());
+
+        // Garbage in the header is ignored, not an error.
+        mvc.perform(post("/api/v1/auth/logout")
+                        .header("Authorization", "Bearer not-a-token")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     @DisplayName("an access token is not accepted as a refresh token")
     void accessTokenIsNotARefreshToken() throws Exception {
         String access = register().path("accessToken").asText();
@@ -276,6 +329,11 @@ class SessionSecurityTest extends AbstractIntegrationTest {
         return mvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password)));
+    }
+
+    /** Any endpoint that needs a signed-in user: 200 with a live token, 401 without. */
+    private ResultActions whoami(String accessToken) throws Exception {
+        return mvc.perform(get("/api/v1/notifications").header("Authorization", "Bearer " + accessToken));
     }
 
     private ResultActions refresh(String token) throws Exception {
