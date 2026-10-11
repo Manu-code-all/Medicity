@@ -94,6 +94,116 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+  e2e:
+    name: End-to-end — browser tests against the demo stack
+    runs-on: ubuntu-latest
+    # The same units the other jobs already check; this one is about the seams
+    # between them, so it only runs once they are known good.
+    needs: [backend, frontend]
+
+    # The same database major version as production. A service container, not
+    # Testcontainers: the API runs as a separate process here, as it does when
+    # deployed.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: medicity
+          POSTGRES_USER: medicity
+          POSTGRES_PASSWORD: medicity
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U medicity -d medicity"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      API_URL: http://localhost:8080
+      WEB_URL: http://localhost:4173
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # The demo profile loads the seed accounts, visits and chemists the
+      # specs sign in as. It runs the real migrations on top of an empty
+      # database, so a fresh run is always the state the specs expect.
+      - name: Build the API
+        working-directory: backend
+        run: mvn -B -DskipTests package
+
+      - name: Start the API (demo profile)
+        working-directory: backend
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/medicity
+          DB_USER: medicity
+          DB_PASSWORD: medicity
+          SPRING_PROFILES_ACTIVE: demo
+          # The browser calls the API from the page's origin, so it must be allowed.
+          MEDICITY_CORS_ORIGINS: ${{ env.WEB_URL }}
+        run: |
+          nohup java -jar target/medicity-api-1.0.0.jar > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf "$API_URL/actuator/health" > /dev/null; then echo "API is up"; exit 0; fi
+            sleep 2
+          done
+          echo "API did not become healthy"; cat "$RUNNER_TEMP/api.log"; exit 1
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build and serve the frontend
+        working-directory: frontend
+        env:
+          # `vite preview` proxies /api to the API, as the production reverse proxy does.
+          VITE_API_BASE_URL: ${{ env.API_URL }}
+        run: |
+          npm run build
+          nohup npx vite preview --port 4173 --strictPort > "$RUNNER_TEMP/web.log" 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf "$WEB_URL" > /dev/null; then echo "Web is up"; exit 0; fi
+            sleep 1
+          done
+          echo "Web did not start"; cat "$RUNNER_TEMP/web.log"; exit 1
+
+      - name: Install the browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the browser tests
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: ${{ env.WEB_URL }}
+        run: npm run e2e
+
+      - name: Upload the report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+
+      - name: Show the API log
+        if: failure()
+        run: tail -n 200 "$RUNNER_TEMP/api.log"
+
   docker:
     name: Docker image builds
     runs-on: ubuntu-latest

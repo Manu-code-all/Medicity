@@ -1,5 +1,4 @@
-/// <reference types="vitest/config" />
-import { defineConfig } from "vite";
+import { configDefaults, defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
@@ -22,6 +21,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    // Playwright's *.spec.ts files need a running stack and a real browser; `npm run e2e` runs them.
+    exclude: [...configDefaults.exclude, "e2e/**"],
     // Form tests type every character through user-event; with files running
     // in parallel, the longest ones need more than the 5 s default.
     testTimeout: 15_000,
