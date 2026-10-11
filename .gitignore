@@ -31,3 +31,7 @@ Thumbs.db
 .impeccable/review/
 .impeccable/questions/
 .impeccable/config.local.json
+
+# Playwright output
+frontend/test-results/
+frontend/playwright-report/
