@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "../../api/client";
 import { portal } from "../../api/endpoints";
 import { HealthForm } from "../../components/HealthForm";
+import { PrivacyPanel } from "../../components/PrivacyPanel";
 import { ageFrom, formatDate, initials } from "../../lib/format";
 
 const GENDER_LABEL = {
@@ -111,6 +112,8 @@ export function ProfilePage() {
       </section>
         </>
       )}
+
+      <PrivacyPanel />
     </div>
   );
 }

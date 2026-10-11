@@ -4,6 +4,8 @@ import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigat
 import { notifications } from "./api/endpoints";
 import type { Role } from "./api/types";
 import { homeFor, useAuth } from "./auth/context";
+import { ConsentGate } from "./components/ConsentGate";
+import { LegalLinks } from "./components/LegalLinks";
 import { PageLoading } from "./components/PageLoading";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DoctorLayout } from "./pages/doctor/DoctorLayout";
@@ -50,6 +52,11 @@ const VisitsPage = lazyPage(() => import("./pages/portal/VisitsPage"), "VisitsPa
 const TokensPage = lazyPage(() => import("./pages/portal/TokensPage"), "TokensPage");
 const WalkInPage = lazyPage(() => import("./pages/queue/WalkInPage"), "WalkInPage");
 const FrontDeskPage = lazyPage(() => import("./pages/doctor/FrontDeskPage"), "FrontDeskPage");
+// The public legal pages, readable without an account.
+const PrivacyPage = lazyPage(() => import("./pages/legal/LegalPages"), "PrivacyPage");
+const TermsPage = lazyPage(() => import("./pages/legal/LegalPages"), "TermsPage");
+const DisclaimerPage = lazyPage(() => import("./pages/legal/LegalPages"), "DisclaimerPage");
+const DeleteAccountPage = lazyPage(() => import("./pages/legal/LegalPages"), "DeleteAccountPage");
 const VideoRoomPage = lazyPage(() => import("./pages/VideoRoomPage"), "VideoRoomPage");
 
 const HOME_LABEL: Record<Role, string> = {
@@ -155,6 +162,10 @@ export function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/register/store" element={<StoreRegisterPage />} />
             <Route path="/register/doctor" element={<RegisterDoctorPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/disclaimer" element={<DisclaimerPage />} />
+            <Route path="/delete-account" element={<DeleteAccountPage />} />
             <Route element={<ProtectedRoute />}>
               {/* Signed-in only: whoever picked a doctor on the landing page signs in first, then sees the list. */}
               <Route path="/doctors" element={<DoctorsPage />} />
@@ -172,6 +183,17 @@ export function App() {
           </Route>
         </Routes>
       </Shell>
+
+      {/* The landing page has its own footer, and the three workspaces their own rail. */}
+      {!ownChrome && !inWorkspace && (
+        <footer className="footer">
+          <div className="footer__inner">
+            <span>Medicity</span>
+            <LegalLinks />
+          </div>
+        </footer>
+      )}
+      <ConsentGate />
     </div>
   );
 }

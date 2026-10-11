@@ -628,6 +628,27 @@ export interface CodeSent {
   expiresInSeconds: number;
 }
 
+// --- Privacy: agreements, a copy of the data, deletion -------------------------------
+
+export type ConsentType = "TERMS_OF_SERVICE" | "PRIVACY_NOTICE" | "HEALTH_DATA_PROCESSING";
+
+export interface ConsentItem {
+  type: ConsentType;
+  currentVersion: string;
+  acceptedVersion: string | null;
+  acceptedAt: string | null;
+  upToDate: boolean;
+}
+
+export interface ConsentStatus {
+  items: ConsentItem[];
+  /** True while any current text has not been agreed to. */
+  pending: boolean;
+}
+
+/** What deleting an account touched, by kind. */
+export type DeletionSummary = Record<string, number>;
+
 // --- Doctors who sign up themselves -----------------------------------------------
 
 export interface DoctorRegistration {
@@ -642,6 +663,8 @@ export interface DoctorRegistration {
   yearsExperience: number;
   consultationFee: number;
   bio?: string | undefined;
+  /** Ticked on the sign-up form; the API refuses a sign-up without it. */
+  acceptedTerms: boolean;
 }
 
 export interface DoctorProfile {

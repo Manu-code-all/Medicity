@@ -233,6 +233,10 @@ export function LandingPage() {
               <li><Link to="/login/chemist">Chemist sign in</Link></li>
               <li><Link to="/register/doctor">Join as a doctor</Link></li>
               <li><Link to="/register/store">Register your store</Link></li>
+              <li><Link to="/privacy">Privacy notice</Link></li>
+              <li><Link to="/terms">Terms of service</Link></li>
+              <li><Link to="/disclaimer">Medical disclaimer</Link></li>
+              <li><Link to="/delete-account">Delete your account</Link></li>
               <li><a href={API_DOCS_URL} target="_blank" rel="noreferrer">API docs</a></li>
               <li><a href="https://github.com/Manu-code-all/Medicity" target="_blank" rel="noreferrer">Source on GitHub</a></li>
             </ul>
