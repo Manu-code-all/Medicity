@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "Medicity: from prescription to medicines in hand",
+  "short_name": "Medicity",
+  "description": "Book a doctor, keep every prescription in one place, and ask verified chemists nearby who has your medicines.",
+  "lang": "en",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#0b6f62",
+  "categories": ["medical", "health"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
