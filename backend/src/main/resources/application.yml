@@ -82,13 +82,6 @@ medicity:
     gemini-api-key: ${GEMINI_API_KEY:}
     gemini-model: ${GEMINI_MODEL:gemini-3.8-flash}
 
-  sms:
-    # Sign-in codes by SMS. Both unset: no texts are sent, and only the demo
-    # accounts can use a code (see auth.otp); everyone else uses email.
-    msg91:
-      auth-key: ${MSG91_AUTH_KEY:}
-      otp-template-id: ${MSG91_OTP_TEMPLATE_ID:}
-
   email:
     # Sign-in codes by email, through Resend. Both unset: nothing is emailed,
     # and only the demo accounts can use a code. `from` must be an address on a
@@ -117,6 +110,11 @@ medicity:
     # several people can share one address (an office, a mobile carrier), and
     # because the address is only the real client's once the trusted proxies
     # are configured (server.tomcat.remoteip.internal-proxies). See AddressThrottle.
+    # Off until the trusted proxies are set: behind Railway every visitor looks
+    # like one of a few edge addresses, so the limits would be shared by everyone.
+    # Set MEDICITY_AUTH_ADDRESS_LIMITS_ENABLED=true after checking the audit log
+    # shows real client addresses.
+    address-limits-enabled: false
     address-login-throttle:
       max-failures: 30
       window: PT15M

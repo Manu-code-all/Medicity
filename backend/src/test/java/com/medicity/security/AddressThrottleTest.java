@@ -32,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {
+        "medicity.auth.address-limits-enabled=true",
         "medicity.auth.signup-throttle.max-attempts=3",
         "medicity.auth.address-login-throttle.max-failures=3"})
 @DisplayName("Per-address limits")

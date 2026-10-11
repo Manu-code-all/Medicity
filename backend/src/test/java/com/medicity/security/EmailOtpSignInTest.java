@@ -15,7 +15,11 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -50,8 +54,7 @@ class EmailOtpSignInTest extends AbstractIntegrationTest {
     @Autowired PlatformTransactionManager transactions;
 
     private final FakeEmail email = new FakeEmail();
-    private final OtpSignInTest.FakeSms sms = new OtpSignInTest.FakeSms();
-    private final OtpSignInTest.MovableClock clock = new OtpSignInTest.MovableClock();
+    private final MovableClock clock = new MovableClock();
     private OtpService otp;
 
     @BeforeEach
@@ -60,7 +63,7 @@ class EmailOtpSignInTest extends AbstractIntegrationTest {
     }
 
     private OtpService service(EmailOtpSender sender, MailDispatcher dispatcher, boolean demoCodes) {
-        return new OtpService(users, jdbc, auth, auditLog, sms, sender, dispatcher, clock, demoCodes, "test-secret");
+        return new OtpService(users, jdbc, auth, auditLog, sender, dispatcher, clock, demoCodes, "test-secret");
     }
 
     // --- through the API, as deployed without an email provider -----------------
@@ -190,23 +193,6 @@ class EmailOtpSignInTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("the limit is one budget across texts and emails, so a second channel does not double the guesses")
-    void limitIsSharedAcrossChannels() throws Exception {
-        String address = uniqueEmail();
-        String mobile = randomMobile();
-        register(address, mobile);
-
-        otp.send(mobile);
-        otp.send(mobile);
-        otp.sendToEmail(address);          // the third code, by email
-        otp.send(mobile);                  // over the limit: nothing sent
-        otp.sendToEmail(address);          // over the limit: nothing sent
-
-        assertThat(sms.sent).hasSize(2);
-        assertThat(email.sent).hasSize(1);
-    }
-
-    @Test
     @DisplayName("a demo account's code is shown instead of emailed, and only when demo codes are on")
     void demoCodes() throws Exception {
         String address = register("visitor-" + System.nanoTime() + "@medicity.demo");
@@ -217,7 +203,7 @@ class EmailOtpSignInTest extends AbstractIntegrationTest {
         assertThat(email.sent).isEmpty();
         assertThat(otp.verifyEmail(address, sent.demoCode()).accessToken()).isNotBlank();
 
-        OtpService demoOff = service(new OtpSignInTest.NoEmail(), Runnable::run, false);
+        OtpService demoOff = service(new NoEmail(), Runnable::run, false);
         assertThat(demoOff.sendToEmail(address).delivery()).isEqualTo(OtpService.Delivery.UNAVAILABLE);
     }
 
@@ -225,7 +211,7 @@ class EmailOtpSignInTest extends AbstractIntegrationTest {
     @DisplayName("with no email provider configured nothing is sent, for anyone")
     void unavailableSendsNothing() throws Exception {
         String address = register(uniqueEmail());
-        OtpService withoutEmail = service(new OtpSignInTest.NoEmail(), Runnable::run, true);
+        OtpService withoutEmail = service(new NoEmail(), Runnable::run, true);
 
         assertThat(withoutEmail.sendToEmail(address).delivery()).isEqualTo(OtpService.Delivery.UNAVAILABLE);
     }
@@ -395,5 +381,20 @@ class EmailOtpSignInTest extends AbstractIntegrationTest {
             }
             sent.add(code);
         }
+    }
+
+    static class NoEmail implements EmailOtpSender {
+        @Override public boolean available() { return false; }
+        @Override public void send(String email, String code) { throw new AssertionError("nothing may be emailed"); }
+    }
+
+    static class MovableClock extends Clock {
+        private Instant now = Instant.now();
+
+        void advance(Duration by) { now = now.plus(by); }
+
+        @Override public ZoneId getZone() { return ZoneOffset.UTC; }
+        @Override public Clock withZone(ZoneId zone) { return this; }
+        @Override public Instant instant() { return now; }
     }
 }

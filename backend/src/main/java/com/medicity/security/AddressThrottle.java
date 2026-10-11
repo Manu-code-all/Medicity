@@ -39,6 +39,7 @@ public class AddressThrottle {
 
     private final JdbcTemplate jdbc;
     private final AuditLog auditLog;
+    private final boolean enabled;
     private final int maxLoginFailures;
     private final Duration loginWindow;
     private final int maxSignUps;
@@ -46,12 +47,14 @@ public class AddressThrottle {
 
     public AddressThrottle(JdbcTemplate jdbc,
                            AuditLog auditLog,
+                           @Value("${medicity.auth.address-limits-enabled:false}") boolean enabled,
                            @Value("${medicity.auth.address-login-throttle.max-failures:30}") int maxLoginFailures,
                            @Value("${medicity.auth.address-login-throttle.window:PT15M}") Duration loginWindow,
                            @Value("${medicity.auth.signup-throttle.max-attempts:10}") int maxSignUps,
                            @Value("${medicity.auth.signup-throttle.window:PT1H}") Duration signUpWindow) {
         this.jdbc = jdbc;
         this.auditLog = auditLog;
+        this.enabled = enabled;
         this.maxLoginFailures = maxLoginFailures;
         this.loginWindow = loginWindow;
         this.maxSignUps = maxSignUps;
@@ -60,6 +63,7 @@ public class AddressThrottle {
 
     /** @throws TooManyRequestsException if this address has failed too many logins lately */
     public void checkLogin() {
+        if (!enabled) return;
         String ip = ClientIp.current();
         if (ip == null) return;
         long wait = secondsUntilAllowed("LOGIN_FAILED", ip, maxLoginFailures, loginWindow);
@@ -79,6 +83,7 @@ public class AddressThrottle {
      * @throws TooManyRequestsException if the address has made too many sign-up requests lately
      */
     public void checkSignUp(String kind) {
+        if (!enabled) return;
         String ip = ClientIp.current();
         if (ip == null) return;
         long wait = secondsUntilAllowed("SIGNUP_ATTEMPT", ip, maxSignUps, signUpWindow);
