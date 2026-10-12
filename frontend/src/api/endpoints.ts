@@ -4,6 +4,10 @@ import type {
   ConsentStatus,
   ConsentType,
   DeletionSummary,
+  DispenseResult,
+  LowStockItem,
+  PharmacistAccount,
+  PharmacyPrescription,
   DoctorLeave,
   Practice,
   PracticeUpdate,
@@ -230,6 +234,16 @@ export const workspace = {
 
 export const pharmacy = {
   medicines: () => request<Page<Medicine>>("/api/v1/pharmacy/medicines?size=100"),
+
+  /** The hospital pharmacy counter (pharmacists only). */
+  search: (q: string) => request<Page<Medicine>>(`/api/v1/pharmacy/medicines?size=10&q=${encodeURIComponent(q)}`),
+  findPrescriptions: (q: string) =>
+    request<PharmacyPrescription[]>(`/api/v1/pharmacy/prescriptions?q=${encodeURIComponent(q)}`),
+  dispense: (prescriptionId: string) =>
+    request<DispenseResult>(`/api/v1/pharmacy/prescriptions/${prescriptionId}/dispense`, { method: "POST" }),
+  lowStock: () => request<LowStockItem[]>("/api/v1/pharmacy/stock/low"),
+  restock: (medicineId: string, quantity: number) =>
+    request<Medicine>(`/api/v1/pharmacy/medicines/${medicineId}/restock`, { method: "POST", body: { quantity } }),
 };
 
 /** The signed-in user's notifications. Scoped by the token, like the portal. */
@@ -257,6 +271,9 @@ export const admin = {
   verifyStore: (id: string) => request<StoreProfile>(`/api/v1/admin/stores/${id}/verify`, { method: "POST" }),
   pendingDoctors: () => request<DoctorProfile[]>("/api/v1/admin/doctors/pending"),
   verifyDoctor: (id: string) => request<DoctorProfile>(`/api/v1/admin/doctors/${id}/verify`, { method: "POST" }),
+  pharmacists: () => request<PharmacistAccount[]>("/api/v1/admin/pharmacists"),
+  createPharmacist: (input: { email: string; fullName: string; temporaryPassword: string }) =>
+    request<PharmacistAccount>("/api/v1/admin/pharmacists", { method: "POST", body: input }),
 };
 
 /** The patient's questions to nearby chemists. */

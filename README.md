@@ -294,7 +294,7 @@ SPRING_PROFILES_ACTIVE=demo docker compose up --build
 | `dr.rao@medicity.demo` | DOCTOR — one visit waiting to be closed, one later today |
 | `dr.iyer@medicity.demo` | DOCTOR — useful for checking that doctors cannot reach each other's patients |
 | `admin@medicity.demo` | ADMIN — audit trail, and the store and doctor verification queues |
-| `pharmacist@medicity.demo` | PHARMACIST — dispensing and stock through the API (no web screens yet); cannot read the audit log |
+| `pharmacist@medicity.demo` | PHARMACIST — the pharmacy workspace at `/pharmacy` (dispense, low stock, restock); cannot read the audit log. Administrators create pharmacists at `/admin/pharmacists` |
 | `chemist@medicity.demo` | CHEMIST — Sri Sai Medicals, with a patient's question waiting |
 | `dr.menon@`, `dr.kulkarni@`, `dr.shetty@`, … `@medicity.demo` | DOCTOR — one per speciality (14 in all), so every body-guide answer is bookable |
 

@@ -8,6 +8,7 @@ import { homeFor, useAuth, type Session } from "../auth/context";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD, LOGIN_PATH, type LineRole } from "../lib/demo";
 import "../landing.css";
 
+// Pharmacy staff are created by an administrator, so theirs is not offered as a tab.
 const ROLES: LineRole[] = ["patient", "doctor", "chemist"];
 
 const COPY: Record<LineRole, { tab: string; title: string; pitch: string; stops: string[] }> = {
@@ -28,6 +29,12 @@ const COPY: Record<LineRole, { tab: string; title: string; pitch: string; stops:
     title: "Sign in as a chemist",
     pitch: "Questions from patients nearby, answered in a tap. No stock list to keep.",
     stops: ["Question", "Answer", "Keep aside", "Hand over"],
+  },
+  pharmacist: {
+    tab: "Pharmacist",
+    title: "Sign in to the hospital pharmacy",
+    pitch: "Find a prescription, dispense it, and keep the shelves stocked. Accounts are created by an administrator.",
+    stops: ["Find", "Dispense", "Restock"],
   },
 };
 
@@ -93,6 +100,7 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
         </Link>
 
         <div className="lm-auth__card">
+          {role !== "pharmacist" && (
           <nav className="lm-roles" aria-label="Sign in as" style={{ "--i": ROLES.indexOf(role) } as React.CSSProperties}>
             <span className="lm-roles__slider" aria-hidden="true" />
             {ROLES.map((r) => (
@@ -108,6 +116,7 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
               </Link>
             ))}
           </nav>
+          )}
 
           <h1 className="lm-auth__title">{copy.title}</h1>
           {why && <p className="lm-auth__why">{why}</p>}
@@ -184,6 +193,15 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
             {role === "doctor" && (
               <>
                 New to Medicity? <Link to="/register/doctor">Join as a doctor</Link>
+              </>
+            )}
+            {role === "pharmacist" ? (
+              <>
+                Not hospital pharmacy staff? <Link to="/login">Patient sign-in</Link>
+              </>
+            ) : (
+              <>
+                Hospital pharmacy staff? <Link to="/login/pharmacist">Sign in here</Link>
               </>
             )}
             {role === "chemist" && (

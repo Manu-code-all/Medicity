@@ -3021,6 +3021,76 @@ not been applied to a database, and nothing has talked to the real Resend.
 
 ---
 
+## 76. The pharmacist gets a workspace, and an administrator can create one
+
+Entry 71 added the `PHARMACIST` role with no screens and left `ADMIN` able to
+dispense because nothing else could create a pharmacist. Both are closed.
+
+**Creating pharmacists.** `POST /api/v1/admin/pharmacists` (ADMIN only) takes an
+email, a name and a temporary password (10 characters or more, longer than the
+patient floor because this account moves stock) and creates a `PHARMACIST`
+through the same `AuthService.createAccount` as every other sign-in, in one
+transaction with `ConsentService.recordSignUp`. `requiredFor(PHARMACIST)` is
+already empty, so no consent rows are written and nothing is ever pending; the
+call is there so staff accounts go through one path and so a future change to
+what staff must agree to reaches this one too. The creation is audited
+(`PHARMACIST_CREATED`). `GET` on the same path lists them. A third tab on the
+admin pages ("Pharmacists") holds the form and the list. No migration.
+
+**Forced password change: not done.** There is no must-change flag on a user, no
+change-password endpoint, and the authentication filter would need to learn
+about both. That is a migration plus a new flow, not a small change, so the
+temporary password simply stays valid until someone changes it by SQL. The admin
+page says so and tells the administrator to hand the password over in person.
+It is listed under Known gaps.
+
+**ADMIN removed from the counter.** Dispensing, restocking and low stock are now
+`hasRole('PHARMACIST')`. I judged this safe because an administrator can now
+create the pharmacist (the reason I kept ADMIN in entry 71). Two things to know
+before deploying: production must already have a pharmacist, or the first thing
+an administrator does after deploy is create one; and an administrator who is
+locked out of the counter can still create themselves a pharmacist sign-in, so
+this is separation of duties by convention and audit (`PHARMACIST_CREATED`), not
+a wall. `DispensingTest` now dispenses as a pharmacist and has a test that ADMIN
+is refused on all four pharmacy endpoints.
+
+**Finding a prescription.** The brief asked for lookup by pickup or reservation
+code. Those six-digit codes belong to a neighbourhood chemist's reservation
+(entry for `V16`); a hospital prescription has no code and nothing on the
+server could resolve one to the other. Instead, without a migration:
+`GET /api/v1/pharmacy/prescriptions?q=` (PHARMACIST) matches the **reference**,
+the first eight characters of the prescription id, or part of the patient's
+name (family members' own names included), at least 3 characters, newest
+first, at most 10, never a prescription that has been corrected. The patient
+sees the reference on each prescription in the portal. The result carries the
+items, what is on hand for each, whether it has been dispensed and whether it
+can be. A name search shows a pharmacist every matching patient's current
+prescriptions; that is what the counter needs, but it is a wider read than the
+reference and is not separately audited (dispensing is).
+
+**The workspace.** `/pharmacy` (guarded, like the other three, by an explanation
+rather than a redirect for the wrong role), with a Counter (search, see the
+lines and stock, "Dispense all", disabled when any line is short because the
+server would refuse the whole prescription anyway) and a Stock page (the
+low-stock list, each with a quantity box, plus a medicine search for restocking
+anything). `/login/pharmacist` is a sign-in page with the demo pharmacist; it is
+not one of the three public role tabs, it is linked from them. A pharmacist now
+lands on `/pharmacy`, and a signed-out visitor to `/pharmacy` is sent to that
+sign-in.
+
+**Verified.** Backend suite subset run against a local PostgreSQL 16 started by
+hand (no Docker here), with the Testcontainers base class temporarily pointed at
+it and then restored: `DispensingTest` (11, four new), the new
+`PharmacistAdminTest` (3) and `AuditTrailTest` (9) pass. `mvn test-compile`
+clean. Frontend: type check, lint, build, and the whole suite (227 tests, 14
+new) pass.
+
+**Not verified.** The rest of the backend suite was not re-run (only the three
+classes above); CI is the first run on PostgreSQL 18. The screens were tested
+with component tests only, not in a browser.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -3111,11 +3181,12 @@ not been applied to a database, and nothing has talked to the real Resend.
 - **Notifications are in-app only.** No email or SMS provider is configured,
   so a patient who does not open the app does not hear about a cancellation or
   a corrected prescription. Both would be further outbox consumers.
-- **The pharmacist has no screens.** `PHARMACIST` can dispense and restock
-  through the API (entry 71) but the web app has no pharmacy page, and
-  `ADMIN` can still dispense, so an administrator account is more powerful
-  than it needs to be there. Accounts are created by SQL; there is no
-  admin screen to add one.
+- **A new pharmacist's temporary password is not forced to change.** The
+  administrator creates the account with a password and hands it over in
+  person (entry 76); the app has no must-change flag or change-password
+  endpoint, so it stays valid until changed by SQL. Pharmacists cannot be
+  disabled or removed from the app either, and the pharmacy lookup by patient
+  name is not audited as a read.
 - **The demo resets only nightly.** Between resets, one visitor's changes
   (closing the waiting visit, booking slots) are what the next visitor sees.
 - **Nothing collects the metrics in production.** `/actuator/prometheus`

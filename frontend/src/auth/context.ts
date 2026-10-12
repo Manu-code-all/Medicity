@@ -36,8 +36,7 @@ export function homeFor(role: Role): string {
     case "ADMIN":
       return "/admin/stores";
     case "PHARMACIST":
-      // The pharmacy counter has no screens in the web app yet; it works through the API.
-      return "/";
+      return "/pharmacy";
     default:
       return "/";
   }
