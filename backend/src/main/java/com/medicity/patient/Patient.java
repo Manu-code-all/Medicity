@@ -91,6 +91,14 @@ public class Patient extends BaseEntity {
     @Column(name = "home_longitude")
     private Double homeLongitude;
 
+    /**
+     * The clinic whose front desk recorded this person, for someone with no
+     * Medicity account of their own (V46). Their account row exists but is
+     * disabled; only that clinic's staff can book or queue them.
+     */
+    @Column(name = "registered_by_clinic_id", updatable = false)
+    private UUID registeredByClinicId;
+
     public boolean isFamilyMember() {
         return guardianUserId != null;
     }

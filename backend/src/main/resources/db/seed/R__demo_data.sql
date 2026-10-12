@@ -812,6 +812,68 @@ UPDATE doctors SET clinic_name = 'Kidney Care Centre', clinic_address = 'Whitefi
 UPDATE doctors SET clinic_name = 'Surgical Clinic', clinic_address = 'MG Road, Bengaluru', clinic_latitude = 12.9756, clinic_longitude = 77.6097 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa13';
 UPDATE doctors SET clinic_name = 'Smile Dental Studio', clinic_address = '100 Feet Road, Indiranagar, Bengaluru', clinic_latitude = 12.98, clinic_longitude = 77.64 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa14';
 
+-- ---------------------------------------------------------------------
+-- Two demo clinics (V44), each with a clinic administrator and a
+-- receptionist (the front desk). Five of the doctors above belong to each;
+-- the other four stay independent, listed with their own clinic details as
+-- before. A doctor who belongs to a clinic is shown under the clinic's name
+-- and address. The two clinics see nothing of each other, which is what the
+-- demo is for: sign in as one front desk, then the other.
+-- ---------------------------------------------------------------------
+INSERT INTO clinics (id, name, address, city, latitude, longitude, phone, email, timezone, active) VALUES
+  ('66666666-6666-4666-8666-666666666601', 'Indiranagar Family Health Centre',
+   '12, 100 Feet Road, Indiranagar', 'Bengaluru', 12.9784, 77.6408,
+   '+918012345601', 'hello@indiranagar-health.demo', 'Asia/Kolkata', TRUE),
+  ('66666666-6666-4666-8666-666666666602', 'Koramangala Specialty Hospital',
+   '80 Feet Road, Koramangala 4th Block', 'Bengaluru', 12.9352, 77.6245,
+   '+918012345602', 'care@koramangala-hospital.demo', 'Asia/Kolkata', TRUE)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name, address = EXCLUDED.address, city = EXCLUDED.city,
+  latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude, phone = EXCLUDED.phone,
+  email = EXCLUDED.email, timezone = EXCLUDED.timezone, active = TRUE;
+
+INSERT INTO users (id, email, password_hash, full_name, phone, role) VALUES
+  ('33333333-3333-4333-8333-333333333303', 'admin.indiranagar@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Anita Desai', '+919876500203', 'CLINIC_ADMIN'),
+  ('33333333-3333-4333-8333-333333333304', 'desk.indiranagar@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Rekha Pillai', '+919876500204', 'RECEPTIONIST'),
+  ('33333333-3333-4333-8333-333333333305', 'admin.koramangala@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Manoj Varghese', '+919876500205', 'CLINIC_ADMIN'),
+  ('33333333-3333-4333-8333-333333333306', 'desk.koramangala@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Divya Shenoy', '+919876500206', 'RECEPTIONIST')
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO clinic_staff (clinic_id, user_id, staff_role) VALUES
+  ('66666666-6666-4666-8666-666666666601', '33333333-3333-4333-8333-333333333303', 'CLINIC_ADMIN'),
+  ('66666666-6666-4666-8666-666666666601', '33333333-3333-4333-8333-333333333304', 'RECEPTIONIST'),
+  ('66666666-6666-4666-8666-666666666602', '33333333-3333-4333-8333-333333333305', 'CLINIC_ADMIN'),
+  ('66666666-6666-4666-8666-666666666602', '33333333-3333-4333-8333-333333333306', 'RECEPTIONIST')
+ON CONFLICT (user_id) DO NOTHING;
+
+-- Any signed-in account can change its own password (V46), so a visitor could lock
+-- the shared demo staff accounts. The nightly reset re-runs this and puts them back.
+UPDATE users SET password_hash = '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+                 enabled = TRUE, must_change_password = FALSE
+WHERE id IN ('33333333-3333-4333-8333-333333333303', '33333333-3333-4333-8333-333333333304',
+             '33333333-3333-4333-8333-333333333305', '33333333-3333-4333-8333-333333333306')
+  AND (password_hash <> '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve'
+       OR NOT enabled OR must_change_password);
+
+-- Dr. Rao (cardiology), Dr. Menon (general medicine), Dr. Kulkarni, Dr. Bhat and Dr. Hegde.
+UPDATE doctors SET clinic_id = '66666666-6666-4666-8666-666666666601'
+WHERE id IN ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa01', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa04',
+             'aaaaaaaa-1111-4111-8111-aaaaaaaaaa05', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa07',
+             'aaaaaaaa-1111-4111-8111-aaaaaaaaaa11');
+-- Dr. Iyer (neurology), Dr. Shetty, Dr. Qureshi, Dr. Reddy and Dr. Joshi.
+UPDATE doctors SET clinic_id = '66666666-6666-4666-8666-666666666602'
+WHERE id IN ('aaaaaaaa-1111-4111-8111-aaaaaaaaaa02', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa06',
+             'aaaaaaaa-1111-4111-8111-aaaaaaaaaa08', 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa09',
+             'aaaaaaaa-1111-4111-8111-aaaaaaaaaa14');
+
 -- The demo accounts have already agreed to the current draft texts, so the
 -- consent screen (ConsentGate) does not stand in front of a visitor's first
 -- click. A real account is asked at sign-up and again whenever a version

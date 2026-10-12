@@ -53,6 +53,14 @@ public class User extends BaseEntity {
     @Column(name = "enabled", nullable = false)
     private boolean enabled = true;
 
+    /**
+     * Set on accounts a clinic created with a temporary password. While true
+     * the API accepts nothing but changing the password (V46).
+     */
+    @Builder.Default
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword = false;
+
     public void setEmail(String email) {
         this.email = email == null ? null : email.trim().toLowerCase();
     }

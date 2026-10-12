@@ -68,6 +68,14 @@ public class Appointment extends BaseEntity {
     @Column(name = "rescheduled_from", updatable = false)
     private UUID rescheduledFrom;
 
+    /** When the front desk marked the patient as arrived (V47); null until then. */
+    @Column(name = "arrived_at")
+    private Instant arrivedAt;
+
+    /** The staff member who booked this on the patient's behalf (V47); null when the patient booked. */
+    @Column(name = "booked_by_user_id", updatable = false)
+    private UUID bookedByUserId;
+
     /**
      * Transitions to CANCELLED. Sets {@code cancelledAt} in the same call
      * because a database CHECK requires the two to agree — splitting them

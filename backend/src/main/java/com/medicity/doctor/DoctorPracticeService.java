@@ -44,7 +44,9 @@ public class DoctorPracticeService {
 
     public record Practice(BigDecimal consultationFee, String bio, int yearsExperience, List<String> insurers,
                            List<DoctorOffers.Price> prices, List<DoctorOffers.Insurer> availableInsurers,
-                           Clinic clinic) {}
+                           Clinic clinic,
+                           /** True when the doctor belongs to a clinic: its details are managed by the clinic, not here. */
+                           boolean clinicManaged) {}
 
     @Transactional(readOnly = true)
     public Practice practice(UUID doctorUserId) {
@@ -53,7 +55,9 @@ public class DoctorPracticeService {
                 offers.insurersOf(List.of(d.getId())).getOrDefault(d.getId(), List.of()),
                 offers.pricesOf(List.of(d.getId())).getOrDefault(d.getId(), List.of()),
                 offers.insurers(),
-                new Clinic(d.getClinicName(), d.getClinicAddress(), d.getClinicLatitude(), d.getClinicLongitude()));
+                new Clinic(d.effectiveClinicName(), d.effectiveClinicAddress(), d.effectiveClinicLatitude(),
+                        d.effectiveClinicLongitude()),
+                d.getClinicId() != null);
     }
 
     @Transactional
@@ -86,10 +90,14 @@ public class DoctorPracticeService {
         d.setConsultationFee(fee);
         d.setBio(bio == null || bio.isBlank() ? null : bio.trim());
         d.setYearsExperience(yearsExperience);
-        d.setClinicName(clinic == null ? null : blankToNull(clinic.name()));
-        d.setClinicAddress(clinic == null ? null : blankToNull(clinic.address()));
-        d.setClinicLatitude(clinic == null ? null : clinic.latitude());
-        d.setClinicLongitude(clinic == null ? null : clinic.longitude());
+        // A doctor who belongs to a clinic is seen where the clinic is; the clinic's
+        // administrator keeps those details, so what the form sends is ignored.
+        if (d.getClinicId() == null) {
+            d.setClinicName(clinic == null ? null : blankToNull(clinic.name()));
+            d.setClinicAddress(clinic == null ? null : blankToNull(clinic.address()));
+            d.setClinicLatitude(clinic == null ? null : clinic.latitude());
+            d.setClinicLongitude(clinic == null ? null : clinic.longitude());
+        }
         doctors.save(d);
 
         var id = new MapSqlParameterSource("doctor", d.getId());
