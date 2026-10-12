@@ -5,10 +5,10 @@ import { ApiError } from "../api/client";
 import { auth as authApi } from "../api/endpoints";
 import type { CodeSent } from "../api/types";
 import { homeFor, useAuth, type Session } from "../auth/context";
-import { DEMO_ACCOUNTS, DEMO_PASSWORD, LOGIN_PATH, type LineRole } from "../lib/demo";
+import { DEMO_ACCOUNTS, DEMO_DESK, DEMO_PASSWORD, LOGIN_PATH, type LineRole } from "../lib/demo";
 import "../landing.css";
 
-const ROLES: LineRole[] = ["patient", "doctor", "chemist"];
+const ROLES: LineRole[] = ["patient", "doctor", "chemist", "clinic"];
 
 const COPY: Record<LineRole, { tab: string; title: string; pitch: string; stops: string[] }> = {
   patient: {
@@ -28,6 +28,12 @@ const COPY: Record<LineRole, { tab: string; title: string; pitch: string; stops:
     title: "Sign in as a chemist",
     pitch: "Questions from patients nearby, answered in a tap. No stock list to keep.",
     stops: ["Question", "Answer", "Keep aside", "Hand over"],
+  },
+  clinic: {
+    tab: "Clinic",
+    title: "Sign in to your clinic",
+    pitch: "The front desk and the clinic's own people, schedule and numbers, for staff of a clinic or hospital.",
+    stops: ["Front desk", "Arrival", "Consultation", "Report"],
   },
 };
 
@@ -93,7 +99,7 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
         </Link>
 
         <div className="lm-auth__card">
-          <nav className="lm-roles" aria-label="Sign in as" style={{ "--i": ROLES.indexOf(role) } as React.CSSProperties}>
+          <nav className="lm-roles" aria-label="Sign in as" style={{ "--i": ROLES.indexOf(role), "--n": ROLES.length } as React.CSSProperties}>
             <span className="lm-roles__slider" aria-hidden="true" />
             {ROLES.map((r) => (
               <Link
@@ -127,6 +133,18 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
             <span className="lm-demo__title">{busy === "demo" ? "Signing in…" : `Try as ${demo.name}`}</span>
             <span className="lm-demo__sub">Demo account, {demo.who}</span>
           </button>
+
+          {role === "clinic" && (
+            <button
+              type="button"
+              className="lm-demo"
+              disabled={busy !== null}
+              onClick={() => signIn(DEMO_DESK.email, DEMO_PASSWORD, "demo")}
+            >
+              <span className="lm-demo__title">Try as {DEMO_DESK.name}</span>
+              <span className="lm-demo__sub">Demo account, {DEMO_DESK.who}</span>
+            </button>
+          )}
 
           <p className="lm-auth__or">
             <span>or sign in with email</span>
@@ -191,6 +209,7 @@ export function LoginPage({ role = "patient" }: { role?: LineRole }) {
                 Not on Medicity yet? <Link to="/register/store">Register your store</Link>
               </>
             )}
+            {role === "clinic" && <>Your clinic administrator gives you a temporary password; you choose your own at first sign-in.</>}
           </p>
         </div>
       </main>

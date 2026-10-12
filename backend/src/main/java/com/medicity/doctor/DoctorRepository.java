@@ -26,28 +26,65 @@ public interface DoctorRepository extends JpaRepository<Doctor, UUID> {
      * regardless of its value. This only fails when the parameter is actually
      * null, so a test that always supplies a filter never sees it.
      */
-    @Query("""
+    @Query(value = """
             SELECT d FROM Doctor d
             JOIN FETCH d.user u
+            LEFT JOIN FETCH d.clinic c
             WHERE u.enabled = true
               AND d.verifiedAt IS NOT NULL
+              AND (c.id IS NULL OR c.active = true)
               AND (cast(:specialization as String) IS NULL
                    OR lower(d.specialization) = lower(cast(:specialization as String)))
               AND (cast(:nameQuery as String) IS NULL
                    OR lower(u.fullName) LIKE lower(concat('%', cast(:nameQuery as String), '%'))
-                   OR lower(d.specialization) LIKE lower(concat('%', cast(:nameQuery as String), '%')))
+                   OR lower(d.specialization) LIKE lower(concat('%', cast(:nameQuery as String), '%'))
+                   OR lower(coalesce(c.name, d.clinicName, '')) LIKE lower(concat('%', cast(:nameQuery as String), '%')))
               AND (cast(:insurance as String) IS NULL
                    OR EXISTS (SELECT 1 FROM DoctorInsurance i
                               WHERE i.doctorId = d.id AND i.insurer = cast(:insurance as String)))
+              AND (:byClinic = false OR c.id = :clinicId)
+            """,
+            countQuery = """
+            SELECT count(d) FROM Doctor d
+            JOIN d.user u
+            LEFT JOIN d.clinic c
+            WHERE u.enabled = true
+              AND d.verifiedAt IS NOT NULL
+              AND (c.id IS NULL OR c.active = true)
+              AND (cast(:specialization as String) IS NULL
+                   OR lower(d.specialization) = lower(cast(:specialization as String)))
+              AND (cast(:nameQuery as String) IS NULL
+                   OR lower(u.fullName) LIKE lower(concat('%', cast(:nameQuery as String), '%'))
+                   OR lower(d.specialization) LIKE lower(concat('%', cast(:nameQuery as String), '%'))
+                   OR lower(coalesce(c.name, d.clinicName, '')) LIKE lower(concat('%', cast(:nameQuery as String), '%')))
+              AND (cast(:insurance as String) IS NULL
+                   OR EXISTS (SELECT 1 FROM DoctorInsurance i
+                              WHERE i.doctorId = d.id AND i.insurer = cast(:insurance as String)))
+              AND (:byClinic = false OR c.id = :clinicId)
             """)
-    Page<Doctor> search(@Param("specialization") String specialization,
-                        @Param("nameQuery") String nameQuery,
-                        @Param("insurance") String insurance, Pageable pageable);
+    Page<Doctor> searchAt(@Param("specialization") String specialization,
+                          @Param("nameQuery") String nameQuery,
+                          @Param("insurance") String insurance,
+                          @Param("byClinic") boolean byClinic,
+                          @Param("clinicId") UUID clinicId,
+                          Pageable pageable);
+
+    /**
+     * Without a clinic filter. {@code byClinic} is a separate flag rather than a
+     * nullable id: a null UUID parameter has no value to infer its type from (see
+     * the note above on {@code cast}), so an id is always sent, and ignored.
+     */
+    default Page<Doctor> search(String specialization, String nameQuery, String insurance, Pageable pageable) {
+        return searchAt(specialization, nameQuery, insurance, false, NO_CLINIC, pageable);
+    }
 
     /** Without the insurance filter. */
     default Page<Doctor> search(String specialization, String nameQuery, Pageable pageable) {
         return search(specialization, nameQuery, null, pageable);
     }
+
+    /** Placeholder for the clinic id when no clinic is asked for; never matches a row. */
+    UUID NO_CLINIC = new UUID(0L, 0L);
 
     /** Every specialisation with at least one doctor who can be booked, and how many. */
     @Query("""

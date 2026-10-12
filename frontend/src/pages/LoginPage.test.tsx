@@ -20,6 +20,9 @@ function renderAt(
           <Route path="/login" element={<LoginPage />} />
           <Route path="/login/doctor" element={<LoginPage role="doctor" />} />
           <Route path="/login/chemist" element={<LoginPage role="chemist" />} />
+          <Route path="/login/clinic" element={<LoginPage role="clinic" />} />
+          <Route path="/clinic" element={<p>Clinic workspace</p>} />
+          <Route path="/desk" element={<p>Front desk workspace</p>} />
           <Route path="/portal" element={<p>Patient portal</p>} />
           <Route path="/doctor" element={<p>Doctor workspace</p>} />
           <Route path="/store" element={<p>Store workspace</p>} />
@@ -41,6 +44,28 @@ describe("LoginPage", () => {
 
     expect(await screen.findByText("Doctor workspace")).toBeInTheDocument();
     expect(login).toHaveBeenCalledWith("dr.rao@medicity.demo", "demo-password-2026");
+  });
+
+  it("signs staff in from the clinic tab: the administrator and the front desk each have a demo account and a home", async () => {
+    const login = vi.fn(async (email: string) => as(email.startsWith("desk") ? "RECEPTIONIST" : "CLINIC_ADMIN"));
+    renderAt("/login/clinic", login);
+
+    expect(screen.getByRole("heading", { name: "Sign in to your clinic" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Clinic" })).toHaveAttribute("aria-current", "page");
+
+    await userEvent.click(screen.getByRole("button", { name: /Try as the front desk/ }));
+    expect(await screen.findByText("Front desk workspace")).toBeInTheDocument();
+    expect(login).toHaveBeenCalledWith("desk.indiranagar@medicity.demo", "demo-password-2026");
+  });
+
+  it("sends the clinic administrator's demo sign-in to the clinic workspace", async () => {
+    const login = vi.fn(async () => as("CLINIC_ADMIN"));
+    renderAt("/login/clinic", login);
+
+    await userEvent.click(screen.getByRole("button", { name: /Try as the clinic administrator/ }));
+
+    expect(await screen.findByText("Clinic workspace")).toBeInTheDocument();
+    expect(login).toHaveBeenCalledWith("admin.indiranagar@medicity.demo", "demo-password-2026");
   });
 
   it("switches role from the tabs, and each page offers its own next step", async () => {

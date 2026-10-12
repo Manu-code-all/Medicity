@@ -53,6 +53,9 @@ public class SecurityConfig {
                 // order and the first match wins, so without this line every GET
                 // under /doctors/me/ would be open to anonymous callers.
                 .requestMatchers("/api/v1/doctors/me/**").authenticated()
+                // Same reason for the clinic's own workspace, ahead of the public clinic directory.
+                .requestMatchers("/api/v1/clinics/me/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/v1/clinics", "/api/v1/clinics/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/doctors/*/live-status").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/v1/doctors/**").permitAll()
                 .requestMatchers("/actuator/health/**").permitAll()

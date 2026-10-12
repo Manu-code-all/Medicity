@@ -58,11 +58,11 @@ public class ConsentService {
         return versions.get(type);
     }
 
-    /** What an account of this role must have agreed to. Staff accounts are provisioned internally and agree to nothing here. */
+    /** What an account of this role must have agreed to. Clinic staff handle patients' appointments, so like doctors and chemists they agree to the terms and the privacy notice (not the health-data text, which is for people whose own records are kept). The platform's own staff are provisioned internally and agree to nothing here. */
     public Set<ConsentType> requiredFor(Role role) {
         return switch (role) {
             case PATIENT -> Set.of(ConsentType.values());
-            case DOCTOR, CHEMIST -> Set.of(ConsentType.TERMS_OF_SERVICE, ConsentType.PRIVACY_NOTICE);
+            case DOCTOR, CHEMIST, CLINIC_ADMIN, RECEPTIONIST -> Set.of(ConsentType.TERMS_OF_SERVICE, ConsentType.PRIVACY_NOTICE);
             case ADMIN, PHARMACIST -> Set.of();
         };
     }

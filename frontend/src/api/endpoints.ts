@@ -1,6 +1,18 @@
 import { request } from "./client";
 import type {
   Attachment,
+  ClinicCredentials,
+  ClinicListing,
+  ClinicProfile,
+  ClinicProfileInput,
+  ClinicReport,
+  ClinicStaffMember,
+  DeskPatientHit,
+  DeskPatientRef,
+  DeskToday,
+  DeskVisit,
+  NewClinicDoctor,
+  NewClinicReceptionist,
   ConsentStatus,
   ConsentType,
   DeletionSummary,
@@ -108,8 +120,9 @@ export const auth = {
 };
 
 export const doctors = {
-  search: (specialization?: string, nameQuery?: string, insurance?: string) => {
+  search: (specialization?: string, nameQuery?: string, insurance?: string, clinicId?: string) => {
     const params = new URLSearchParams();
+    if (clinicId) params.set("clinicId", clinicId);
     if (specialization) params.set("specialization", specialization);
     if (nameQuery) params.set("q", nameQuery);
     if (insurance) params.set("insurance", insurance);
@@ -432,4 +445,51 @@ export const attachments = {
   },
   remove: (appointmentId: string, attachmentId: string) =>
     request<void>(`/api/v1/appointments/${appointmentId}/attachments/${attachmentId}`, { method: "DELETE" }),
+};
+
+/** Choosing a password of one's own, required once for accounts a clinic made. */
+export const account = {
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<TokenPair>("/api/v1/account/change-password", { method: "POST", body: { currentPassword, newPassword } }),
+};
+
+/** The public list of clinics, for the directory filter. */
+export const clinics = {
+  list: () => request<ClinicListing[]>("/api/v1/clinics"),
+};
+
+/** A clinic's administrator: its profile, people and numbers. The clinic is always the caller's own. */
+export const clinicAdmin = {
+  profile: () => request<ClinicProfile>("/api/v1/clinics/me"),
+  saveProfile: (input: ClinicProfileInput) => request<ClinicProfile>("/api/v1/clinics/me", { method: "PUT", body: input }),
+  staff: () => request<ClinicStaffMember[]>("/api/v1/clinics/me/staff"),
+  addDoctor: (input: NewClinicDoctor) =>
+    request<ClinicCredentials>("/api/v1/clinics/me/doctors", { method: "POST", body: input }),
+  addReceptionist: (input: NewClinicReceptionist) =>
+    request<ClinicCredentials>("/api/v1/clinics/me/receptionists", { method: "POST", body: input }),
+  resetPassword: (userId: string) =>
+    request<ClinicCredentials>(`/api/v1/clinics/me/staff/${userId}/reset-password`, { method: "POST" }),
+  setEnabled: (userId: string, enabled: boolean) =>
+    request<ClinicStaffMember>(`/api/v1/clinics/me/staff/${userId}/${enabled ? "enable" : "disable"}`, { method: "POST" }),
+  report: (from: string, to: string) => request<ClinicReport>(`/api/v1/clinics/me/report?from=${from}&to=${to}`),
+};
+
+/** The front desk: the clinic's day, and acting for people on the phone or at the counter. */
+export const desk = {
+  today: (date?: string) => request<DeskToday>(`/api/v1/clinics/me/desk/today${date ? `?date=${date}` : ""}`),
+  arrived: (id: string) => request<DeskVisit>(`/api/v1/clinics/me/desk/visits/${id}/arrived`, { method: "POST" }),
+  noShow: (id: string) => request<DeskVisit>(`/api/v1/clinics/me/desk/visits/${id}/no-show`, { method: "POST" }),
+  cancel: (id: string, reason?: string) =>
+    request<DeskVisit>(`/api/v1/clinics/me/desk/visits/${id}/cancel`, { method: "POST", body: { reason: reason || null } }),
+  book: (slotId: string, patient: DeskPatientRef, reason?: string) =>
+    request<DeskVisit>("/api/v1/clinics/me/desk/visits", {
+      method: "POST",
+      body: { slotId, patient, reason: reason || null },
+    }),
+  walkIn: (doctorId: string, patient: DeskPatientRef, reason?: string) =>
+    request<QueueToken>("/api/v1/clinics/me/desk/walk-ins", {
+      method: "POST",
+      body: { doctorId, patient, reason: reason || null },
+    }),
+  findPatients: (q: string) => request<DeskPatientHit[]>(`/api/v1/clinics/me/desk/patients?q=${encodeURIComponent(q)}`),
 };

@@ -122,7 +122,23 @@ public class AuthService {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public User createAccount(String email, String rawPassword, String fullName, String phone, Role role) {
+        return createAccount(email, rawPassword, fullName, phone, role, false);
+    }
+
+    /**
+     * An account a clinic (or the platform administrator) creates for someone
+     * else, with a temporary password they must change before doing anything
+     * else (V46). Like {@link #createAccount}, never given a role from a request.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public User createStaffAccount(String email, String temporaryPassword, String fullName, String phone, Role role) {
+        return createAccount(email, temporaryPassword, fullName, phone, role, true);
+    }
+
+    private User createAccount(String email, String rawPassword, String fullName, String phone, Role role,
+                               boolean mustChangePassword) {
         User user = User.builder()
+                .mustChangePassword(mustChangePassword)
                 .passwordHash(passwordEncoder.encode(rawPassword))
                 .fullName(fullName.trim())
                 .phone(phone == null || phone.isBlank() ? null : phone)
@@ -257,6 +273,43 @@ public class AuthService {
         });
     }
 
+    /**
+     * The signed-in person chooses a new password, proving they know the
+     * current one (a temporary password, for an account a clinic created).
+     * Every session they held ends and a fresh one is returned, so a
+     * temporary password that was shared or intercepted stops working with it.
+     *
+     * <p>The current-password check is throttled with the sign-in's own limit,
+     * as account deletion's is: a borrowed phone must not be a way to guess it.
+     */
+    @Transactional
+    public TokenPair changePassword(UUID userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+        try {
+            loginThrottle.check(user.getEmail());
+        } catch (TooManyRequestsException e) {
+            auditLog.recordIndependently("LOGIN_THROTTLED", "USER", userId, AuditLog.Outcome.DENIED,
+                    Map.of("email", user.getEmail(), "operation", "change-password"));
+            throw e;
+        }
+        if (currentPassword == null || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            auditLog.recordIndependently("LOGIN_FAILED", "USER", userId, AuditLog.Outcome.DENIED,
+                    Map.of("email", user.getEmail(), "operation", "change-password"));
+            throw new ValidationException("INCORRECT_PASSWORD", "That password is not correct");
+        }
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new ValidationException("PASSWORD_UNCHANGED", "Choose a password different from the current one");
+        }
+        boolean wasTemporary = user.isMustChangePassword();
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setMustChangePassword(false);
+        userRepository.saveAndFlush(user);
+        refreshTokens.revokeAllFor(userId, clock.instant());
+        auditLog.recordChange("PASSWORD_CHANGED", "USER", userId, Map.of("wasTemporary", wasTemporary));
+        return startSession(user);
+    }
+
     /** A new sign-in: a new token family. Also the end of a code sign-in (see OtpService). */
     TokenPair startSession(User user) {
         return issue(user, UUID.randomUUID(), clock.instant());
@@ -268,7 +321,8 @@ public class AuthService {
                 refreshTokens.issue(user.getId(), familyId, now, now.plus(refreshTtl)),
                 user.getId().toString(),
                 user.getRole().name(),
-                user.getFullName());
+                user.getFullName(),
+                user.isMustChangePassword());
     }
 
     private static BadCredentialsException invalidRefreshToken() {
@@ -279,5 +333,7 @@ public class AuthService {
                             String refreshToken,
                             String userId,
                             String role,
-                            String fullName) {}
+                            String fullName,
+                            /** True for an account created with a temporary password: only changing it is allowed until then. */
+                            boolean mustChangePassword) {}
 }

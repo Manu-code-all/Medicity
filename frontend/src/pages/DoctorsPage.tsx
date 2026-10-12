@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowRight, MapPin, Star } from "@phosphor-icons/react";
-import { doctors } from "../api/endpoints";
+import { clinics, doctors } from "../api/endpoints";
 import type { Doctor, Slot } from "../api/types";
 import { BODY_TAXONOMY, specialistPhrase } from "../components/bodymap/taxonomy";
 import { ClinicLine } from "../components/ClinicLine";
@@ -20,6 +20,7 @@ export function DoctorsPage() {
   const [params, setParams] = useSearchParams();
   const specialization = params.get("specialty") ?? "";
   const insurance = params.get("insurance") ?? "";
+  const clinicId = params.get("clinic") ?? "";
   const zone = params.get("zone");
   const [nameQuery, setNameQuery] = useState(params.get("q") ?? "");
   const [sort, setSort] = useState<"match" | "nearest">("match");
@@ -43,14 +44,26 @@ export function DoctorsPage() {
 
   const q = params.get("q") ?? "";
   const query = useQuery({
-    queryKey: ["doctors", specialization, q, insurance],
-    queryFn: () => doctors.search(specialization || undefined, q || undefined, insurance || undefined),
+    queryKey: ["doctors", specialization, q, insurance, clinicId],
+    queryFn: () => doctors.search(specialization || undefined, q || undefined, insurance || undefined, clinicId || undefined),
     // Keeps the previous results on screen while a new filter loads, so the
     // list does not collapse to a spinner on every keystroke.
     placeholderData: keepPreviousData,
   });
   const specialties = useQuery({ queryKey: ["doctors", "specialties"], queryFn: doctors.specialties, staleTime: 5 * 60_000 });
   const insurers = useQuery({ queryKey: ["doctors", "insurers"], queryFn: doctors.insurers, staleTime: 60 * 60_000 });
+
+  // Clinics and hospitals with doctors to book; the filter is hidden when there are none.
+  const clinicList = useQuery({ queryKey: ["clinics"], queryFn: clinics.list, staleTime: 5 * 60_000 });
+
+  function setClinic(value: string) {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set("clinic", value);
+      else next.delete("clinic");
+      return next;
+    });
+  }
 
   function setInsurance(value: string) {
     setParams((prev) => {
@@ -137,6 +150,22 @@ export function DoctorsPage() {
             </option>
           ))}
         </select>
+
+        {clinicList.data && clinicList.data.length > 0 && (
+          <>
+            <label htmlFor="clinic" className="sr-only">
+              Clinic or hospital
+            </label>
+            <select id="clinic" value={clinicId} onChange={(e) => setClinic(e.target.value)}>
+              <option value="">Any clinic or hospital</option>
+              {clinicList.data.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.doctors})
+                </option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
 
       <div className="directory__bar">

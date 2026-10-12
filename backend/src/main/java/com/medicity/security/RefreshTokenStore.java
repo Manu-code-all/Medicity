@@ -97,6 +97,13 @@ public class RefreshTokenStore {
                 Timestamp.from(now), familyId);
     }
 
+    /** Revokes every live token the account holds, on every device (a password change). */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public int revokeAllFor(UUID userId, Instant now) {
+        return jdbc.update("UPDATE refresh_tokens SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL",
+                Timestamp.from(now), userId);
+    }
+
     static byte[] hash(String token) {
         try {
             return MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));

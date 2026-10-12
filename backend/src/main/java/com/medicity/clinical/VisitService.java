@@ -69,9 +69,35 @@ public class VisitService {
         return visit;
     }
 
-    private Appointment transition(UUID appointmentId, UUID doctorId, AppointmentStatus target, String action) {
-        Appointment visit = requireOwnVisit(appointmentId, doctorId);
+    /**
+     * The front desk marks a visit missed. The visit must be on the calendar of
+     * a doctor of {@code clinicId}; one that is not answers exactly like a visit
+     * that does not exist, and is audited. A patient already marked as arrived
+     * cannot be marked missed.
+     */
+    @Transactional
+    public Appointment markNoShowAtDesk(UUID appointmentId, UUID clinicId) {
+        Appointment visit = appointmentRepository.findByIdWithDetails(appointmentId)
+                .filter(v -> clinicId.equals(v.getSlot().getDoctor().getClinicId()))
+                .orElseThrow(() -> {
+                    auditLog.recordIndependently("ACCESS_DENIED", "APPOINTMENT", appointmentId,
+                            AuditLog.Outcome.DENIED, Map.of("operation", "clinic-desk", "clinicId", clinicId));
+                    return new NotFoundException("Visit", appointmentId);
+                });
+        if (visit.getArrivedAt() != null) {
+            throw new ValidationException("ALREADY_ARRIVED",
+                    "This patient was marked as arrived, so they cannot be marked as missed");
+        }
+        return transition(visit, AppointmentStatus.NO_SHOW, "CLINIC_VISIT_NO_SHOW", Map.of("clinicId", clinicId));
+    }
 
+    private Appointment transition(UUID appointmentId, UUID doctorId, AppointmentStatus target, String action) {
+        return transition(requireOwnVisit(appointmentId, doctorId), target, action, Map.of());
+    }
+
+    private Appointment transition(Appointment visit, AppointmentStatus target, String action,
+                                   Map<String, Object> extra) {
+        UUID appointmentId = visit.getId();
         AppointmentStatus from = visit.getStatus();
         boolean correctingNoShow = from == AppointmentStatus.NO_SHOW && target == AppointmentStatus.COMPLETED;
         if (from != AppointmentStatus.BOOKED && !correctingNoShow) {
@@ -87,8 +113,10 @@ public class VisitService {
         // Flush now so a concurrent change surfaces as an optimistic-lock
         // failure inside this call, not later at commit.
         Appointment saved = appointmentRepository.saveAndFlush(visit);
-        auditLog.recordChange(action, "APPOINTMENT", appointmentId,
-                Map.of("patientId", visit.getPatient().getId(), "from", from.name()));
+        Map<String, Object> detail = new java.util.LinkedHashMap<>(extra);
+        detail.put("patientId", visit.getPatient().getId());
+        detail.put("from", from.name());
+        auditLog.recordChange(action, "APPOINTMENT", appointmentId, detail);
         return saved;
     }
 }
