@@ -110,7 +110,7 @@ class DispensingTest extends AbstractIntegrationTest {
         Prescription rx = persistPrescription(null, item(paracetamol, 15), item(omeprazole, 28));
 
         mvc.perform(post("/api/v1/pharmacy/prescriptions/" + rx.getId() + "/dispense")
-                        .header("Authorization", bearer(adminUser)))
+                        .header("Authorization", bearer(pharmacistUser)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(2));
 
@@ -127,10 +127,10 @@ class DispensingTest extends AbstractIntegrationTest {
         Prescription rx = persistPrescription(null, item(paracetamol, 10));
 
         mvc.perform(post("/api/v1/pharmacy/prescriptions/" + rx.getId() + "/dispense")
-                        .header("Authorization", bearer(adminUser)))
+                        .header("Authorization", bearer(pharmacistUser)))
                 .andExpect(status().isOk());
         mvc.perform(post("/api/v1/pharmacy/prescriptions/" + rx.getId() + "/dispense")
-                        .header("Authorization", bearer(adminUser)))
+                        .header("Authorization", bearer(pharmacistUser)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ALREADY_DISPENSED"));
 
@@ -155,7 +155,7 @@ class DispensingTest extends AbstractIntegrationTest {
                 ready.countDown();
                 go.await();
                 try {
-                    dispensingService.dispense(rx.getId(), adminUser.getId());
+                    dispensingService.dispense(rx.getId(), pharmacistUser.getId());
                     succeeded.incrementAndGet();
                 } catch (com.medicity.common.ConflictException e) {
                     assertThat(e.getCode()).isEqualTo("ALREADY_DISPENSED");
@@ -182,7 +182,7 @@ class DispensingTest extends AbstractIntegrationTest {
         Prescription rx = persistPrescription(null, item(paracetamol, 10), item(omeprazole, 500));
 
         mvc.perform(post("/api/v1/pharmacy/prescriptions/" + rx.getId() + "/dispense")
-                        .header("Authorization", bearer(adminUser)))
+                        .header("Authorization", bearer(pharmacistUser)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("INSUFFICIENT_STOCK"))
                 .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("Omeprazole")));
@@ -200,19 +200,19 @@ class DispensingTest extends AbstractIntegrationTest {
         Prescription correction = persistPrescription(original.getId(), item(paracetamol, 10));
 
         mvc.perform(post("/api/v1/pharmacy/prescriptions/" + original.getId() + "/dispense")
-                        .header("Authorization", bearer(adminUser)))
+                        .header("Authorization", bearer(pharmacistUser)))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("PRESCRIPTION_SUPERSEDED"));
 
         mvc.perform(post("/api/v1/pharmacy/prescriptions/" + correction.getId() + "/dispense")
-                        .header("Authorization", bearer(adminUser)))
+                        .header("Authorization", bearer(pharmacistUser)))
                 .andExpect(status().isOk());
         assertThat(onHand(paracetamol)).isEqualTo(90);
     }
 
     @Test
-    @DisplayName("only an admin can dispense; the patient sees it in their portal afterwards")
-    void dispenseIsAdminOnlyAndVisibleToPatient() throws Exception {
+    @DisplayName("only a pharmacist can dispense; the patient sees it in their portal afterwards")
+    void dispenseIsPharmacistOnlyAndVisibleToPatient() throws Exception {
         Prescription rx = persistPrescription(null, item(paracetamol, 10));
 
         mvc.perform(post("/api/v1/pharmacy/prescriptions/" + rx.getId() + "/dispense")
@@ -226,7 +226,7 @@ class DispensingTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$[0].dispensedAt").doesNotExist());
 
         mvc.perform(post("/api/v1/pharmacy/prescriptions/" + rx.getId() + "/dispense")
-                        .header("Authorization", bearer(adminUser)))
+                        .header("Authorization", bearer(pharmacistUser)))
                 .andExpect(status().isOk());
 
         mvc.perform(get("/api/v1/patients/me/prescriptions").header("Authorization", bearer(patientUser)))
@@ -234,7 +234,7 @@ class DispensingTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("a pharmacist can dispense, restock and see low stock, but cannot read the audit log; an admin still can")
+    @DisplayName("a pharmacist can dispense, restock and see low stock, but cannot read the audit log; an admin can read it")
     void pharmacistWorksTheCounterButCannotReadTheAuditLog() throws Exception {
         Prescription rx = persistPrescription(null, item(paracetamol, 10));
 
@@ -264,15 +264,90 @@ class DispensingTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("an admin can no longer dispense, restock or see low stock")
+    void adminIsRefusedAtTheCounter() throws Exception {
+        Prescription rx = persistPrescription(null, item(paracetamol, 10));
+
+        mvc.perform(post("/api/v1/pharmacy/prescriptions/" + rx.getId() + "/dispense")
+                        .header("Authorization", bearer(adminUser)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/v1/pharmacy/medicines/" + paracetamol.getId() + "/restock")
+                        .header("Authorization", bearer(adminUser))
+                        .contentType("application/json")
+                        .content("{\"quantity\": 50}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/pharmacy/stock/low").header("Authorization", bearer(adminUser)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/pharmacy/prescriptions?q=abc").header("Authorization", bearer(adminUser)))
+                .andExpect(status().isForbidden());
+
+        assertThat(onHand(paracetamol)).isEqualTo(100);
+    }
+
+    @Test
+    @DisplayName("the counter finds a prescription by its reference or the patient's name, with stock on hand")
+    void lookupByReferenceOrName() throws Exception {
+        Prescription rx = persistPrescription(null, item(paracetamol, 15));
+        String reference = rx.getId().toString().substring(0, 8);
+
+        mvc.perform(get("/api/v1/pharmacy/prescriptions").param("q", reference.toUpperCase())
+                        .header("Authorization", bearer(pharmacistUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(rx.getId().toString()))
+                .andExpect(jsonPath("$[0].reference").value(reference))
+                .andExpect(jsonPath("$[0].patientName").value("Meera Nair"))
+                .andExpect(jsonPath("$[0].canDispense").value(true))
+                .andExpect(jsonPath("$[0].items[0].quantity").value(15))
+                .andExpect(jsonPath("$[0].items[0].quantityOnHand").value(100));
+
+        mvc.perform(get("/api/v1/pharmacy/prescriptions").param("q", "meera")
+                        .header("Authorization", bearer(pharmacistUser)))
+                .andExpect(jsonPath("$[0].id").value(rx.getId().toString()));
+
+        mvc.perform(post("/api/v1/pharmacy/prescriptions/" + rx.getId() + "/dispense")
+                        .header("Authorization", bearer(pharmacistUser)))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/pharmacy/prescriptions").param("q", reference)
+                        .header("Authorization", bearer(pharmacistUser)))
+                .andExpect(jsonPath("$[0].canDispense").value(false))
+                .andExpect(jsonPath("$[0].dispensedAt").exists());
+    }
+
+    @Test
+    @DisplayName("lookup hides a corrected original, refuses a short query, and refuses non-pharmacists")
+    void lookupRules() throws Exception {
+        Prescription original = persistPrescription(null, item(paracetamol, 15));
+        Prescription correction = persistPrescription(original.getId(), item(paracetamol, 10));
+
+        mvc.perform(get("/api/v1/pharmacy/prescriptions").param("q", "meera")
+                        .header("Authorization", bearer(pharmacistUser)))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(correction.getId().toString()));
+
+        mvc.perform(get("/api/v1/pharmacy/prescriptions").param("q", "me")
+                        .header("Authorization", bearer(pharmacistUser)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("QUERY_TOO_SHORT"));
+
+        mvc.perform(get("/api/v1/pharmacy/prescriptions").param("q", "meera")
+                        .header("Authorization", bearer(patientUser)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/pharmacy/prescriptions").param("q", "meera")
+                        .header("Authorization", bearer(doctorUser)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @DisplayName("restocking adds stock, is audited, and clears the low-stock flag")
     void restock() throws Exception {
         Medicine scarce = persistMedicine("Cetirizine", "10mg", 3);
 
-        mvc.perform(get("/api/v1/pharmacy/stock/low").header("Authorization", bearer(adminUser)))
+        mvc.perform(get("/api/v1/pharmacy/stock/low").header("Authorization", bearer(pharmacistUser)))
                 .andExpect(jsonPath("$[?(@.medicineId == '" + scarce.getId() + "')]").exists());
 
         mvc.perform(post("/api/v1/pharmacy/medicines/" + scarce.getId() + "/restock")
-                        .header("Authorization", bearer(adminUser))
+                        .header("Authorization", bearer(pharmacistUser))
                         .contentType("application/json")
                         .content("{\"quantity\": 200}"))
                 .andExpect(status().isOk())

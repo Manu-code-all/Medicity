@@ -23,8 +23,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Pharmacy desk. The catalogue is readable by anyone signed in; changing stock
- * is an administrator's job until a dedicated pharmacist role exists.
+ * Pharmacy desk. The catalogue is readable by anyone signed in; dispensing and
+ * changing stock are the pharmacist's. An administrator creates pharmacist
+ * accounts ({@code PharmacistAdminController}) but cannot dispense.
  */
 @RestController
 @RequestMapping("/api/v1/pharmacy")
@@ -36,6 +37,7 @@ public class PharmacyController {
     private final MedicineStockRepository stockRepository;
     private final StockLedger stockLedger;
     private final DispensingService dispensingService;
+    private final PrescriptionLookup prescriptionLookup;
 
     @GetMapping("/medicines")
     @PreAuthorize("isAuthenticated()")
@@ -56,7 +58,7 @@ public class PharmacyController {
     }
 
     @GetMapping("/stock/low")
-    @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMIN')")
+    @PreAuthorize("hasRole('PHARMACIST')")
     @Operation(summary = "Medicines at or below their reorder level")
     public List<LowStockResponse> lowStock() {
         return stockRepository.findAtOrBelowReorderLevel().stream()
@@ -66,7 +68,7 @@ public class PharmacyController {
     }
 
     @PostMapping("/medicines/{medicineId}/restock")
-    @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMIN')")
+    @PreAuthorize("hasRole('PHARMACIST')")
     @Operation(summary = "Add received stock")
     public MedicineResponse restock(@PathVariable UUID medicineId, @Valid @RequestBody RestockRequest request) {
         stockLedger.restock(medicineId, request.quantity(), request.purchaseOrderId());
@@ -74,8 +76,17 @@ public class PharmacyController {
         return MedicineResponse.from(medicine, stockRepository.findById(medicineId).orElse(null));
     }
 
+    @GetMapping("/prescriptions")
+    @PreAuthorize("hasRole('PHARMACIST')")
+    @Operation(summary = "Find prescriptions to fill, by reference or patient name",
+            description = "At least 3 characters. Returns up to 10 current prescriptions, newest first, "
+                    + "with what is on hand for each medicine. Corrected originals are not returned.")
+    public List<PrescriptionLookup.Found> findPrescriptions(@RequestParam("q") String query) {
+        return prescriptionLookup.find(query);
+    }
+
     @PostMapping("/prescriptions/{prescriptionId}/dispense")
-    @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMIN')")
+    @PreAuthorize("hasRole('PHARMACIST')")
     @Operation(summary = "Dispense every medicine on a prescription, or none")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Dispensed"),
