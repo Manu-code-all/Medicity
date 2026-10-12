@@ -205,6 +205,35 @@ public class OtpService {
     }
 
     private AuthService.TokenPair verifyFor(User user, String code) {
+        consume(user, code);
+        auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "LOGIN_SUCCEEDED", "USER",
+                user.getId(), AuditLog.Outcome.SUCCESS, Map.of("method", "otp"));
+        return auth.startSession(user);
+    }
+
+    /**
+     * Proves the address without signing in: the signed-in account types the
+     * code that was emailed to it (asked for with {@link #sendToEmail}). Records
+     * that the address is verified, which is what lets a clinic's imported
+     * records be offered to the account (entry 75).
+     */
+    @Transactional(noRollbackFor = OtpService.WrongCode.class)
+    public void confirmEmail(UUID userId, String code) {
+        if (code == null || !code.matches("[0-9]{6}")) {
+            throw wrongCode();
+        }
+        User user = users.findById(userId).filter(User::isEnabled).orElseThrow(OtpService::wrongCode);
+        consume(user, code);
+        auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "EMAIL_VERIFIED", "USER",
+                user.getId(), AuditLog.Outcome.SUCCESS, null);
+    }
+
+    /**
+     * Checks a code against the newest live one for the account, counting the
+     * attempt, and uses it up. A code that arrived in the account's own inbox
+     * is proof of the address, so the address is marked verified (once).
+     */
+    private void consume(User user, String code) {
         Instant now = clock.instant();
 
         // Locked, so two guesses at once are counted one after the other.
@@ -229,9 +258,8 @@ public class OtpService {
             throw wrongCode();
         }
         jdbc.update("UPDATE otp_challenges SET consumed_at = ? WHERE id = ?", Timestamp.from(now), id);
-        auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "LOGIN_SUCCEEDED", "USER",
-                user.getId(), AuditLog.Outcome.SUCCESS, Map.of("method", "otp"));
-        return auth.startSession(user);
+        jdbc.update("UPDATE users SET email_verified_at = ? WHERE id = ? AND email_verified_at IS NULL",
+                Timestamp.from(now), user.getId());
     }
 
     /** A newer code replaces an older one even if the older is still live. */
