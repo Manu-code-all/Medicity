@@ -16,6 +16,7 @@ import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NOTIFICATIONS_KEY } from "./lib/notifications";
 import { StoreLayout } from "./pages/store/StoreLayout";
+import { PharmacyLayout } from "./pages/pharmacy/PharmacyLayout";
 import { PortalLayout } from "./pages/portal/PortalLayout";
 import { lazyPage } from "./lib/lazyPage";
 
@@ -33,6 +34,9 @@ const VisitPage = lazyPage(() => import("./pages/doctor/VisitPage"), "VisitPage"
 const DoctorsPage = lazyPage(() => import("./pages/DoctorsPage"), "DoctorsPage");
 const NotificationsPage = lazyPage(() => import("./pages/NotificationsPage"), "NotificationsPage");
 const PendingDoctorsPage = lazyPage(() => import("./pages/admin/PendingDoctorsPage"), "PendingDoctorsPage");
+const PharmacistsPage = lazyPage(() => import("./pages/admin/PharmacistsPage"), "PharmacistsPage");
+const CounterPage = lazyPage(() => import("./pages/pharmacy/CounterPage"), "CounterPage");
+const PharmacyStockPage = lazyPage(() => import("./pages/pharmacy/PharmacyStockPage"), "PharmacyStockPage");
 const PendingStoresPage = lazyPage(() => import("./pages/admin/PendingStoresPage"), "PendingStoresPage");
 const ChemistsPage = lazyPage(() => import("./pages/portal/ChemistsPage"), "ChemistsPage");
 const FamilyPage = lazyPage(() => import("./pages/portal/FamilyPage"), "FamilyPage");
@@ -87,7 +91,7 @@ export function App() {
   const ownChrome = pathname === "/" || pathname.startsWith("/login");
   // The three workspaces bring their own rail; the top bar is for the pages
   // in between (the directory, booking, notifications, sign-up).
-  const inWorkspace = /^\/(portal|doctor|store|clinic|desk)(\/|$)/.test(pathname);
+  const inWorkspace = /^\/(portal|doctor|store|clinic|desk|pharmacy)(\/|$)/.test(pathname);
   // One line colour per role: the role repaints every accent below the root.
   const role = session?.role === "DOCTOR" ? "doctor" : session?.role === "CHEMIST" ? "chemist" : "patient";
   // Those pages hold their own <main>; landmarks must not nest.
@@ -139,6 +143,7 @@ export function App() {
           <Route path="/login/doctor" element={<LoginPage role="doctor" />} />
           <Route path="/login/chemist" element={<LoginPage role="chemist" />} />
           <Route path="/login/clinic" element={<LoginPage role="clinic" />} />
+          <Route path="/login/pharmacist" element={<LoginPage role="pharmacist" />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path="/portal" element={<PortalLayout />}>
@@ -180,6 +185,10 @@ export function App() {
               <Route path="walk-in" element={<DeskWalkInPage />} />
               <Route path="book" element={<DeskBookPage />} />
             </Route>
+            <Route path="/pharmacy" element={<PharmacyLayout />}>
+              <Route index element={<CounterPage />} />
+              <Route path="stock" element={<PharmacyStockPage />} />
+            </Route>
           </Route>
 
           {/* Everything else sits in a centred column. */}
@@ -196,6 +205,7 @@ export function App() {
               <Route path="/doctors" element={<DoctorsPage />} />
               <Route path="/admin/stores" element={<PendingStoresPage />} />
               <Route path="/admin/doctors" element={<PendingDoctorsPage />} />
+              <Route path="/admin/pharmacists" element={<PharmacistsPage />} />
               <Route path="/doctors/:doctorId/book" element={<BookingPage />} />
               <Route path="/doctors/:doctorId/walk-in" element={<WalkInPage />} />
               <Route path="/visits/:appointmentId/video" element={<VideoRoomPage />} />

@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 
-/** The administrator's two queues. */
+/** The administrator's two queues, and the pharmacy's sign-ins. */
 export function AdminTabs() {
   return (
     <nav className="tabs" aria-label="Verification queues">
@@ -9,6 +9,9 @@ export function AdminTabs() {
       </NavLink>
       <NavLink to="/admin/doctors" className={({ isActive }) => (isActive ? "tab is-active" : "tab")}>
         Doctors
+      </NavLink>
+      <NavLink to="/admin/pharmacists" className={({ isActive }) => (isActive ? "tab is-active" : "tab")}>
+        Pharmacists
       </NavLink>
     </nav>
   );

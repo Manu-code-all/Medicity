@@ -19,7 +19,9 @@ export function ProtectedRoute() {
       ? "/login/doctor"
       : location.pathname.startsWith("/store")
         ? "/login/chemist"
-        : "/login";
+        : location.pathname.startsWith("/pharmacy")
+          ? "/login/pharmacist"
+          : "/login";
     // Keep the query too, so "/doctors?specialty=Cardiology" comes back filtered.
     return <Navigate to={signIn} replace state={{ from: location.pathname + location.search }} />;
   }

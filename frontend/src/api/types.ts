@@ -257,6 +257,51 @@ export interface Medicine {
   lowStock: boolean;
 }
 
+/** One prescription as the pharmacy counter sees it. */
+export interface PharmacyPrescription {
+  id: string;
+  /** The first eight characters of the id: what the patient reads out. */
+  reference: string;
+  patientName: string;
+  doctorName: string;
+  diagnosis: string;
+  issuedAt: string;
+  dispensedAt: string | null;
+  canDispense: boolean;
+  items: Array<{
+    medicineId: string;
+    medicine: string;
+    strength: string | null;
+    quantity: number;
+    dosage: string;
+    frequency: string;
+    durationDays: number;
+    quantityOnHand: number;
+  }>;
+}
+
+export interface DispenseResult {
+  prescriptionId: string;
+  dispensedAt: string;
+  items: Array<{ medicine: string; strength: string | null; quantity: number; remainingStock: number }>;
+}
+
+export interface LowStockItem {
+  medicineId: string;
+  name: string;
+  strength: string | null;
+  quantityOnHand: number;
+  reorderLevel: number;
+}
+
+export interface PharmacistAccount {
+  id: string;
+  email: string;
+  fullName: string;
+  enabled: boolean;
+  createdAt: string;
+}
+
 export interface AppNotification {
   id: string;
   kind: string;
@@ -990,6 +1035,8 @@ export interface DeskPatientHit {
   phone: string | null;
   /** CLINIC: recorded by this clinic. ACCOUNT: a Medicity account found by its exact email. */
   source: "CLINIC" | "ACCOUNT";
+}
+
 /** One problem in an imported patient list: the spreadsheet row, the column (null for the whole row) and what is wrong. */
 export interface ImportIssue {
   row: number;

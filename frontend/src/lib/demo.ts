@@ -4,7 +4,7 @@
  * landing page draws its map from these, so it shows the demo as it is.
  */
 
-export type LineRole = "patient" | "doctor" | "chemist" | "clinic";
+export type LineRole = "patient" | "doctor" | "chemist" | "clinic" | "pharmacist";
 
 export const DEMO_PASSWORD = "demo-password-2026";
 
@@ -13,6 +13,7 @@ export const DEMO_ACCOUNTS: Record<LineRole, { email: string; name: string; who:
   doctor: { email: "dr.rao@medicity.demo", name: "Dr. Anjali Rao", who: "today's schedule is waiting" },
   chemist: { email: "chemist@medicity.demo", name: "Ravi Kumar", who: "of Sri Sai Medicals, Indiranagar" },
   clinic: { email: "admin.indiranagar@medicity.demo", name: "the clinic administrator", who: "of Indiranagar Family Health Centre" },
+  pharmacist: { email: "pharmacist@medicity.demo", name: "the Hospital Pharmacist", who: "the hospital counter" },
 };
 
 /** The clinic line's second demo account: the receptionist at the same clinic. */
@@ -23,6 +24,7 @@ export const LOGIN_PATH: Record<LineRole, string> = {
   doctor: "/login/doctor",
   chemist: "/login/chemist",
   clinic: "/login/clinic",
+  pharmacist: "/login/pharmacist",
 };
 
 /** Where the demo patient asks from. */
