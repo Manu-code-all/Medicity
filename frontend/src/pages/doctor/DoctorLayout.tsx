@@ -10,6 +10,7 @@ const SECTIONS = [
   { to: "/doctor/queue", label: "Front desk" },
   { to: "/doctor/hours", label: "Your hours" },
   { to: "/doctor/practice", label: "Fees and insurance" },
+  { to: "/doctor/import", label: "Import patients" },
 ];
 
 export function DoctorLayout() {

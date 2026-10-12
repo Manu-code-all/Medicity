@@ -5,6 +5,8 @@ export interface RecordedCall {
   method: string;
   headers: Record<string, string>;
   body: unknown;
+  /** The fields of a multipart upload, when the body is a FormData. */
+  form?: FormData | undefined;
 }
 
 type Responder = (call: RecordedCall) => Response | Promise<Response>;
@@ -23,6 +25,7 @@ export function mockFetch(respond: Responder) {
         method: init.method ?? "GET",
         headers: { ...(init.headers as Record<string, string> | undefined) },
         body: typeof init.body === "string" ? JSON.parse(init.body) : undefined,
+        form: init.body instanceof FormData ? init.body : undefined,
       };
       calls.push(call);
       return respond(call);
