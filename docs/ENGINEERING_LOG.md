@@ -3021,6 +3021,142 @@ not been applied to a database, and nothing has talked to the real Resend.
 
 ---
 
+## 75. Moving a clinic's old records in from Excel or CSV
+
+**Why.** Clinics told us the thing that stops them switching is their old
+records: years of patients in a spreadsheet. This lets a doctor bring them in,
+without creating logins for people who never asked for one and without showing
+those people (or anyone) a clinic's notes before they have agreed.
+
+**What.** Migrations V48 and V49 (V44 to V47 belong to the multi-clinic work and
+are not used or depended on).
+
+1. **Clinic-held records (V48, `clinic_records`).** One row per imported person,
+   never a `users` row. `owner_kind` ('DOCTOR' for now) and `owner_id` say who
+   holds it; `owner_id` is deliberately not a foreign key, so a clinic id can sit
+   in the same column later (a new `owner_kind`, no rewrite). Phone is stored as
+   digits only (a leading +91, 91 or 0 dropped, so one number written three ways
+   is one number), email lowercased, and a unique index per owner on each is
+   what makes a re-import an update.
+2. **Two steps (`ClinicImportService`).** `POST /api/v1/doctors/me/import/patients/dry-run`
+   reads the file and returns counts, what would be added, updated or left
+   alone, and the problems by row; it writes nothing. `/confirm` runs the same
+   plan again on the file (the request must carry the `fileSha256` the dry run
+   returned, so the file imported is the file looked at: 409 `FILE_CHANGED`
+   otherwise), under a per-owner advisory lock, and writes the good rows in
+   batches. Rows with problems are skipped, not half-imported. `/error-report`
+   returns every problem as a CSV (a leading `= + - @` in a cell is prefixed so
+   Excel does not run it as a formula) and `/template` the empty file with a
+   byte-order mark. Only a doctor whose registration is verified may import.
+3. **What the reader copes with (`CsvTable`, `PatientCsv`).** UTF-8 with or
+   without a BOM; UTF-16 text; and, when the bytes are not valid UTF-8,
+   Windows-1252, which is what Excel's plain "CSV (Comma delimited)" writes on
+   Windows (the file is not UTF-8, and guessing wrong turns "José" into
+   "JosÃ©"). Comma, semicolon or tab, found from the first line, or an Excel
+   `sep=;` line. Quotes, `""`, line breaks inside quotes, blank rows dropped
+   (but still counted, so row numbers match the spreadsheet). Headings are
+   found by name, in any order, with common aliases (Mobile, DOB, Sex, ...).
+   A binary file (an `.xlsx` is a zip) is refused with an explanation. Phone
+   numbers Excel has turned into `9.87E+11` get their own message. Dates are day
+   first (DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY) or ISO, a real date in the past;
+   gender and blood group accept the usual spellings ("O positive").
+   5,000 rows / 2 MB are refused before parsing the rest (`TOO_MANY_ROWS`,
+   `FILE_TOO_LARGE`).
+4. **Idempotent.** A row whose email or phone is already one of the owner's
+   records updates it (only cells that have something in them; an empty cell
+   never erases), and a row that changes nothing is counted as unchanged. A row
+   whose email is one record and phone another is refused (`AMBIGUOUS_MATCH`),
+   not merged by guesswork. Two doctors importing the same phone keep separate
+   records.
+5. **Nothing about the rows in logs or audit.** The log line and the audit rows
+   (`CLINIC_IMPORT_PREVIEWED`, `CLINIC_IMPORT`, `CLINIC_IMPORT_ERROR_REPORT`)
+   hold counts only. Error messages in the API name the row and column, never
+   the value; a test captures every log event of an import and checks none holds
+   a name, phone or note. The downloaded error report does echo the offending
+   cell, built from the file the doctor already holds.
+6. **Linking to a real account needs the patient's yes (`ClinicRecordLinks`).**
+   A record is offered to an account only when the account's email address has
+   been *proved* (V49 `users.email_verified_at`, set when a code emailed to the
+   address is typed, either to sign in or from Profile), the record's email is
+   that address, and the record is still undecided. The offer shows the doctor's
+   name and nothing else; the notes, phone and the rest become visible only after
+   `accept`, which links the record to the account's own patient profile.
+   `decline` keeps it hidden and it is not offered again (also not after a
+   re-import; a changed email address on a declined record resets the question,
+   because the earlier no was about a different address). Without a verified
+   address the answer is the same for everyone, so it does not reveal which
+   addresses a clinic holds. The frontend has the consent step on the patient's
+   Profile page ("Records from your clinic").
+7. **Privacy code (entry 72's rules).** `DataExportService` adds `clinicRecords`:
+   the records the person accepted, in full, with the clinic's name; records
+   offered or declined are the clinic's and are not in the person's export.
+   `AccountDeletionService` ends the link of any accepted record (marked
+   declined, owner and patient ids cleared, so it is never offered to the next
+   holder of that address) and reports `clinicRecordsUnlinked`; the clinic keeps
+   its own row, as it keeps its notes about a patient who leaves. The
+   retention table of the public privacy notice has a row for it.
+8. **Frontend.** `/doctor/import` ("Import patients" in the doctor workspace
+   menu): download the template, choose a file (checked at once, nothing saved),
+   see counts and the first ten problems, download every problem as a CSV,
+   confirm, read the result. A file over 2 MB is stopped in the browser.
+
+**Decisions to know about.**
+
+- **The link is made when the patient says yes, not at sign-up.** Sign-up
+  accepts any address and checks nothing, so linking (or even telling someone
+  "your clinic has records") at that moment would let anyone who registers with a
+  victim's email read the victim's clinic notes. Verifying the address is the
+  step that makes it safe; an account that signs in with an emailed code is
+  already verified. If the brief meant a link at the moment of registration, it
+  needs email verification added to sign-up first.
+- **Phone numbers never link.** There is no way to prove a number (sign-in by
+  mobile was removed, entry 70). They are used to recognise a repeat import, not
+  to match an account. A record with only a phone stays unlinked.
+- **Both a phone and an email are not required, but one of them is** (a CHECK in
+  V48): without either the next import could not tell whether the row was new.
+- **Unverified doctors cannot import.** Otherwise an account anyone can create
+  could plant "records" for any email address, which the owner of that address
+  would then be asked about.
+- **Declined is permanent, accepted is the patient's.** There is no "undo" in
+  the app yet (a patient can delete their account, which ends the link).
+
+**Verified.** Backend: a new `ClinicImportTest` of 20 integration tests passes
+(template; dry run counting and naming each problem and writing nothing; semicolon
+Windows-1252, BOM, UTF-16 tab files; the Excel traps; 5,000 rows accepted and
+5,001 and 2 MB refused; confirm saving owned records and no accounts; idempotent
+re-import by phone written another way; ambiguous match; two owners; the hash
+check; who may import; the error report and formula guard; no row contents in
+logs or the audit trail; unverified address sees nothing and cannot accept; offer
+then accept, with another person's record a 404; decline; phone never links; the
+code endpoints; export; deletion). The whole backend suite ran against a local
+PostgreSQL 16 (327 tests, 326 pass). The one failure,
+`AuditTrailTest.overlongEntityIdIsTruncated`, fails identically on the untouched
+base commit in this sandbox, so it is not from this change. Frontend: type check,
+lint and build clean; 226 tests pass (13 new: the Import page's template, check,
+confirm with hash, problems download, empty and refused files, the 2 MB stop, a
+failed confirm; the patient panel's verify, unavailable, accept, decline and
+hidden-on-error states).
+
+**Not verified.**
+
+- The Testcontainers path: no Docker here. The suite ran on PostgreSQL 16 started
+  by hand, with the base test class temporarily pointed at it (not committed);
+  CI is the first run on 18.
+- Nothing was run in a browser, and nothing against a real email provider: the
+  emailed-code step is tested with a fake sender, as the sign-in code tests do.
+- Real Excel files were not used; the encodings were built by hand (Windows-1252,
+  UTF-16, BOM, `sep=`).
+- The new endpoints are not load tested; the 5,000-row test only checks the
+  limit and the counts, not how long it takes.
+
+**Known limits (also under Known gaps).** Two people who share one phone number
+(a parent and a child) cannot both be imported with just that number: the second
+is reported as a duplicate in the file. There is no screen to list, edit or delete
+imported records, so a doctor can only correct them by importing again, and
+nothing purges them. An imported record never feeds the booking, history or
+prescription code: it is a held record, not a patient with visits. The upload
+is not rate limited beyond the sign-in itself.
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -3128,4 +3264,11 @@ not been applied to a database, and nothing has talked to the real Resend.
 - **Frontend tests cover the API client and the booking page only.** The
   doctor workspace, the portal pages and sign-in have no tests, and there is
   no browser end-to-end test.
-
+- **Imported clinic records have no screen and no purge.** A doctor can import
+  and re-import (entry 75) but cannot list, edit or delete the records in the
+  app, and nothing deletes them after a period; only a person with database
+  access can. Two people sharing one phone number cannot both be imported on
+  that number alone. Only an email address, proved by a code, links a record to
+  an account; there is no email check at sign-up itself, and a phone number is
+  never used. An imported record is not yet a patient the doctor can book or
+  prescribe to.

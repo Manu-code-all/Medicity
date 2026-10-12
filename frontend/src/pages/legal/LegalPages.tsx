@@ -112,6 +112,10 @@ export function PrivacyPage() {
         <li>Doctors you book, who see your profile and the history they need to treat you.</li>
         <li>Chemists you send a question to, who see the prescription and your first name and initial.</li>
         <li>
+          A clinic that moved its old files into Medicity keeps them as its own records. They are not linked to your
+          account, and you do not see them, unless you confirm your email address and say yes.
+        </li>
+        <li>
           Service providers that run the service for us: hosting and database [provider and region: to be confirmed],
           email delivery (Resend) and text messages (MSG91) for sign-in codes.
         </li>
@@ -137,6 +141,14 @@ export function PrivacyPage() {
             <td>
               At least 3 years after treatment, as medical-practice rules require [period to be confirmed by a lawyer]
               , even after your account is deleted, with your name and contact details removed
+            </td>
+          </tr>
+          <tr>
+            <td>Records a clinic imported from its old files</td>
+            <td>
+              Held by the clinic as its own record, for as long as it keeps them [period to be confirmed]. If you accept
+              them, you see them and they are included in the copy of your data. Deleting your account ends the link to you; the
+              clinic keeps its record. Records you never accepted are never shown to you or linked to your account
             </td>
           </tr>
           <tr><td>Security log</td><td>Kept; it cannot be edited, and names you by an id, not by name</td></tr>
