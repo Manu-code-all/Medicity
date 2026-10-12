@@ -3056,7 +3056,7 @@ is refused on all four pharmacy endpoints.
 
 **Finding a prescription.** The brief asked for lookup by pickup or reservation
 code. Those six-digit codes belong to a neighbourhood chemist's reservation
-(entry for `V16`); a hospital prescription has no code and nothing on the
+(`V16`); a hospital prescription has no code and nothing on the
 server could resolve one to the other. Instead, without a migration:
 `GET /api/v1/pharmacy/prescriptions?q=` (PHARMACIST) matches the **reference**,
 the first eight characters of the prescription id, or part of the patient's
