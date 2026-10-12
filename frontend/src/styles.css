@@ -823,3 +823,54 @@ code { font-size: 0.9em; background: var(--accent-soft); padding: 1px 5px; borde
 .practice__insurers legend { font-weight: 600; margin-bottom: 6px; width: 100%; }
 a.tab { text-decoration: none; border-radius: 7px; }
 a.tab.is-active { background: var(--accent-soft); color: var(--text); }
+
+/* ---------- Privacy: agreements, legal pages, data rights ---------- */
+.agreement { margin-top: 8px; display: grid; gap: 4px; }
+.check { display: flex; align-items: flex-start; gap: 10px; font-weight: 500; margin-top: 8px; line-height: 1.45; }
+.form .check { font-weight: 500; }
+.check input { width: auto; flex: none; margin-top: 4px; }
+.legal-line { font-size: 0.85rem; text-align: center; }
+
+.legal { max-width: 70ch; margin: 0 auto; padding-bottom: 24px; line-height: 1.6; }
+.legal h1 { margin: 16px 0 4px; }
+.legal h2 { margin: 28px 0 6px; font-size: 1.2rem; }
+.legal ul, .legal ol { padding-left: 1.3em; }
+.legal li { margin: 4px 0; }
+.legal__draft {
+  background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn);
+  border-radius: 8px; padding: 10px 14px; margin: 0 0 8px;
+}
+.legal__done {
+  background: var(--ok-soft); color: var(--ok); border: 1px solid var(--ok);
+  border-radius: 8px; padding: 10px 14px;
+}
+.legal__officer { font-style: normal; background: var(--raised); border-radius: 8px; padding: 12px 14px; }
+.legal__links { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 0.9rem; }
+.legal__table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.legal__table th, .legal__table td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+
+.privacy-actions { margin-top: 16px; display: grid; gap: 6px; justify-items: start; }
+.privacy-actions p { margin: 0; }
+.button--danger {
+  background: var(--danger-soft); color: var(--danger); box-shadow: inset 0 0 0 1px var(--danger);
+}
+.button--danger:disabled { opacity: 0.55; cursor: not-allowed; }
+.danger-zone {
+  margin-top: 20px; padding: 16px; border: 1px solid var(--danger); border-radius: var(--radius);
+  background: var(--danger-soft); display: grid; gap: 8px;
+}
+.danger-zone h3 { margin: 0; color: var(--danger); }
+.danger-zone__warning { color: var(--text); }
+.danger-zone__warning p { margin: 6px 0; }
+.danger-zone__warning ul { margin: 6px 0; padding-left: 1.3em; }
+.danger-zone label { font-weight: 600; }
+
+.consent-gate {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: var(--gutter);
+  background: rgba(16, 32, 43, 0.6);
+}
+.consent-gate__panel {
+  background: var(--surface); color: var(--text); border-radius: 16px; box-shadow: var(--e4);
+  max-width: 560px; width: 100%; max-height: 90vh; overflow: auto; padding: 24px; display: grid; gap: 10px;
+}
+.consent-gate__panel h2 { margin: 0; }

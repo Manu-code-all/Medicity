@@ -227,7 +227,7 @@ class StoreTest extends AbstractIntegrationTest {
 
     private static String registration(String email, String licence, double lat, double lng) {
         return """
-                {"email":"%s","password":"a-long-enough-password","fullName":"Ravi Kumar","store":%s}
+                {"email":"%s","password":"a-long-enough-password","fullName":"Ravi Kumar","acceptedTerms":true,"store":%s}
                 """.formatted(email, storeJson(licence, lat, lng, "08:00", "22:00", false, 3));
     }
 

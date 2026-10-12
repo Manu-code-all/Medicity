@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "../../api/client";
 import { family } from "../../api/endpoints";
@@ -6,7 +7,14 @@ import type { Relationship } from "../../api/types";
 import { initials } from "../../lib/format";
 import { FAMILY_KEY, relationshipLabel } from "../../lib/family";
 
-const EMPTY = { fullName: "", relationship: "PARENT" as Relationship, dateOfBirth: "", gender: "UNDISCLOSED", bloodGroup: "" };
+const EMPTY = {
+  fullName: "",
+  relationship: "PARENT" as Relationship,
+  dateOfBirth: "",
+  gender: "UNDISCLOSED",
+  bloodGroup: "",
+  guardianConsent: false,
+};
 
 /** Parents and children under one sign-in. */
 export function FamilyPage() {
@@ -86,6 +94,21 @@ export function FamilyPage() {
           </select>
           <label htmlFor="fm-blood">Blood group (optional)</label>
           <input id="fm-blood" placeholder="O+" maxLength={3} value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value.toUpperCase() })} />
+          <div className="agreement">
+            <label className="check">
+              <input
+                type="checkbox"
+                required
+                checked={form.guardianConsent}
+                onChange={(e) => setForm({ ...form, guardianConsent: e.target.checked })}
+              />
+              <span>
+                I am this person's parent or guardian, or they have asked me to manage their care, and I agree on
+                their behalf to Medicity keeping their health information, as the{" "}
+                <Link to="/privacy" target="_blank" rel="noreferrer">Privacy notice</Link> describes.
+              </span>
+            </label>
+          </div>
           <div className="rx-form__actions">
             <button type="submit" disabled={add.isPending}>
               {add.isPending ? "Adding…" : "Add"}

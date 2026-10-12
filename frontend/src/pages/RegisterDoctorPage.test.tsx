@@ -30,6 +30,7 @@ async function fill() {
   await userEvent.type(screen.getByLabelText("Qualifications"), "MBBS, MD");
   await userEvent.type(screen.getByLabelText("Years of practice"), "6");
   await userEvent.type(screen.getByLabelText("Consultation fee (₹)"), "800");
+  await userEvent.click(screen.getByLabelText(/I agree to the/));
 }
 
 describe("RegisterDoctorPage", () => {
@@ -50,6 +51,7 @@ describe("RegisterDoctorPage", () => {
         registrationNumber: "KMC-12345",
         yearsExperience: 6,
         consultationFee: 800,
+        acceptedTerms: true,
       }),
     );
   });

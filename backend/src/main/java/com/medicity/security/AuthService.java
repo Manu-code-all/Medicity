@@ -4,7 +4,6 @@ import com.medicity.audit.AuditLog;
 import com.medicity.common.ConflictException;
 import com.medicity.common.Constraints;
 import com.medicity.common.DomainMetrics;
-import com.medicity.common.PhoneNumbers;
 import com.medicity.common.TooManyRequestsException;
 import com.medicity.common.ValidationException;
 import com.medicity.patient.Patient;
@@ -40,6 +39,8 @@ public class AuthService {
     private final AuditLog auditLog;
     private final RefreshTokenStore refreshTokens;
     private final LoginThrottle loginThrottle;
+    private final AddressThrottle addressThrottle;
+    private final AccessTokenDenylist denylist;
     private final Duration refreshTtl;
     private final Clock clock;
     private final DomainMetrics metrics;
@@ -66,6 +67,8 @@ public class AuthService {
                        AuditLog auditLog,
                        RefreshTokenStore refreshTokens,
                        LoginThrottle loginThrottle,
+                       AddressThrottle addressThrottle,
+                       AccessTokenDenylist denylist,
                        @Value("${medicity.jwt.refresh-ttl}") Duration refreshTtl,
                        Clock clock,
                        DomainMetrics metrics) {
@@ -76,6 +79,8 @@ public class AuthService {
         this.auditLog = auditLog;
         this.refreshTokens = refreshTokens;
         this.loginThrottle = loginThrottle;
+        this.addressThrottle = addressThrottle;
+        this.denylist = denylist;
         this.refreshTtl = refreshTtl;
         this.clock = clock;
         this.metrics = metrics;
@@ -117,28 +122,10 @@ public class AuthService {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public User createAccount(String email, String rawPassword, String fullName, String phone, Role role) {
-        return createAccount(email, rawPassword, fullName, phone, role, true);
-    }
-
-    /**
-     * @param phoneMustSignIn true when the number was typed as the person's own
-     *        mobile, so another account already using it is an error. False for a
-     *        store's number, often a landline or shared: it becomes a sign-in
-     *        number only when no account has it yet.
-     */
-    @Transactional(propagation = Propagation.MANDATORY)
-    public User createAccount(String email, String rawPassword, String fullName, String phone, Role role,
-                              boolean phoneMustSignIn) {
-        String loginPhone = PhoneNumbers.normalise(phone);
-        if (loginPhone != null && !phoneMustSignIn && userRepository.findByLoginPhone(loginPhone).isPresent()) {
-            loginPhone = null;
-        }
         User user = User.builder()
                 .passwordHash(passwordEncoder.encode(rawPassword))
                 .fullName(fullName.trim())
                 .phone(phone == null || phone.isBlank() ? null : phone)
-                // A mobile number registered here is also a way to sign in.
-                .loginPhone(loginPhone)
                 .role(role)
                 .enabled(true)
                 .build();
@@ -149,9 +136,6 @@ public class AuthService {
         } catch (DataIntegrityViolationException e) {
             // Checking existsByEmail() first would leave a race between the check
             // and the insert. Let the unique index decide, then translate.
-            if (Constraints.isViolationOf(e, "uq_users_login_phone")) {
-                throw new ConflictException("PHONE_TAKEN", "An account with that mobile number already exists");
-            }
             throw new ConflictException("EMAIL_TAKEN", "An account with that email already exists");
         }
     }
@@ -169,6 +153,7 @@ public class AuthService {
         // Before the account lookup, for every email alike: see LoginThrottle.
         try {
             loginThrottle.check(normalised);
+            addressThrottle.checkLogin();
         } catch (TooManyRequestsException e) {
             auditLog.recordIndependently("LOGIN_THROTTLED", "USER", null,
                     AuditLog.Outcome.DENIED, Map.of("email", normalised));
@@ -250,12 +235,21 @@ public class AuthService {
     }
 
     /**
-     * Ends the session the refresh token belongs to. Succeeds whatever the
-     * token's state, so signing out never fails and reveals nothing.
+     * Ends the session the refresh token belongs to, and revokes the access
+     * token the caller presented (if any) so it stops working at once instead
+     * of at its expiry. Succeeds whatever the tokens' state, so signing out
+     * never fails and reveals nothing.
+     *
+     * @param accessToken the bearer token sent with the request; may be null, expired or invalid
      */
     @Transactional
-    public void logout(String refreshToken) {
+    public void logout(String refreshToken, String accessToken) {
         Instant now = clock.instant();
+        if (accessToken != null) {
+            jwtService.verifyAccessToken(accessToken)
+                    .filter(t -> t.tokenId() != null)
+                    .ifPresent(t -> denylist.revoke(t.tokenId(), t.expiresAt()));
+        }
         refreshTokens.find(refreshToken, now).ifPresent(token -> {
             refreshTokens.revokeFamily(token.familyId(), now);
             auditLog.recordIndependentlyAs(token.userId(), null, "LOGOUT", "USER", token.userId(),

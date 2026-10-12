@@ -2683,15 +2683,354 @@ PostgreSQL 16 (this sandbox has no Docker), not the 18 CI and production use.
 
 ---
 
+## 70. Sign-in by mobile number removed
+
+Email and password, and a code emailed to the account's address, are the two
+ways to sign in. Texting codes needed an SMS provider nobody had configured,
+so on the live site the mobile path only ever worked for the demo accounts.
+
+- **Backend.** `Msg91OtpSender`, `OtpSender`, `PhoneNumbers`, the phone
+  endpoints (`/otp/send`, `/otp/verify`), `findByLoginPhone` and the
+  `PHONE_TAKEN` conflict are gone. `OtpService` keeps only the email path.
+- **Database.** V36 drops `users.login_phone`, its unique index and its format
+  check. `users.phone` stays as contact detail; `otp_challenges` stays, since
+  emailed codes use it. V20 is left as it was: migrations already applied are
+  never edited.
+- **Frontend.** The sign-in page no longer has the Mobile number / Email tabs;
+  it opens on email and password, with "Email me a code instead" under it.
+- **Tests.** The SMS sender and phone sign-in tests were deleted. The one test
+  that mixed the two channels' send limit was removed; the email-only limit
+  test covers the same rule.
+
+**Verified.** The backend compiles with its tests; frontend type check and
+all 140 frontend tests pass. The backend integration tests were not run here
+(no Docker in this sandbox); CI runs them.
+
+## 71. Closing the security gaps: limits, roles, revocation
+
+Four items from Known gaps, done together because they share the same
+plumbing (the audit log, the authentication filter, the client address).
+
+**1. Per-address limits and sign-up limits** (`AddressThrottle`, V37). It
+copies `LoginThrottle`: the count comes from audit rows, so it is shared by
+every instance, survives restarts and cannot be reset by an attacker. Failed
+logins per address (any email) default to 30 per 15 minutes; patient, doctor
+and chemist sign-ups share one allowance of 10 per hour per address. Each
+sign-up request writes a `SIGNUP_ATTEMPT` row; a refusal writes
+`SIGNUP_THROTTLED`, which is not counted, so hammering does not extend the
+limit. Requests the validator rejects are not counted. V37 adds a partial
+index on `(action, ip_address, occurred_at)` so neither check scans the log.
+The defaults are deliberately generous: an office or mobile carrier shares one
+address. The test profile switches them off (every test comes from one
+address); `AddressThrottleTest` sets small limits and gives each test its own
+address.
+
+**2. The trusted-proxy setting.** `server.tomcat.remoteip.internal-proxies` is
+now in `application.yml`, overridable with `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES`.
+Its default is Tomcat's own regex, copied exactly, so setting nothing changes
+nothing; a test compares it with `new RemoteIpValve().getInternalProxies()`
+(my first copy missed the 100.64.0.0/10 range, which is how I know the test
+earns its place). I did not put in Railway's ranges: I do not have their
+published list, and a guessed range lets a client forge its recorded IP. The
+README says how to set it and how to check it. `ClientIp` now holds the one
+place the address is read.
+
+**3. A PHARMACIST role** (V37 widens `users_role_check`). Stock and dispensing
+accept `PHARMACIST` or `ADMIN`; the audit log and both verification queues stay
+`ADMIN`. I kept ADMIN on the pharmacy endpoints on purpose: with no admin
+screen for creating accounts, removing it would leave production unable to
+dispense until someone ran SQL. The cost is listed under Known gaps.
+`pharmacist@medicity.demo` is in the seed. The frontend only needed the type, the
+home label and a landing route, because every existing route guard is a strict
+equality on one role, so a pharmacist is already refused everywhere else; there
+are no pharmacy screens.
+
+**4. An access-token denylist** (`AccessTokenDenylist`, V38). Access tokens now
+carry a `jti`; sign-out (`POST /auth/logout`) reads the bearer token if one is
+sent, and records its id and expiry in `revoked_access_tokens`. The filter
+checks it on every request, one primary-key lookup beside the user lookup it
+already makes. `HousekeepingJob` deletes rows past their expiry. The web client
+now sends its access token with the logout call. Giving every token an id also
+fixed something nobody had noticed: two sign-ins in the same second produced
+byte-identical access tokens (same subject, issue time and expiry), which would
+have made revoking one revoke both. A token issued before this deploy has no
+`jti` and cannot be revoked; it expires within 15 minutes.
+
+**Verified.** Backend suite: 271 tests pass (270 in one full run, plus the proxy-default test run alone), 9 of them new (address
+limits for sign-up, login, all three sign-up kinds sharing one allowance,
+validation failures not counted, the proxy default; sign-out revoking the
+token at once while another sign-in of the same person keeps working, sign-out
+without a bearer token, repeated and garbage tokens; housekeeping cleaning the
+denylist; a pharmacist dispensing but refused the audit log). The existing
+dispensing tests still pass with ADMIN. Frontend: type check clean, the API
+client tests pass with a new one for the logout header.
+
+**Not verified.** The tests ran against a local PostgreSQL 16 (this sandbox has
+no Docker), not the Testcontainers 18 that CI uses. Nothing was run against
+Railway: the trusted-proxy setting has never been given real edge ranges, so
+the per-address limits are untested behind the real proxy.
+## 72. Privacy: consent records, a copy of your data, deleting your account, retention
+
+**Why.** India's Digital Personal Data Protection Act, 2023 and Google Play both
+ask for things the app did not have: proof of what a person agreed to, a way to
+get their data out, a way to delete their account (in the app, and on a public
+web page), a limit on how long data is kept, and a published notice naming
+someone to complain to. The patient data here is health data, so this is not
+optional polish.
+
+**What.** Migrations V39 to V41 (V42 unused).
+
+1. **Consent records (V39, `ConsentService`).** `consent_records` has one row per
+   agreement: who clicked, the type (`TERMS_OF_SERVICE`, `PRIVACY_NOTICE`,
+   `HEALTH_DATA_PROCESSING`), the policy version, the time, where it was
+   captured, and the capacity. Sign-up records them in the same transaction as
+   the account (patients: three rows, from two tick boxes; doctors and chemists:
+   two, from one). Adding a family member needs a third tick box, and records
+   the account holder's consent for that person as `GUARDIAN_OF_MINOR` (under
+   18) or `REPRESENTATIVE_OF_ADULT`. The current versions are configuration
+   (`medicity.privacy.*-version`); change one and `GET /api/v1/consents/me`
+   reports `pending`, and the web app's `ConsentGate` blocks the screen until
+   each outstanding text is ticked on its own (`POST /api/v1/consents/me`).
+   Rows are only inserted, never edited; agreeing twice is one row.
+2. **Export (`DataExportService`).** `GET /api/v1/patients/me/export` returns
+   one JSON file: the account, the account holder and every family member they
+   manage, visits, prescriptions with medicines, the pharmacy's fill date,
+   follow-up messages, uploaded-file names, medicine questions and reservations,
+   reviews, queue and waiting-list places, notifications, consents, and the
+   account's recent activity. Profile page: "Download my data". Left out on
+   purpose: password hashes, sessions, reservation pickup codes, file bytes.
+3. **Deletion (V40, `AccountDeletionService`).** Profile page: "Delete my
+   account", with a warning and the password typed again;
+   `POST /api/v1/patients/me/delete-account`. It **anonymises, it does not
+   remove**, in one transaction under a lock on the account row. See below.
+   The public page `/delete-account` explains the same for Play, including the
+   email route for people who cannot sign in and for doctors and chemists.
+4. **Retention (V41, `LocationRetentionJob`).** Nightly at 03:45 UTC, the
+   latitude and longitude of medicine questions that have been `CLOSED` or
+   `EXPIRED` for longer than `medicity.retention.request-location.after`
+   (default 30 days) are cleared, or with `mode: COARSEN` rounded to
+   `coarsen-decimals` places (1 is about 11 km). Nothing read those columns
+   after the answers were in. The columns became nullable (both or neither),
+   and `location_minimised_at` marks handled rows so each is visited once and
+   a partial index keeps the scan cheap.
+5. **Public pages.** `/privacy`, `/terms`, `/disclaimer`, `/delete-account`,
+   each with a DRAFT banner ("not yet reviewed by a lawyer") and `[bracketed]`
+   blanks, including a Grievance Officer placeholder (`lib/policies.ts`, the
+   one place to fill in). Linked from the landing footer, a new footer on the
+   other public pages, the sign-up forms and the profile page.
+
+**What deletion keeps, and why (the decision).**
+
+| Data | Treatment |
+|---|---|
+| Name, email, phone, sign-in number, password | Overwritten (unusable hash); email becomes `deleted-<id>@deleted.invalid`; account disabled with `deleted_at` set (V40 CHECK: deleted implies disabled) |
+| Address, city, emergency contact, height, weight, blood group, allergies, conditions, medicines, home location (holder and family) | Cleared |
+| Family members' names | "Deleted family member" |
+| Date of birth | Reduced to 1 January of the birth year: a prescription still has to be read against an age |
+| Sessions, sign-in codes, notifications, idempotency keys, walk-in places, waiting-list entries, files the patient attached, delivered outbox events about their visits | Deleted |
+| Upcoming visits, held reservations, open medicine questions | Cancelled / released / closed; the place of every question cleared |
+| Review comments | Cleared; the rating stays in the doctor's average |
+| Visits, prescriptions and items, dispensations, doctors' notes, follow-up messages | **Kept**, linked to an anonymised person |
+| Audit log | **Kept** (append-only by design, V5/V6); names the account by id |
+| Consent records | **Kept**, as proof of what was agreed and when |
+
+The reason for keeping the clinical record is that it is the doctor's and the
+pharmacy's record as much as the patient's: Indian medical-practice rules
+(the 2002 Professional Conduct Regulations, reg. 1.3, say three years; the
+2020 Telemedicine Practice Guidelines likewise) oblige the doctor to keep it,
+and DPDP s.8(7) lets data be kept where a law requires. **This is my reading,
+not legal advice**; the period and the reading need a lawyer, and the privacy
+notice says so.
+
+Anonymise-and-keep rather than delete-and-cascade is also a mechanical
+necessity: appointments, prescriptions and dispensations reference the user and
+patient rows by foreign key, and the audit log may not lose rows.
+
+**Honest limits of "anonymised".** A date of birth year, a gender, free-text
+visit reasons, intake summaries and a doctor's notes remain on the clinical
+rows, and could identify someone who already knows the facts. This is
+pseudonymisation of a record the law makes us keep, not a guarantee of
+anonymity. Doctors' own notifications ("Meera booked ...") are the doctor's
+data and are not rewritten.
+
+**Decisions.**
+
+- **Patients only, in the app.** A doctor's or chemist's account carries a
+  professional registration and a listing others rely on, so removal is by the
+  Grievance Officer. The service refuses those roles (409), the route is
+  patients-only, and the public page says how to ask.
+- **Sessions end at once, not in 15 minutes.** The request filter already loads
+  the account on every call and ignores a disabled one, so disabling the
+  account kills an already issued access token immediately; the refresh tokens
+  are deleted. (The old Known gap about access tokens outliving sign-out is
+  about *signing out*, which does not disable the account.)
+- **The password check is throttled with the sign-in's own limit.** Five wrong
+  passwords in 15 minutes, counted from the same `LOGIN_FAILED` audit rows,
+  answer 429 even for the right one. A thief holding a stolen access token can
+  therefore also lock the owner out of signing in for those minutes; the same
+  trade the sign-in already makes.
+- **Unbundled consent.** Terms/privacy and health-data processing are separate
+  tick boxes, because DPDP consent must be specific to a purpose and a person
+  has to be able to refuse one. Refusing the health box means no patient
+  account.
+- **Consent is enforced in the app, not by the API.** `ConsentGate` blocks the
+  screen; the API does not refuse requests from an account that is behind. A
+  hand-made request still works. The record exists to prove what was shown and
+  agreed, and gating every endpoint on it would turn a policy bump into an
+  outage.
+- **Consent types are checked by role.** An account is only offered the texts
+  that apply to its role (a doctor is never asked for the health-data consent).
+- **The export is built from SQL, not response classes,** so a column cannot be
+  forgotten because a record class did not mention it; it names columns in
+  camelCase and drops binary ones.
+
+**Verified (against PostgreSQL 16, see below).** 15 new backend tests
+(`PrivacyTest`): sign-up records the right rows and is refused without either
+box, leaving no account; a chemist's two; a version change asks again, agreeing
+clears it, old rows stay, twice is one row; family consent capacity for a child
+and an adult; the export holds the right data and none of another patient's or
+any secret, with an audit row and `no-store`; a wrong password deletes nothing;
+deletion anonymises the account and the family, ends refresh and access tokens,
+cancels the upcoming visit, closes the open question and clears its place, and
+keeps the prescription, the completed visit, the consent rows and the audit
+rows; five wrong passwords throttle; the retention job clears only old closed
+questions, once, and coarsens in `COARSEN` mode; bad settings stop startup.
+Existing tests that sign up or add family members were updated for the new
+required boxes. About 27 frontend tests added or changed. Whole backend suite (277)
+and frontend suite (167), typecheck and lint pass.
+
+**Not verified.**
+
+- The backend tests ran against a local **PostgreSQL 16** started by hand in the
+  sandbox (no Docker here), not the 18 that CI and production use, and with the
+  Testcontainers base class temporarily pointed at it (the change is not
+  committed). CI is the first run on 18.
+- Nobody has read the legal text who is qualified to. The retention periods,
+  the three-year reading, the hosting region, the processors and the
+  Grievance Officer's details are placeholders.
+- No real browser walk-through of the new screens was done; they are covered by
+  component tests only.
+- Google Play's data-safety form and the store listing's privacy URL are
+  filled in by a person in the Play console, not by this code.
+
+**Not done.**
+
+- A purge of clinical records after the retention period; today they are kept
+  indefinitely, anonymised.
+- Withdrawing one consent without deleting the account.
+- Scrubbing `outbox_events` that were never delivered, and old audit `detail`
+  that holds an email typed at a failed sign-in.
+- Doctors and chemists cannot delete from the app.
+
+## 73. Notification emails: another outbox consumer
+
+**Why.** The outbox existed so email could be "another consumer", and the
+README's roadmap still listed it. No-shows were the practical reason: a patient
+told the day before is a patient who cancels instead of not coming.
+
+**What.** With `RESEND_API_KEY` and `RESEND_FROM` set (the same two as sign-in
+codes), the patient is emailed when a visit is booked, moved or cancelled; 24
+hours before a visit; when the doctor marks leave on a day they have a visit
+(who also now get the in-app notice, which this gap lacked: the old Known gaps
+bullet said patients were not told); and when a prescription is issued or
+corrected. Unset, the feature is a no-op: nothing is queued and the reminder
+job writes nothing.
+
+**Design.**
+
+- **Two steps, one consumer.** `EmailConsumer` first *fans out*: for each
+  domain event it writes one `EMAIL_SEND` outbox event per recipient, with an
+  id derived from (source event, user), so redelivering the source queues
+  nothing twice. It then *delivers* those events. The alternative, sending
+  inside the original event's handling, makes one provider outage fail the
+  event, roll back its in-app notification and retry both, and resends to
+  everyone before the failing recipient. As separate events each email
+  succeeds, retries and gives up alone, on the relay's existing backoff (5 s
+  doubling to an hour, ten attempts, then set aside). Nothing runs in the
+  request that caused the event.
+- **Failures are audited as they happen.** Each failed attempt logs a warning
+  and writes `EMAIL_SEND_FAILED` (account and template, never the address) in
+  its own transaction, because the delivering transaction is about to roll
+  back and the failure is what must survive.
+- **Reminder.** `AppointmentReminderJob` (every 15 minutes, `JobLock` like the
+  others) queues one `APPOINTMENT_REMINDER` per booked visit that starts within
+  24 hours *and was booked at least 24 hours before it starts*. The second half
+  is deliberate: a visit booked this morning for tonight gets no reminder, since
+  the confirmation is hours old; and because the rule is a window rather than
+  "exactly 24 h", a missed run is made up by the next. `publishOnce` with an id
+  from the visit makes repeats free. A rescheduled visit is a new row and earns
+  its own reminder.
+- **Moving a visit sends one email.** The booking path publishes "booked" for
+  the new time as well as "moved"; the consumer skips "booked" when the
+  appointment has `rescheduled_from`.
+- **Leave.** `addLeave` publishes `DOCTOR_LEAVE_VISIT_AFFECTED` per booked
+  visit on the day (later than now), with an id from (visit, day): saving the
+  same day again to edit the note tells nobody twice. The doctor's note is not
+  in the event or the email.
+- **Opt-out.** `user_email_preferences` (V43), a row only for people who chose;
+  none means on. `GET/PUT /api/v1/notifications/email-preference` and a checkbox
+  on the patient profile, hidden when the server cannot send email. It is
+  checked when fanning out *and* when sending, so turning it off stops emails
+  already queued. In-app notifications are unaffected.
+- **Unsubscribe-safe.** Every email has a footer link and `List-Unsubscribe` /
+  `List-Unsubscribe-Post` headers (when `MEDICITY_PUBLIC_API_URL` is set). The
+  link carries the user id and an HMAC scoped to unsubscribing, keyed from the
+  server secret; it never expires and can do one thing, switch that account's
+  emails off. GET only shows a button and POST acts: mail scanners fetch every
+  link in a message, and an unsubscribe-on-GET would unsubscribe people who
+  never asked. The POST is also what RFC 8058 one-click clients send.
+- **Privacy.** Visit emails name the doctor and the time (the reader needs both)
+  and not the reason for the visit. Prescription emails say "You have a new
+  prescription. Sign in to view it." and nothing else: no doctor, diagnosis or
+  medicine, and the fan-out does not even copy them into the `EMAIL_SEND`
+  payload. Subjects are generic for lock screens. HTML is escaped.
+  `EmailTemplatesTest` pins this with a payload that does contain a diagnosis.
+
+**Migrations.** Only V43 was needed. V44 is unused: an index for the reminder's
+"already queued?" check was the obvious candidate, but `publishOnce` already
+relies on the unique `event_id`, so there was nothing to index.
+
+**Trade-offs.**
+
+- The email is sent inside the relay's transaction for that event, so a slow
+  provider holds a database connection and the event's row lock for up to the
+  timeouts (5 s connect, 10 s read). Other events are not blocked
+  (`SKIP LOCKED`), but a prolonged outage with many emails queued ties up the
+  relay for that long per attempt.
+- At least once: if the process dies after Resend accepted a message and before
+  the event is marked published, the person gets two. Closing that window needs
+  a provider-side idempotency key; not done.
+- Only patients (the account that signs in for the patient, including family
+  members) are emailed. Doctors, chemists and admins are not, and no email says
+  anything about queue calls, waitlist slots or medicine reminders yet.
+- The reminder is in the doctor's clinic time zone (IST) throughout, like the
+  rest of the app.
+
+**Verified.** Backend compiles including all tests (`mvn test-compile`). New
+unit tests `EmailTemplatesTest` (7) and `ResendEmailSenderTest` (4) were run and
+pass. Frontend typecheck, lint and the whole suite (147, 4 new) pass.
+
+**Not verified.** `EmailNotificationsTest` (23 integration tests with a
+recording fake sender: each event type, privacy, opt-out before and after
+queueing, the unsubscribe link and forged links, reminder boundaries and
+idempotence, retry with backoff, giving up after ten attempts with ten audit
+rows, one failing recipient not holding back another, no-op without a
+provider) is written and compiles but **has not been run**: it needs
+Testcontainers, and this sandbox has no Docker. The V43 migration has likewise
+not been applied to a database, and nothing has talked to the real Resend.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
   registration number against the council's register by hand; there is no
   certificate upload and no automatic check (the National Medical
   Commission's register has no public API).
-- **A day off does not tell booked patients.** Marking leave keeps visits
-  already booked and shows the doctor how many; contacting those patients,
-  or cancelling, is left to the doctor.
+- **A day off tells booked patients but does not cancel their visits.**
+  Marking leave keeps visits already booked, tells each patient (in the app
+  and by email, entry 73) and shows the doctor how many; cancelling or
+  moving them is left to the doctor or the patient.
 - **Video calls use STUN only, and the relay is in one process.** Two
   browsers behind strict firewalls or carrier-grade NAT may fail to connect
   directly; that needs a TURN server (relayed media), which costs money to
@@ -2726,13 +3065,12 @@ PostgreSQL 16 (this sandbox has no Docker), not the 18 CI and production use.
   written from general medical knowledge. It errs towards emergency care and
   says it is not a diagnosis, but it needs a doctor's review before real
   patients rely on it.
-- **Codes are not texted yet, and emailed ones are untested against Resend.**
-  No SMS provider is configured, so only the demo accounts can sign in with a
-  code by phone (shown on screen). Codes by email work once `RESEND_API_KEY`
-  and a verified `RESEND_FROM` are set (entry 69), but both senders have only
-  been tested against a mock. "Send a code" also takes slightly longer for an
-  address or number with an account (one insert), a timing difference far
-  smaller than network jitter but not zero.
+- **Emailed sign-in codes are untested against Resend.** Only the demo
+  accounts can sign in with a code until `RESEND_API_KEY` and a verified
+  `RESEND_FROM` are set (entry 69); the sender has only been tested against a
+  mock. "Send a code" also takes slightly longer for an address with an
+  account (one insert), a timing difference far smaller than network jitter
+  but not zero.
 - **A failed email of a sign-in code is not shown to the person asking.** The
   send happens in the background so the reply cannot reveal which addresses
   have accounts; a failure is logged and audited as `OTP_SEND_FAILED`, and the
@@ -2740,13 +3078,14 @@ PostgreSQL 16 (this sandbox has no Docker), not the 18 CI and production use.
 - **Prescription photos are stored in PostgreSQL.** `BYTEA`, capped at 5 MB by
   a CHECK. Fine at demo scale; at volume they belong in object storage with
   the database holding a key, so backups and replicas stay small.
-- **A question keeps the patient's location.** The latitude and longitude it
-  was asked from stay on the row for distance and insights. They are never
-  shown to a store (stores see a distance) but are not coarsened or deleted
-  after the question closes.
-- **Chemist sign-up is not rate-limited either,** for the same reason as
-  patient registration below. A store is inert until an administrator checks
-  its licence, which limits the harm.
+- **Privacy features rest on draft legal text and unconfirmed periods.** The
+  privacy notice, terms and disclaimer (entry 72) are marked DRAFT for a
+  lawyer; the Grievance Officer, operator name, hosting region, processors and
+  the clinical-record retention period are placeholders. Clinical records of a
+  deleted account are kept indefinitely (anonymised), with no purge job.
+  Doctors and chemists cannot delete their account from the app; consent is
+  enforced by the web app, not the API; a deleted patient's undelivered outbox
+  events and failed-sign-in audit rows still hold their name or email.
 - **An automatic answer trusts the store's stock list completely.** There is
   no check that the prices are plausible or that the list came from billing
   software rather than being typed in.
@@ -2755,31 +3094,28 @@ PostgreSQL 16 (this sandbox has no Docker), not the 18 CI and production use.
   pharmacist checking it. It is deliberately small and falls back to the
   doctor's English for anything it does not recognise, but each phrase needs
   review before real patients rely on it.
-- **Audit IP addresses are Railway's edge proxies, not clients.** Found when
-  checking the audit trail on production: consecutive requests from one
-  machine were recorded as 152.233.15.120, .121, .123 and 152.233.68.97.
-  Tomcat's RemoteIpValve only trusts `X-Forwarded-For` from private-range
-  proxies, and Railway's edge uses public addresses, so the header is
-  (correctly) ignored. Trusting it needs Railway's published edge ranges in
-  `server.tomcat.remoteip.internal-proxies`; guessing a range would let
-  clients forge addresses, which is worse than recording the proxy.
-- **An access token outlives sign-out by up to 15 minutes.** Access tokens
-  are never looked up, so revoking the session (sign-out, detected token
-  theft) stops refreshes at once but not the access token already issued.
-  Closing that needs a denylist checked on every request; the short lifetime
-  is the trade-off taken instead.
-- **Only login is rate-limited, and only per email.** Registration has no
-  limit, so one client can create accounts in bulk. There is no per-IP limit,
-  because every client appears to come from a few Railway edge addresses
-  (see the first gap); one becomes possible once client IPs are trusted.
+- **Audit IP addresses are still Railway's edge proxies until configured.**
+  Found when checking the audit trail on production (entry 71 made the setting
+  configurable). Tomcat's RemoteIpValve only trusts `X-Forwarded-For` from
+  private-range proxies, and Railway's edge uses public addresses. Someone
+  must set `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` to Railway's published
+  edge ranges; until then the per-address limits (entry 71) treat all clients
+  as one.
+- **A stolen refresh token's access token is not revoked.** Sign-out now
+  denylists the access token at once (entry 71), but reuse detection ends the
+  session without knowing which access tokens were issued from it, so those
+  live out their 15 minutes.
 - **Only booking accepts an `Idempotency-Key`.** Cancelling is idempotent
   by design (a second cancel returns the cancelled appointment unchanged), but a retried
   prescription or dispense gets a 409 rather than the original response.
 - **Notifications are in-app only.** No email or SMS provider is configured,
   so a patient who does not open the app does not hear about a cancellation or
   a corrected prescription. Both would be further outbox consumers.
-- **Pharmacy actions use the ADMIN role.** There is no dedicated pharmacist
-  role yet, so whoever dispenses can also read the whole audit log.
+- **The pharmacist has no screens.** `PHARMACIST` can dispense and restock
+  through the API (entry 71) but the web app has no pharmacy page, and
+  `ADMIN` can still dispense, so an administrator account is more powerful
+  than it needs to be there. Accounts are created by SQL; there is no
+  admin screen to add one.
 - **The demo resets only nightly.** Between resets, one visitor's changes
   (closing the waiting visit, booking slots) are what the next visitor sees.
 - **Nothing collects the metrics in production.** `/actuator/prometheus`

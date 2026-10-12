@@ -1,5 +1,6 @@
 package com.medicity.store;
 
+import com.medicity.privacy.ConsentService;
 import com.medicity.security.AppUserPrincipal;
 import com.medicity.security.AuthService.TokenPair;
 import com.medicity.store.StoreDirectory.NearbyStore;
@@ -9,10 +10,12 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import com.medicity.user.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -34,7 +37,9 @@ public class StoreController {
     private final StoreService storeService;
     private final StoreDirectory directory;
     private final StoreRepository storeRepository;
+    private final com.medicity.security.AddressThrottle addressThrottle;
     private final Clock clock;
+    private final ConsentService consents;
 
     /** Under /auth so it is reachable without a token, like patient sign-up. */
     @PostMapping("/api/v1/auth/register/chemist")
@@ -42,9 +47,14 @@ public class StoreController {
     @SecurityRequirements
     @Operation(summary = "Register a chemist account and its store",
             description = "The store receives no patient questions until an administrator verifies its licence.")
+    @Transactional
     public TokenPair register(@Valid @RequestBody ChemistRegistration request) {
-        return storeService.register(request.email(), request.password(), request.fullName(),
+        addressThrottle.checkSignUp("chemist");
+        TokenPair pair = storeService.register(request.email(), request.password(), request.fullName(),
                 request.store().toDetails());
+        // Same transaction as the account: see ConsentService.recordSignUp.
+        consents.recordSignUp(UUID.fromString(pair.userId()), Role.CHEMIST, false);
+        return pair;
     }
 
     @GetMapping("/api/v1/stores/nearby")
@@ -91,7 +101,8 @@ public class StoreController {
             @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(min = 5, max = 128, message = "Password must be at least 5 characters") String password,
             @NotBlank @Size(max = 120) String fullName,
-            @NotNull @Valid StoreRequest store
+            @NotNull @Valid StoreRequest store,
+            @AssertTrue(message = "Please accept the Terms of Service and read the Privacy Notice") boolean acceptedTerms
     ) {}
 
     /** Limits mirror V14's columns and CHECK constraints, so a bad value is a 400, not a 500. */

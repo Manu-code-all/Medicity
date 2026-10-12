@@ -34,6 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final AppUserDetailsService userDetailsService;
+    private final AccessTokenDenylist denylist;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -47,9 +48,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         jwtService.verifyAccessToken(header.substring(PREFIX.length()))
-                .ifPresent(userId -> {
+                .ifPresent(token -> {
                     try {
-                        UserDetails user = userDetailsService.loadById(userId);
+                        // Signed out: valid signature and not expired, but revoked.
+                        if (token.tokenId() != null && denylist.isRevoked(token.tokenId())) {
+                            return;
+                        }
+                        UserDetails user = userDetailsService.loadById(token.userId());
                         if (!user.isEnabled()) {
                             return;
                         }

@@ -197,6 +197,26 @@ class ScheduledJobsTest extends AbstractIntegrationTest {
                 .containsExactly("fresh");
     }
 
+    @Test
+    @DisplayName("housekeeping removes revoked access tokens once they have expired, and keeps the ones still live")
+    void housekeepingCleansTheAccessTokenDenylist() {
+        UUID expired = UUID.randomUUID();
+        UUID live = UUID.randomUUID();
+        jdbc.update("INSERT INTO revoked_access_tokens (token_id, expires_at) VALUES (?, ?)",
+                expired, Timestamp.from(now.minus(1, ChronoUnit.MINUTES)));
+        jdbc.update("INSERT INTO revoked_access_tokens (token_id, expires_at) VALUES (?, ?)",
+                live, Timestamp.from(now.plus(10, ChronoUnit.MINUTES)));
+
+        HousekeepingJob.Result result = housekeeping.run();
+
+        assertThat(result.revokedAccessTokens()).isGreaterThanOrEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM revoked_access_tokens WHERE token_id = ?",
+                Integer.class, expired)).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM revoked_access_tokens WHERE token_id = ?",
+                Integer.class, live)).isEqualTo(1);
+        jdbc.update("DELETE FROM revoked_access_tokens WHERE token_id = ?", live);
+    }
+
     // --- fixtures -------------------------------------------------------------
 
     private Appointment visit(Instant start) {

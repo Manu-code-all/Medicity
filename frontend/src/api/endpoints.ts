@@ -1,6 +1,9 @@
 import { request } from "./client";
 import type {
   Attachment,
+  ConsentStatus,
+  ConsentType,
+  DeletionSummary,
   DoctorLeave,
   Practice,
   PracticeUpdate,
@@ -32,6 +35,7 @@ import type {
   HoursWindow,
   Medicine,
   NearbyStore,
+  EmailPreference,
   NotificationList,
   Page,
   PatientHistory,
@@ -63,13 +67,6 @@ export const auth = {
       body: { email, password },
     }),
 
-  /** Same reply whether or not the number has an account. */
-  sendCode: (phone: string) =>
-    request<CodeSent>("/api/v1/auth/otp/send", { method: "POST", body: { phone } }),
-
-  verifyCode: (phone: string, code: string) =>
-    request<TokenPair>("/api/v1/auth/otp/verify", { method: "POST", body: { phone, code } }),
-
   /** Same reply whether or not the address has an account, and it does not wait for the email to go out. */
   sendEmailCode: (email: string) =>
     request<CodeSent>("/api/v1/auth/otp/email/send", { method: "POST", body: { email } }),
@@ -84,6 +81,8 @@ export const auth = {
     phone?: string;
     dateOfBirth: string;
     gender?: string;
+    acceptedTerms: boolean;
+    acceptedHealthData: boolean;
   }) =>
     request<TokenPair>("/api/v1/auth/register", {
       method: "POST",
@@ -95,7 +94,13 @@ export const auth = {
     request<TokenPair>("/api/v1/auth/register/doctor", { method: "POST", body: input }),
 
   /** A chemist and their store, in one step. The store waits for a licence check. */
-  registerChemist: (input: { email: string; password: string; fullName: string; store: StoreInput }) =>
+  registerChemist: (input: {
+    email: string;
+    password: string;
+    fullName: string;
+    store: StoreInput;
+    acceptedTerms: boolean;
+  }) =>
     request<TokenPair>("/api/v1/auth/register/chemist", {
       method: "POST",
       body: input,
@@ -232,6 +237,9 @@ export const notifications = {
   mine: () => request<NotificationList>("/api/v1/notifications"),
   markRead: (id: string) => request<void>(`/api/v1/notifications/${id}/read`, { method: "POST" }),
   markAllRead: () => request<void>("/api/v1/notifications/read-all", { method: "POST" }),
+  emailPreference: () => request<EmailPreference>("/api/v1/notifications/email-preference"),
+  setEmailPreference: (enabled: boolean) =>
+    request<EmailPreference>("/api/v1/notifications/email-preference", { method: "PUT", body: { enabled } }),
 };
 
 export const stores = {
@@ -302,6 +310,22 @@ export const storeWorkspace = {
     request<StockView>("/api/v1/stores/me/auto-answer", { method: "PUT", body: { enabled } }),
 };
 
+/** What the account has agreed to, a copy of its data, and deleting it. */
+export const privacy = {
+  consents: () => request<ConsentStatus>("/api/v1/consents/me"),
+
+  /** Agree to the current version of these texts. */
+  accept: (types: ConsentType[]) =>
+    request<ConsentStatus>("/api/v1/consents/me", { method: "POST", body: { types } }),
+
+  /** Everything held about the account and the family it manages. */
+  exportData: () => request<Record<string, unknown>>("/api/v1/patients/me/export"),
+
+  /** Irreversible. Needs the password again. */
+  deleteAccount: (password: string) =>
+    request<DeletionSummary>("/api/v1/patients/me/delete-account", { method: "POST", body: { password } }),
+};
+
 /** The account holder and the family members they manage. */
 export const family = {
   list: () => request<FamilyMember[]>("/api/v1/patients/me/family"),
@@ -312,6 +336,8 @@ export const family = {
     dateOfBirth: string;
     gender: string;
     bloodGroup?: string | undefined;
+    /** The account holder may agree to Medicity keeping this person's health records. */
+    guardianConsent: boolean;
   }) => request<FamilyMember>("/api/v1/patients/me/family", { method: "POST", body: input }),
 };
 

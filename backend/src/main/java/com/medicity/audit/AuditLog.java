@@ -3,7 +3,7 @@ package com.medicity.audit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.medicity.security.AppUserPrincipal;
-import jakarta.servlet.http.HttpServletRequest;
+import com.medicity.security.ClientIp;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
@@ -13,8 +13,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Map;
 import java.util.UUID;
@@ -107,7 +105,7 @@ public class AuditLog {
                 entityType,
                 entityId == null ? null : fit(entityId.toString()),
                 outcome.name(),
-                clientIp(),
+                ClientIp.current(),
                 toJson(detail));
     }
 
@@ -147,20 +145,5 @@ public class AuditLog {
     private static String currentActorRole() {
         AppUserPrincipal p = currentPrincipal();
         return p == null ? null : p.getRole().name();
-    }
-
-    /**
-     * The caller's address. Behind the hosting proxy, Tomcat's RemoteIpValve
-     * ({@code server.forward-headers-strategy: native}) resolves the forwarded
-     * client address, trusting only proxies on private ranges so a client cannot
-     * spoof its address with its own {@code X-Forwarded-For} header.
-     * Absent outside an HTTP request (a scheduled job, a test calling a service).
-     */
-    private static String clientIp() {
-        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs) {
-            HttpServletRequest request = attrs.getRequest();
-            return request.getRemoteAddr();
-        }
-        return null;
     }
 }

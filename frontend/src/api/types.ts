@@ -17,7 +17,7 @@ export interface TokenPair {
   fullName: string;
 }
 
-export type Role = "PATIENT" | "DOCTOR" | "ADMIN" | "CHEMIST";
+export type Role = "PATIENT" | "DOCTOR" | "ADMIN" | "CHEMIST" | "PHARMACIST";
 
 export type AppointmentStatus = "BOOKED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 
@@ -268,6 +268,12 @@ export interface AppNotification {
 export interface NotificationList {
   unread: number;
   items: AppNotification[];
+}
+
+/** Whether notification emails are on, and whether the server can send them at all. */
+export interface EmailPreference {
+  enabled: boolean;
+  available: boolean;
 }
 
 // --- Chemists' stores -----------------------------------------------------
@@ -628,6 +634,27 @@ export interface CodeSent {
   expiresInSeconds: number;
 }
 
+// --- Privacy: agreements, a copy of the data, deletion -------------------------------
+
+export type ConsentType = "TERMS_OF_SERVICE" | "PRIVACY_NOTICE" | "HEALTH_DATA_PROCESSING";
+
+export interface ConsentItem {
+  type: ConsentType;
+  currentVersion: string;
+  acceptedVersion: string | null;
+  acceptedAt: string | null;
+  upToDate: boolean;
+}
+
+export interface ConsentStatus {
+  items: ConsentItem[];
+  /** True while any current text has not been agreed to. */
+  pending: boolean;
+}
+
+/** What deleting an account touched, by kind. */
+export type DeletionSummary = Record<string, number>;
+
 // --- Doctors who sign up themselves -----------------------------------------------
 
 export interface DoctorRegistration {
@@ -642,6 +669,8 @@ export interface DoctorRegistration {
   yearsExperience: number;
   consultationFee: number;
   bio?: string | undefined;
+  /** Ticked on the sign-up form; the API refuses a sign-up without it. */
+  acceptedTerms: boolean;
 }
 
 export interface DoctorProfile {

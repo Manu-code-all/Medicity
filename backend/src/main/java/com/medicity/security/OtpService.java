@@ -3,7 +3,6 @@ package com.medicity.security;
 import com.medicity.audit.AuditLog;
 import com.medicity.common.DomainException;
 import com.medicity.common.EmailAddresses;
-import com.medicity.common.PhoneNumbers;
 import com.medicity.common.ValidationException;
 import com.medicity.user.User;
 import com.medicity.user.UserRepository;
@@ -33,26 +32,22 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Signing in with a mobile number and a six-digit code.
+ * Signing in with a six-digit code sent to the account's email address.
  *
  * <p>Decisions worth knowing:
  * <ul>
- *   <li><b>The answer to "send a code" never says whether the number has an
- *       account.</b> With SMS on, every valid number gets the same reply. The
- *       only exception is the public demo accounts, whose codes are shown on
- *       screen while no SMS provider is configured.</li>
+ *   <li><b>The answer to "send a code" never says whether the address has an
+ *       account.</b> With email on, every valid address gets the same reply.
+ *       The only exception is the public demo accounts, whose codes are shown on
+ *       screen while no email provider is configured.</li>
  *   <li><b>A code is good for five minutes, five guesses and one sign-in,</b>
  *       and only the newest code for an account counts. At most three codes
  *       are sent to an account in fifteen minutes, which bounds both guessing
- *       (15 guesses at a one-in-a-million space) and SMS bombing. A request
+ *       (15 guesses at a one-in-a-million space) and mail bombing. A request
  *       over the limit is answered like any other and sends nothing, so the
  *       limit cannot be used to discover accounts either.</li>
  *   <li><b>The code is stored only as an HMAC</b> keyed by the server secret
  *       and bound to its row, and checked in constant time.</li>
- *   <li><b>A code can also go to the account's email address.</b> It is the
- *       same code, with the same lifetime, guess limit and send limit, and the
- *       limits are shared: three codes in fifteen minutes, whichever way they
- *       were sent. See {@link #sendToEmail}.</li>
  * </ul>
  */
 @Service
@@ -70,7 +65,6 @@ public class OtpService {
     private final JdbcTemplate jdbc;
     private final AuthService auth;
     private final AuditLog auditLog;
-    private final OtpSender sender;
     private final EmailOtpSender emailSender;
     private final MailDispatcher mail;
     private final Clock clock;
@@ -79,14 +73,13 @@ public class OtpService {
     private final SecureRandom random = new SecureRandom();
 
     public OtpService(UserRepository users, JdbcTemplate jdbc, AuthService auth, AuditLog auditLog,
-                      OtpSender sender, EmailOtpSender emailSender, MailDispatcher mail, Clock clock,
+                      EmailOtpSender emailSender, MailDispatcher mail, Clock clock,
                       @Value("${medicity.auth.otp.show-demo-codes:false}") boolean showDemoCodes,
                       @Value("${medicity.jwt.secret}") String secret) {
         this.users = users;
         this.jdbc = jdbc;
         this.auth = auth;
         this.auditLog = auditLog;
-        this.sender = sender;
         this.emailSender = emailSender;
         this.mail = mail;
         this.clock = clock;
@@ -94,47 +87,10 @@ public class OtpService {
         this.secret = secret.getBytes(StandardCharsets.UTF_8);
     }
 
-    public enum Delivery { SMS, EMAIL, DEMO, UNAVAILABLE }
+    public enum Delivery { EMAIL, DEMO, UNAVAILABLE }
 
-    /** What the caller is told. {@code demoCode} is set only for a demo account without SMS. */
+    /** What the caller is told. {@code demoCode} is set only for a demo account without email. */
     public record CodeSent(Delivery delivery, String sentTo, String demoCode, int expiresInSeconds) {}
-
-    @Transactional
-    public CodeSent send(String typedPhone) {
-        String phone = PhoneNumbers.normalise(typedPhone);
-        if (phone == null) {
-            throw new ValidationException("INVALID_PHONE", "Enter a 10 digit Indian mobile number");
-        }
-        Optional<User> account = users.findByLoginPhone(phone).filter(User::isEnabled);
-        boolean demo = showDemoCodes && account.map(u -> u.getEmail().endsWith(DEMO_DOMAIN)).orElse(false);
-
-        if (!demo && !sender.available()) {
-            // Told plainly, and the same for every number, so it reveals nothing.
-            return new CodeSent(Delivery.UNAVAILABLE, null, null, 0);
-        }
-        CodeSent same = new CodeSent(demo ? Delivery.DEMO : Delivery.SMS, PhoneNumbers.masked(phone), null,
-                (int) LIFETIME.toSeconds());
-        if (account.isEmpty()) {
-            return same;
-        }
-        User user = account.get();
-
-        // Demo codes are never texted, and many visitors share a demo account,
-        // so only real numbers are limited.
-        if (!demo && throttled(user)) {
-            return same;
-        }
-
-        String code = issue(user);
-
-        if (demo) {
-            return new CodeSent(Delivery.DEMO, same.sentTo(), code, same.expiresInSeconds());
-        }
-        sender.send(phone, code);
-        auditLog.recordIndependentlyAs(user.getId(), user.getRole().name(), "OTP_SENT", "USER", user.getId(),
-                AuditLog.Outcome.SUCCESS, null);
-        return same;
-    }
 
     /**
      * Emails a sign-in code to the address an account was registered with.
@@ -233,22 +189,11 @@ public class OtpService {
     }
 
     /**
-     * Signs in with the newest live code for the number.
+     * Signs in with the newest live code for the address.
      *
      * <p>{@code noRollbackFor}: a wrong guess must still count against the
      * code, so the attempt written before the refusal has to survive it.
      */
-    @Transactional(noRollbackFor = OtpService.WrongCode.class)
-    public AuthService.TokenPair verify(String typedPhone, String code) {
-        String phone = PhoneNumbers.normalise(typedPhone);
-        if (phone == null || code == null || !code.matches("[0-9]{6}")) {
-            throw wrongCode();
-        }
-        User user = users.findByLoginPhone(phone).filter(User::isEnabled).orElseThrow(OtpService::wrongCode);
-        return verifyFor(user, code);
-    }
-
-    /** As {@link #verify}, for a code that was emailed. The same code, limits and single use. */
     @Transactional(noRollbackFor = OtpService.WrongCode.class)
     public AuthService.TokenPair verifyEmail(String typedEmail, String code) {
         String email = EmailAddresses.normalise(typedEmail);

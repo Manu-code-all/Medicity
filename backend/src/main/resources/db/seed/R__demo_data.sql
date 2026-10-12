@@ -29,7 +29,10 @@ INSERT INTO users (id, email, password_hash, full_name, phone, role) VALUES
    'Meera Nair', '+919876500101', 'PATIENT'),
   ('33333333-3333-4333-8333-333333333301', 'admin@medicity.demo',
    '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
-   'Ops Admin', '+919876500201', 'ADMIN')
+   'Ops Admin', '+919876500201', 'ADMIN'),
+  ('33333333-3333-4333-8333-333333333302', 'pharmacist@medicity.demo',
+   '$2b$12$GNPEonEpiZzkCXawhbg.W.3zOdBWM3QOSPaxGHlQB0aaZD8xuHrve',
+   'Hospital Pharmacist', '+919876500202', 'PHARMACIST')
 ON CONFLICT (email) DO NOTHING;
 
 
@@ -622,18 +625,6 @@ SELECT id, issued_at + INTERVAL '30 minutes' FROM prescriptions WHERE id = 'ffff
 ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------------
--- Every demo account can also sign in with its mobile number and a code
--- (shown on screen, since the demo numbers are public; see V20). Skipped
--- for any number a real account already signs in with.
--- ---------------------------------------------------------------------
-UPDATE users u SET login_phone = u.phone
-WHERE u.email LIKE '%@medicity.demo'
-  AND u.login_phone IS NULL
-  AND u.phone ~ '^\+91[6-9][0-9]{9}$'
-  AND NOT EXISTS (SELECT 1 FROM users o WHERE o.login_phone = u.phone);
-
-
--- ---------------------------------------------------------------------
 -- Reviews, each from a completed visit (V24). Meera's first two completed
 -- visits are left unreviewed, so a visitor can try "Rate this visit".
 -- ---------------------------------------------------------------------
@@ -820,3 +811,15 @@ UPDATE doctors SET clinic_name = 'Women''s Health Clinic', clinic_address = 'Kor
 UPDATE doctors SET clinic_name = 'Kidney Care Centre', clinic_address = 'Whitefield Main Road, Bengaluru', clinic_latitude = 12.9698, clinic_longitude = 77.7499 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa12';
 UPDATE doctors SET clinic_name = 'Surgical Clinic', clinic_address = 'MG Road, Bengaluru', clinic_latitude = 12.9756, clinic_longitude = 77.6097 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa13';
 UPDATE doctors SET clinic_name = 'Smile Dental Studio', clinic_address = '100 Feet Road, Indiranagar, Bengaluru', clinic_latitude = 12.98, clinic_longitude = 77.64 WHERE id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaa14';
+
+-- The demo accounts have already agreed to the current draft texts, so the
+-- consent screen (ConsentGate) does not stand in front of a visitor's first
+-- click. A real account is asked at sign-up and again whenever a version
+-- changes; if the versions in application.yml are changed, change them here.
+INSERT INTO consent_records (user_id, consent_type, policy_version, capacity, source)
+SELECT u.id, t.consent_type, '2026-10-draft1', 'SELF', 'SIGN_UP'
+FROM users u
+CROSS JOIN (VALUES ('TERMS_OF_SERVICE'), ('PRIVACY_NOTICE'), ('HEALTH_DATA_PROCESSING')) AS t (consent_type)
+WHERE u.email LIKE '%@medicity.demo'
+  AND (t.consent_type <> 'HEALTH_DATA_PROCESSING' OR u.role = 'PATIENT')
+ON CONFLICT DO NOTHING;

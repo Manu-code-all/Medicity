@@ -46,6 +46,18 @@ server:
   # "native" is Tomcat's RemoteIpValve, which only trusts X-Forwarded-For from
   # proxies on private ranges; "framework" would trust any client's header.
   forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      # Regular expression of the proxy addresses whose X-Forwarded-For is
+      # believed. The default is Tomcat's own: loopback, private and carrier-grade NAT ranges
+      # only, so a client cannot forge its address. On Railway the edge uses
+      # public addresses, so the audit log and the per-address limits see the
+      # edge, not the client, until this lists Railway's published edge ranges
+      # (set SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES; it REPLACES the default,
+      # so keep the private ranges in it if they should stay trusted). Never
+      # guess a range: trusting an address a client can reach lets it forge
+      # any IP it likes. See the README.
+      internal-proxies: ${SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|169\.254\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|100\.6[4-9]{1}\.\d{1,3}\.\d{1,3}|100\.[7-9]{1}\d{1}\.\d{1,3}\.\d{1,3}|100\.1[0-1]{1}\d{1}\.\d{1,3}\.\d{1,3}|100\.12[0-7]{1}\.\d{1,3}\.\d{1,3}|172\.1[6-9]{1}\.\d{1,3}\.\d{1,3}|172\.2[0-9]{1}\.\d{1,3}\.\d{1,3}|172\.3[0-1]{1}\.\d{1,3}\.\d{1,3}|0:0:0:0:0:0:0:1|::1}
 
 medicity:
   cors:
@@ -70,13 +82,6 @@ medicity:
     gemini-api-key: ${GEMINI_API_KEY:}
     gemini-model: ${GEMINI_MODEL:gemini-3.8-flash}
 
-  sms:
-    # Sign-in codes by SMS. Both unset: no texts are sent, and only the demo
-    # accounts can use a code (see auth.otp); everyone else uses email.
-    msg91:
-      auth-key: ${MSG91_AUTH_KEY:}
-      otp-template-id: ${MSG91_OTP_TEMPLATE_ID:}
-
   email:
     # Sign-in codes by email, through Resend. Both unset: nothing is emailed,
     # and only the demo accounts can use a code. `from` must be an address on a
@@ -85,6 +90,12 @@ medicity:
     resend:
       api-key: ${RESEND_API_KEY:}
       from: ${RESEND_FROM:}
+    # Notification emails (booked, cancelled, prescription, reminder). Sent only
+    # when the Resend settings above are set. Both addresses are optional: with
+    # app-url the emails link to the sign-in page, with api-url they carry a
+    # one-click unsubscribe link (the API's public address, no trailing slash).
+    app-url: ${MEDICITY_APP_URL:}
+    api-url: ${MEDICITY_PUBLIC_API_URL:}
 
   auth:
     otp:
@@ -95,6 +106,43 @@ medicity:
       # attempts get 429. Counted from the audit log; see LoginThrottle.
       max-failures: 5
       window: PT15M
+    # The same, per client address, whatever email was tried. Generous, because
+    # several people can share one address (an office, a mobile carrier), and
+    # because the address is only the real client's once the trusted proxies
+    # are configured (server.tomcat.remoteip.internal-proxies). See AddressThrottle.
+    # Off until the trusted proxies are set: behind Railway every visitor looks
+    # like one of a few edge addresses, so the limits would be shared by everyone.
+    # Set MEDICITY_AUTH_ADDRESS_LIMITS_ENABLED=true after checking the audit log
+    # shows real client addresses.
+    address-limits-enabled: false
+    address-login-throttle:
+      max-failures: 30
+      window: PT15M
+    # Patient, doctor and chemist sign-up requests allowed per client address.
+    signup-throttle:
+      max-attempts: 10
+      window: PT1H
+
+  privacy:
+    # The version of each text people agree to (ConsentService). These are the
+    # DRAFT texts the web app shows at /terms and /privacy; change one, and
+    # the matching one in the frontend's lib/policies.ts, to ask every account
+    # to agree again at its next visit. The date-and-draft form is a label,
+    # not a legal reference.
+    terms-version: ${MEDICITY_TERMS_VERSION:2026-10-draft1}
+    privacy-version: ${MEDICITY_PRIVACY_VERSION:2026-10-draft1}
+    health-data-version: ${MEDICITY_HEALTH_DATA_VERSION:2026-10-draft1}
+
+  retention:
+    # The place a medicine question was asked from (latitude, longitude) is
+    # kept this long after the question closes, then handled by the nightly
+    # LocationRetentionJob. Nothing reads it after the answers are in.
+    request-location:
+      after: ${MEDICITY_LOCATION_RETENTION:P30D}
+      # CLEAR removes it; COARSEN keeps it to `coarsen-decimals` decimal places
+      # (1 is about 11 km: a district, no longer a street).
+      mode: ${MEDICITY_LOCATION_RETENTION_MODE:CLEAR}
+      coarsen-decimals: ${MEDICITY_LOCATION_COARSEN_DECIMALS:1}
 
 management:
   endpoints:

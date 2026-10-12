@@ -45,13 +45,6 @@ public class User extends BaseEntity {
     @Column(name = "phone", length = 20)
     private String phone;
 
-    /**
-     * The number this account signs in with (+91XXXXXXXXXX), unique across
-     * accounts. Separate from {@link #phone}, which is contact detail.
-     */
-    @Column(name = "login_phone", length = 16)
-    private String loginPhone;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 16)
     private Role role;

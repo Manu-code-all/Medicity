@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/context";
+import { TermsAgreement } from "../components/Agreements";
 import { MEDICAL_COUNCILS, SPECIALITIES } from "../lib/doctors";
 
 const OTHER = "__other";
@@ -30,6 +31,7 @@ export function RegisterDoctorPage() {
   const { registerDoctor } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -57,6 +59,7 @@ export function RegisterDoctorPage() {
         yearsExperience: Number(form.yearsExperience),
         consultationFee: Number(form.consultationFee),
         bio: form.bio || undefined,
+        acceptedTerms,
       });
       navigate("/doctor/hours", { replace: true });
     } catch (err) {
@@ -94,7 +97,7 @@ export function RegisterDoctorPage() {
       <input id="d-email" type="email" required value={form.email} onChange={set("email")} />
       {fieldError("email")}
 
-      <label htmlFor="d-phone">Mobile number (you can sign in with a code)</label>
+      <label htmlFor="d-phone">Mobile number</label>
       <input id="d-phone" type="tel" inputMode="numeric" required value={form.phone} onChange={set("phone")} />
       {fieldError("phone")}
 
@@ -169,6 +172,8 @@ export function RegisterDoctorPage() {
 
       <label htmlFor="d-bio">About your practice (optional)</label>
       <textarea id="d-bio" rows={3} maxLength={1000} value={form.bio} onChange={set("bio")} />
+
+      <TermsAgreement checked={acceptedTerms} onChange={setAcceptedTerms} error={fieldErrors.acceptedTerms} />
 
       <button type="submit" disabled={busy}>
         {busy ? "Registering…" : "Register"}

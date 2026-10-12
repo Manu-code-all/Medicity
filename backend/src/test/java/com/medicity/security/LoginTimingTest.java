@@ -56,6 +56,7 @@ class LoginTimingTest {
 
         AuthService auth = new AuthService(users, mock(PatientRepository.class), encoder, mock(JwtService.class),
                 mock(AuditLog.class), mock(RefreshTokenStore.class), mock(LoginThrottle.class),
+                mock(AddressThrottle.class), mock(AccessTokenDenylist.class),
                 Duration.ofDays(7), Clock.systemUTC(), new DomainMetrics(new SimpleMeterRegistry()));
 
         assertThatThrownBy(() -> auth.login("nobody@medicity.test", "some-password-123"))

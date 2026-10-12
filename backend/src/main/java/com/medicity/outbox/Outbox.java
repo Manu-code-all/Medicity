@@ -47,6 +47,12 @@ public class Outbox {
     public static final String RESERVATION_COLLECTED = "RESERVATION_COLLECTED";
     public static final String MEDICINE_RUNNING_OUT = "MEDICINE_RUNNING_OUT";
     public static final String COURSE_ENDING = "COURSE_ENDING";
+    /** A booked visit is about 24 hours away. Published by the reminder job, once per visit. */
+    public static final String APPOINTMENT_REMINDER = "APPOINTMENT_REMINDER";
+    /** The doctor marked a day off on which this patient has a booked visit. */
+    public static final String DOCTOR_LEAVE_VISIT_AFFECTED = "DOCTOR_LEAVE_VISIT_AFFECTED";
+    /** One email to one person, derived from another event; see EmailConsumer. */
+    public static final String EMAIL_SEND = "EMAIL_SEND";
 
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;

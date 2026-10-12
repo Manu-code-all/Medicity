@@ -56,7 +56,7 @@ public class PharmacyController {
     }
 
     @GetMapping("/stock/low")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMIN')")
     @Operation(summary = "Medicines at or below their reorder level")
     public List<LowStockResponse> lowStock() {
         return stockRepository.findAtOrBelowReorderLevel().stream()
@@ -66,7 +66,7 @@ public class PharmacyController {
     }
 
     @PostMapping("/medicines/{medicineId}/restock")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMIN')")
     @Operation(summary = "Add received stock")
     public MedicineResponse restock(@PathVariable UUID medicineId, @Valid @RequestBody RestockRequest request) {
         stockLedger.restock(medicineId, request.quantity(), request.purchaseOrderId());
@@ -75,7 +75,7 @@ public class PharmacyController {
     }
 
     @PostMapping("/prescriptions/{prescriptionId}/dispense")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('PHARMACIST', 'ADMIN')")
     @Operation(summary = "Dispense every medicine on a prescription, or none")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Dispensed"),

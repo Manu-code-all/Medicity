@@ -171,7 +171,6 @@ flowchart TB
 
     subgraph ext [Outside services]
         AI["Claude / Gemini<br/>read handwritten prescriptions"]
-        SMS["MSG91<br/>sign-in codes by SMS"]
         MAIL["Resend<br/>sign-in codes by email"]
     end
 
@@ -184,7 +183,6 @@ flowchart TB
     OUT -->|"notifications"| PG
     JOBS --> PG
     SVC -.-> AI
-    SVC -.-> SMS
     SVC -.-> MAIL
 
     style PG fill:#1a5f3f,color:#fff
@@ -229,10 +227,23 @@ The `EXCLUDE` constraint uses a half-open range `'[)'`, so 10:00–10:30 and
 - **Short-lived access tokens, single-use refresh tokens.** Access tokens are
   15-minute JWTs. Refresh tokens are opaque, stored only as a SHA-256 hash, and
   work once; presenting a spent one is treated as theft and ends that whole
-  session. Signing out revokes it server-side. Tested in `SessionSecurityTest`.
+  session. Signing out revokes it server-side, and also denylists the access
+  token presented with the request (by its `jti`, in `revoked_access_tokens`,
+  checked on every request and cleaned by the nightly housekeeping job), so a
+  signed-out token stops working at once. A refresh-token reuse (theft) still
+  leaves the thief's access token alive for up to 15 minutes. Tested in
+  `SessionSecurityTest`.
 - **Login limit.** 5 failed logins per email in 15 minutes, then `429` with
   `Retry-After`. Counted from the audit log, so it holds across instances and
   restarts; unknown emails are limited identically, so it reveals nothing.
+- **Per-address limits.** Also per client IP, counted from the same audit log:
+  30 failed logins in 15 minutes (whatever emails were tried), and 10 patient,
+  doctor or chemist sign-ups per hour, then `429` with `Retry-After`. Tunable
+  with `medicity.auth.address-login-throttle.*` and `medicity.auth.signup-throttle.*`.
+  These are only meaningful once the real client address reaches the app; see
+  *Trusted proxies* under Deployment.
+- **Roles.** `PHARMACIST` dispenses and restocks (`ADMIN` still may); only
+  `ADMIN` reads the audit log and verifies doctors and stores.
 - **Safe retries.** Booking accepts an `Idempotency-Key`, so a retry after a
   dropped response returns the original booking instead of an error.
 - **Row-level authorization.** Role checks alone are insufficient: every patient
@@ -282,34 +293,33 @@ SPRING_PROFILES_ACTIVE=demo docker compose up --build
 | `arjun@medicity.demo`, `kavya@medicity.demo` | PATIENT — on Dr. Rao's calendar today |
 | `dr.rao@medicity.demo` | DOCTOR — one visit waiting to be closed, one later today |
 | `dr.iyer@medicity.demo` | DOCTOR — useful for checking that doctors cannot reach each other's patients |
-| `admin@medicity.demo` | ADMIN — pharmacy, audit trail, and the store and doctor verification queues |
+| `admin@medicity.demo` | ADMIN — audit trail, and the store and doctor verification queues |
+| `pharmacist@medicity.demo` | PHARMACIST — dispensing and stock through the API (no web screens yet); cannot read the audit log |
 | `chemist@medicity.demo` | CHEMIST — Sri Sai Medicals, with a patient's question waiting |
 | `dr.menon@`, `dr.kulkarni@`, `dr.shetty@`, … `@medicity.demo` | DOCTOR — one per speciality (14 in all), so every body-guide answer is bookable |
 
 Password for all of them: `demo-password-2026`
 
-Every demo account can also sign in with its mobile number and a one-time
-code. No SMS is sent for these public numbers: the sign-in page shows the code.
-
-| Try it as | Mobile number |
-|---|---|
-| Meera (patient) | 98765 00101 |
-| Dr. Anjali Rao (doctor) | 98765 00001 |
-| Ravi Kumar (chemist) | 98765 00301 |
-
-Real numbers need an SMS provider: set `MSG91_AUTH_KEY` and
-`MSG91_OTP_TEMPLATE_ID`, and codes are texted with no code change.
-
-**Codes by email** are the no-cost alternative to SMS: on the sign-in page,
-*Email*, then *Email me a code instead*. The demo accounts show their code on
-screen, as above. For real addresses set `RESEND_API_KEY` and `RESEND_FROM`
-(for example `Medicity <login@yourdomain.com>`), and codes are emailed through
+**Codes by email.** On the sign-in page, *Email me a code instead*. The demo
+accounts show their code on screen, since their addresses are public. For real
+addresses set `RESEND_API_KEY` and `RESEND_FROM` (for example
+`Medicity <login@yourdomain.com>`), and codes are emailed through
 [Resend](https://resend.com). `RESEND_FROM` must be on a domain verified in
 Resend; until you have one, Resend's `onboarding@resend.dev` works but only
 delivers to the address your Resend account was created with, so nobody else
-can receive a code. Email and SMS codes share one limit (three codes per
-account in fifteen minutes) and one set of rules (five minutes, five guesses,
-one sign-in).
+can receive a code. A code is good for five minutes, five guesses and one
+sign-in, and an account gets at most three codes in fifteen minutes.
+
+**Notification emails** use the same two settings, so there is nothing more to
+configure: with them set, Medicity also emails a patient when a visit is booked,
+moved or cancelled, the day before a visit, when the doctor marks leave on a day
+they have a visit, and when a prescription is issued or corrected. Prescription
+emails say only "you have a new prescription, sign in to view". Each person can
+turn them off under *Profile*, or with the unsubscribe link in the email.
+`MEDICITY_APP_URL` (the web app's address) adds a sign-in link, and
+`MEDICITY_PUBLIC_API_URL` (the API's public address) adds the unsubscribe link.
+With no `RESEND_API_KEY` none of this runs. See entry 73 in
+`docs/ENGINEERING_LOG.md`.
 
 The seed lives in `db/seed/`, which is added to the Flyway path *only* by the
 `demo` profile — a deployed environment has no path by which these accounts
@@ -382,7 +392,6 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 |---|---|---|---|
 | `POST` | `/api/v1/auth/register` | — | Register a patient |
 | `POST` | `/api/v1/auth/login` | — | Obtain a token pair |
-| `POST` | `/api/v1/auth/otp/send` | — | Send a sign-in code to a mobile number (same reply for every number) |
 | `POST` | `/api/v1/auth/otp/email/send` | — | Email a sign-in code to an account's address (same reply for every address) |
 | `POST` | `/api/v1/auth/register/doctor` | — | A doctor signs up; unlisted and unbookable until verified |
 | `GET`/`PUT` | `/api/v1/doctors/me/hours` | DOCTOR | Weekly hours, up to three sessions a day; saving opens slots four weeks ahead |
@@ -436,9 +445,9 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/doctors/me/prescriptions/{id}/corrections` | author | Correct (supersede) a prescription |
 | `GET` | `/api/v1/doctors/me/patients/{id}/history` | treating doctor | A patient's history (audited) |
 | `GET` | `/api/v1/pharmacy/medicines` | signed in | Medicine catalogue |
-| `GET` | `/api/v1/pharmacy/stock/low` | ADMIN | Medicines below reorder level |
-| `POST` | `/api/v1/pharmacy/medicines/{id}/restock` | ADMIN | Add stock |
-| `POST` | `/api/v1/pharmacy/prescriptions/{id}/dispense` | ADMIN | Dispense, decrementing stock atomically |
+| `GET` | `/api/v1/pharmacy/stock/low` | PHARMACIST, ADMIN | Medicines below reorder level |
+| `POST` | `/api/v1/pharmacy/medicines/{id}/restock` | PHARMACIST, ADMIN | Add stock |
+| `POST` | `/api/v1/pharmacy/prescriptions/{id}/dispense` | PHARMACIST, ADMIN | Dispense, decrementing stock atomically |
 | `GET` | `/api/v1/admin/audit` | ADMIN | Search the audit trail |
 | `POST` | `/api/v1/auth/register/chemist` | — | Register a chemist and their store (unverified) |
 | `GET` | `/api/v1/stores/nearby?lat&lng&radiusM` | signed in | Verified stores in a radius, nearest first |
@@ -562,8 +571,28 @@ reach its database is never routed traffic.
 | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` — a Railway reference, not a literal |
 | `JWT_SECRET` | 32+ bytes of random; the app refuses to start below that |
 | `MEDICITY_CORS_ORIGINS` | your Vercel origin, e.g. `https://medicity.vercel.app` |
-| `RESEND_API_KEY`, `RESEND_FROM` | optional; turn on sign-in codes by email (see *Codes by email* above) |
+| `RESEND_API_KEY`, `RESEND_FROM` | optional; turn on sign-in codes and notification emails (see *Codes by email* above) |
+| `MEDICITY_APP_URL`, `MEDICITY_PUBLIC_API_URL` | optional; the web app's and the API's public addresses, for the sign-in and unsubscribe links in notification emails |
 | `SPRING_PROFILES_ACTIVE` | `demo`, to seed clickable data |
+| `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` | optional; regex of the proxy addresses whose `X-Forwarded-For` is trusted (see below) |
+
+The per-address limits (sign-ups per hour, failed logins per 15 minutes) are
+**off by default** (`MEDICITY_AUTH_ADDRESS_LIMITS_ENABLED=false`). Behind Railway every
+visitor looks like one of a few edge addresses, so turning them on before the
+trusted proxies are set would make everyone share one allowance. Switch them on
+once the audit log shows real client addresses.
+
+**Trusted proxies (client IP in the audit log and the per-address limits).**
+By default only loopback, private and carrier-grade-NAT proxies are believed
+when they send `X-Forwarded-For` (Tomcat's own default), because trusting any
+other address would let a client forge the IP it is recorded under. Railway's
+edge uses public addresses, so until you set
+`SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` the audit log records the edge, not the
+client, and every visitor shares the per-address limits. Set it to a regular
+expression of Railway's *published* edge ranges (take them from Railway's
+documentation; do not guess). The value **replaces** the default, so keep the
+private ranges in it if they should stay trusted. Check afterwards by calling
+the API from two machines and comparing `ip_address` in the audit log.
 
 Generate the secret with:
 
@@ -739,12 +768,15 @@ The design notes for each piece are in `docs/ENGINEERING_LOG.md`, entries 21–2
 - [x] Audit trail, pharmacy dispensing
 - [x] Doctor workspace: close a visit and issue or correct a prescription
 - [x] Refresh-token rotation with reuse detection
-- [x] Login rate limiting
+- [x] Login rate limiting (per email and per address), sign-up rate limiting
+- [x] Access-token denylist, so sign-out is immediate
+- [x] Pharmacist role separate from administrator
 - [x] Idempotency keys on booking
 - [ ] Editable patient profile
 - [x] In-app notifications through a transactional outbox
 - [x] Sign-in codes by email (Resend)
-- [ ] Email/SMS delivery of notifications (another outbox consumer)
+- [x] Email delivery of notifications (another outbox consumer)
+- [ ] SMS delivery of notifications
 - [x] Prometheus metrics (`/actuator/prometheus`, ADMIN only)
 - [ ] Grafana dashboard
 - [ ] Doctor availability rules engine (recurring weekly templates)

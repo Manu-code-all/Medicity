@@ -61,6 +61,7 @@ class DispensingTest extends AbstractIntegrationTest {
     @Autowired Clock clock;
 
     private User adminUser;
+    private User pharmacistUser;
     private User patientUser;
     private User doctorUser;
     private Patient patient;
@@ -74,7 +75,8 @@ class DispensingTest extends AbstractIntegrationTest {
     void setUp() {
         cleanUp();
 
-        adminUser = persistUser("Pharmacy Desk", Role.ADMIN);
+        adminUser = persistUser("Ops Admin", Role.ADMIN);
+        pharmacistUser = persistUser("Pharmacy Desk", Role.PHARMACIST);
         patientUser = persistUser("Meera Nair", Role.PATIENT);
         patient = patientRepository.save(Patient.builder()
                 .user(patientUser).dateOfBirth(LocalDate.of(1994, 8, 12)).gender(Patient.Gender.FEMALE).build());
@@ -229,6 +231,36 @@ class DispensingTest extends AbstractIntegrationTest {
 
         mvc.perform(get("/api/v1/patients/me/prescriptions").header("Authorization", bearer(patientUser)))
                 .andExpect(jsonPath("$[0].dispensedAt").exists());
+    }
+
+    @Test
+    @DisplayName("a pharmacist can dispense, restock and see low stock, but cannot read the audit log; an admin still can")
+    void pharmacistWorksTheCounterButCannotReadTheAuditLog() throws Exception {
+        Prescription rx = persistPrescription(null, item(paracetamol, 10));
+
+        mvc.perform(post("/api/v1/pharmacy/prescriptions/" + rx.getId() + "/dispense")
+                        .header("Authorization", bearer(pharmacistUser)))
+                .andExpect(status().isOk());
+        assertThat(onHand(paracetamol)).isEqualTo(90);
+
+        mvc.perform(get("/api/v1/pharmacy/stock/low").header("Authorization", bearer(pharmacistUser)))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/v1/pharmacy/medicines/" + paracetamol.getId() + "/restock")
+                        .header("Authorization", bearer(pharmacistUser))
+                        .contentType("application/json")
+                        .content("{\"quantity\": 50}"))
+                .andExpect(status().isOk());
+        assertThat(onHand(paracetamol)).isEqualTo(140);
+
+        // Dispensing authority does not carry the audit log with it.
+        mvc.perform(get("/api/v1/admin/audit").header("Authorization", bearer(pharmacistUser)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/admin/audit").header("Authorization", bearer(adminUser)))
+                .andExpect(status().isOk());
+
+        // Nor the verification queues, which stay with administrators.
+        mvc.perform(get("/api/v1/admin/stores/pending").header("Authorization", bearer(pharmacistUser)))
+                .andExpect(status().isForbidden());
     }
 
     @Test
