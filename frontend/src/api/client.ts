@@ -120,6 +120,8 @@ interface RequestOptions {
   /** JSON-serialised, unless it is FormData (an upload), which is sent as it is. */
   body?: unknown;
   headers?: Record<string, string>;
+  /** The reply is a file (a CSV), returned as a Blob instead of parsed as JSON. */
+  as?: "blob";
   /** Internal: prevents an infinite refresh loop on a retried request. */
   retrying?: boolean;
 }
@@ -169,6 +171,9 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     throw new ApiError(response.status, problem);
   }
 
+  if (options.as === "blob") {
+    return (await response.blob()) as T;
+  }
   return (await response.json()) as T;
 }
 

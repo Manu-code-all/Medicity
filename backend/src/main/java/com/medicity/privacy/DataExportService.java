@@ -105,6 +105,13 @@ public class DataExportService {
         out.put("notifications", rows("""
                 SELECT id, kind, title, body, link, occurs_at, created_at, read_at
                 FROM notifications WHERE user_id = ? ORDER BY created_at""", userId));
+        // Records a clinic imported that this person accepted (entry 75). Records only offered, or declined,
+        // are the clinic's and are not shown: the person has not agreed to see or link them.
+        out.put("clinicRecords", rows("""
+                SELECT r.id, o.full_name AS clinic_name, r.full_name, r.phone, r.email, r.date_of_birth, r.gender,
+                       r.blood_group, r.allergies, r.notes, r.decided_at AS accepted_at, r.created_at
+                FROM clinic_records r JOIN users o ON o.id = r.owner_id AND r.owner_kind = 'DOCTOR'
+                WHERE r.linked_user_id = ? AND r.link_state = 'ACCEPTED' ORDER BY r.decided_at""", userId));
         out.put("consents", rows("""
                 SELECT consent_type, policy_version, capacity, source, subject_patient_id, given_at
                 FROM consent_records WHERE user_id = ? ORDER BY given_at, consent_type""", userId));

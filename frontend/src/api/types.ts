@@ -990,4 +990,60 @@ export interface DeskPatientHit {
   phone: string | null;
   /** CLINIC: recorded by this clinic. ACCOUNT: a Medicity account found by its exact email. */
   source: "CLINIC" | "ACCOUNT";
+/** One problem in an imported patient list: the spreadsheet row, the column (null for the whole row) and what is wrong. */
+export interface ImportIssue {
+  row: number;
+  column: string | null;
+  code: string;
+  message: string;
+}
+
+/** What a patient-list import would do (applied false) or did (applied true). */
+export interface ImportReport {
+  applied: boolean;
+  fileSha256: string;
+  totalRows: number;
+  validRows: number;
+  rejectedRows: number;
+  created: number;
+  updated: number;
+  unchanged: number;
+  errorCount: number;
+  errors: ImportIssue[];
+  errorsTruncated: boolean;
+  ignoredColumns: string[];
+}
+
+/** A clinic's record offered to the patient: only who holds it. */
+export interface ClinicRecordOffer {
+  id: string;
+  clinicName: string;
+}
+
+/** A clinic's record the patient accepted: everything the clinic holds. */
+export interface LinkedClinicRecord {
+  id: string;
+  clinicName: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+  dateOfBirth: string | null;
+  gender: string | null;
+  bloodGroup: string | null;
+  allergies: string | null;
+  notes: string | null;
+  acceptedAt: string;
+}
+
+export interface ClinicRecordsView {
+  emailVerified: boolean;
+  offers: ClinicRecordOffer[];
+  linked: LinkedClinicRecord[];
+}
+
+export interface EmailCodeSent {
+  delivery: "EMAIL" | "DEMO" | "UNAVAILABLE";
+  sentTo: string | null;
+  demoCode: string | null;
+  expiresInSeconds: number;
 }

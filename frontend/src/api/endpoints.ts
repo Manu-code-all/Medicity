@@ -13,8 +13,11 @@ import type {
   DeskVisit,
   NewClinicDoctor,
   NewClinicReceptionist,
+  ClinicRecordsView,
   ConsentStatus,
   ConsentType,
+  EmailCodeSent,
+  ImportReport,
   DeletionSummary,
   DoctorLeave,
   Practice,
@@ -492,4 +495,46 @@ export const desk = {
       body: { doctorId, patient, reason: reason || null },
     }),
   findPatients: (q: string) => request<DeskPatientHit[]>(`/api/v1/clinics/me/desk/patients?q=${encodeURIComponent(q)}`),
+const IMPORT = "/api/v1/doctors/me/import/patients";
+
+/** A doctor moving an old patient list in from Excel or CSV: check first, then import. */
+export const clinicImport = {
+  /** The empty CSV to fill in. */
+  template: () => request<Blob>(`${IMPORT}/template`, { as: "blob" }),
+
+  /** Checks every row and says what an import would do. Saves nothing. */
+  dryRun: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<ImportReport>(`${IMPORT}/dry-run`, { method: "POST", body: form });
+  },
+
+  /** Imports the file that was checked; `fileSha256` is the hash the check returned. */
+  confirm: (file: File, fileSha256: string) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("fileSha256", fileSha256);
+    return request<ImportReport>(`${IMPORT}/confirm`, { method: "POST", body: form });
+  },
+
+  /** Every problem in the file, as a CSV. */
+  errorReport: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<Blob>(`${IMPORT}/error-report`, { method: "POST", body: form, as: "blob" });
+  },
+};
+
+/** The patient's side: prove the email, see which clinics hold a record for it, say yes or no. */
+export const clinicRecords = {
+  view: () => request<ClinicRecordsView>("/api/v1/patients/me/clinic-records"),
+
+  sendCode: () => request<EmailCodeSent>("/api/v1/patients/me/clinic-records/email-code", { method: "POST" }),
+
+  verifyCode: (code: string) =>
+    request<void>("/api/v1/patients/me/clinic-records/email-code/verify", { method: "POST", body: { code } }),
+
+  accept: (id: string) => request<void>(`/api/v1/patients/me/clinic-records/${id}/accept`, { method: "POST" }),
+
+  decline: (id: string) => request<void>(`/api/v1/patients/me/clinic-records/${id}/decline`, { method: "POST" }),
 };

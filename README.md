@@ -408,6 +408,13 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `GET`/`POST` | `/api/v1/doctors/me/leave` | DOCTOR | Days off: no slots, no walk-in tokens; booked visits kept and counted |
 | `GET`/`PUT` | `/api/v1/doctors/me/practice` | DOCTOR | Fee, bio, years, insurers and other charges, as the directory shows them |
 | `GET` | `/api/v1/doctors/me/profile` | DOCTOR | The doctor's profile and whether it is verified |
+| `GET` | `/api/v1/doctors/me/import/patients/template` | DOCTOR | The empty CSV for moving an old patient list in (UTF-8 with a byte-order mark, opens correctly in Excel) |
+| `POST` | `/api/v1/doctors/me/import/patients/dry-run` | verified DOCTOR | Check a CSV (up to 5,000 rows, 2 MB) without saving: counts, what would be added or updated, problems by row |
+| `POST` | `/api/v1/doctors/me/import/patients/confirm` | verified DOCTOR | Import the file that was checked (its `fileSha256` must match); bad rows are skipped, the same phone or email updates instead of duplicating |
+| `POST` | `/api/v1/doctors/me/import/patients/error-report` | verified DOCTOR | Every problem in a CSV, as a CSV |
+| `GET` | `/api/v1/patients/me/clinic-records` | PATIENT | Clinics holding a record for my *verified* email (name only until I accept), and the ones I accepted |
+| `POST` | `/api/v1/patients/me/clinic-records/email-code` · `/email-code/verify` | PATIENT | Prove the email address with an emailed code |
+| `POST` | `/api/v1/patients/me/clinic-records/{id}/accept` · `/decline` | PATIENT | Say yes (link it, show it to me) or no (stays hidden, never offered again) |
 | `GET` | `/api/v1/admin/doctors/pending` | ADMIN | Doctors waiting for their registration check |
 | `POST` | `/api/v1/admin/doctors/{id}/verify` | ADMIN | Registration checked: the doctor becomes bookable |
 | `POST` | `/api/v1/auth/otp/verify` | — | Mobile number and code for a token pair |
@@ -750,6 +757,16 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
   to bookings and walk-ins; visits already booked are kept and counted.
 - **Fees and insurance** (`/doctor/practice`) — the fee, bio, insurers
   accepted and other charges the directory shows; changes show at once.
+- **Import patients** (`/doctor/import`) — move an old patient list in from
+  Excel or CSV. Download the template, choose the file, and the page checks
+  every row (bad dates, bad phones, the same person twice) and shows counts and
+  the first problems; nothing is saved until you confirm, and the file confirmed
+  is the file checked. Importing the same list again updates, it does not
+  duplicate. The people imported are **your records, not accounts**: a patient
+  sees yours only after they sign up with the same email, prove that address
+  with an emailed code, and say yes (Profile, "Records from your clinic").
+  Accepts UTF-8 (with or without a byte-order mark), Excel's Windows-1252 CSV
+  and UTF-16 text; comma, semicolon or tab; up to 5,000 rows and 2 MB. Entry 75.
 
 - **Handwritten prescriptions** — photograph the slip; a vision model reads it
   into a draft the doctor checks line by line and confirms. The model's output
@@ -835,6 +852,7 @@ The design notes for each piece are in `docs/ENGINEERING_LOG.md`, entries 21–2
 - [x] Store insights and optional live stock
 - [x] Refill and course reminders
 - [x] Family members on one account
+- [x] Import an old patient list from Excel/CSV (clinic-held records, linked only with the patient's consent)
 - [x] Medicine instructions in six languages, shareable on WhatsApp
 - [x] Handwritten prescription photos read into a draft the doctor confirms
 - [ ] Native-speaker and pharmacist review of the instruction phrasebook
