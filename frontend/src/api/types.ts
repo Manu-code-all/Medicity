@@ -15,9 +15,11 @@ export interface TokenPair {
   userId: string;
   role: Role;
   fullName: string;
+  /** True for an account made by a clinic: it must choose its own password before anything else. */
+  mustChangePassword?: boolean;
 }
 
-export type Role = "PATIENT" | "DOCTOR" | "ADMIN" | "CHEMIST" | "PHARMACIST";
+export type Role = "PATIENT" | "DOCTOR" | "ADMIN" | "CHEMIST" | "PHARMACIST" | "CLINIC_ADMIN" | "RECEPTIONIST";
 
 export type AppointmentStatus = "BOOKED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 
@@ -42,6 +44,8 @@ export interface Doctor {
   clinicAddress?: string | null;
   clinicLatitude?: number | null;
   clinicLongitude?: number | null;
+  /** Set when the doctor works at a registered clinic or hospital. */
+  clinicId?: string | null;
 }
 
 export interface Specialty {
@@ -816,6 +820,8 @@ export interface PracticeUpdate {
 
 export interface Practice extends PracticeUpdate {
   availableInsurers: Insurer[];
+  /** The doctor works at a clinic, which owns the name, address and location shown to patients. */
+  clinicManaged?: boolean;
 }
 
 export interface FollowUpMessage {
@@ -850,4 +856,138 @@ export interface LiveStatus {
   delayMinutes: number;
   visitInProgress: boolean;
   asOf: string;
+}
+
+/** A clinic or hospital, as the public directory lists it. */
+export interface ClinicListing {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  phone: string | null;
+  email: string | null;
+  doctors: number;
+}
+
+export interface ClinicProfile {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  phone: string | null;
+  email: string | null;
+  timezone: string;
+  active: boolean;
+}
+
+export type ClinicProfileInput = Omit<ClinicProfile, "id" | "active">;
+
+export interface ClinicStaffMember {
+  userId: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  role: "CLINIC_ADMIN" | "RECEPTIONIST" | "DOCTOR";
+  doctorId: string | null;
+  specialization: string | null;
+  verified: boolean;
+  enabled: boolean;
+  mustChangePassword: boolean;
+}
+
+/** Shown once, when an account is made or its password reset. */
+export interface ClinicCredentials {
+  userId: string;
+  email: string;
+  fullName: string;
+  role: string;
+  temporaryPassword: string;
+}
+
+export interface NewClinicDoctor {
+  fullName: string;
+  email: string;
+  phone?: string | undefined;
+  specialization: string;
+  medicalCouncil: string;
+  registrationNumber: string;
+  qualification: string;
+  yearsExperience: number;
+  consultationFee: number;
+}
+
+export interface NewClinicReceptionist {
+  fullName: string;
+  email: string;
+  phone?: string | undefined;
+}
+
+export interface ClinicDayRow {
+  date: string;
+  scheduled: number;
+  completed: number;
+  noShows: number;
+  cancellations: number;
+  walkIns: number;
+  walkInsSeen: number;
+  bookedByDesk: number;
+}
+
+export interface ClinicReport {
+  from: string;
+  to: string;
+  timezone: string;
+  days: ClinicDayRow[];
+  totals: ClinicDayRow;
+}
+
+export interface DeskDoctor {
+  id: string;
+  fullName: string;
+  specialization: string;
+  verified: boolean;
+  walkInsOpen: boolean;
+  waiting: number;
+}
+
+export interface DeskVisit {
+  id: string;
+  doctorId: string;
+  doctorName: string;
+  scheduledAt: string;
+  endsAt: string;
+  status: AppointmentStatus;
+  patientName: string;
+  patientPhone: string | null;
+  reason: string | null;
+  visitType: string | null;
+  arrivedAt: string | null;
+  bookedByDesk: boolean;
+}
+
+export interface DeskToday {
+  date: string;
+  timezone: string;
+  doctors: DeskDoctor[];
+  visits: DeskVisit[];
+  walkIns: QueueToken[];
+}
+
+/** Who a desk action is for: exactly one of the three. */
+export type DeskPatientRef =
+  | { patientId: string }
+  | { email: string }
+  | { newPatient: { fullName: string; phone?: string | undefined; ageYears: number; gender?: string | undefined } };
+
+export interface DeskPatientHit {
+  patientId: string | null;
+  email: string | null;
+  fullName: string;
+  phone: string | null;
+  /** CLINIC: recorded by this clinic. ACCOUNT: a Medicity account found by its exact email. */
+  source: "CLINIC" | "ACCOUNT";
 }

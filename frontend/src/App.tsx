@@ -4,10 +4,13 @@ import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigat
 import { notifications } from "./api/endpoints";
 import type { Role } from "./api/types";
 import { homeFor, useAuth } from "./auth/context";
+import { ChangePasswordGate } from "./components/ChangePasswordGate";
 import { ConsentGate } from "./components/ConsentGate";
 import { LegalLinks } from "./components/LegalLinks";
 import { PageLoading } from "./components/PageLoading";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ClinicLayout } from "./pages/clinic/ClinicLayout";
+import { DeskLayout } from "./pages/desk/DeskLayout";
 import { DoctorLayout } from "./pages/doctor/DoctorLayout";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -52,6 +55,12 @@ const VisitsPage = lazyPage(() => import("./pages/portal/VisitsPage"), "VisitsPa
 const TokensPage = lazyPage(() => import("./pages/portal/TokensPage"), "TokensPage");
 const WalkInPage = lazyPage(() => import("./pages/queue/WalkInPage"), "WalkInPage");
 const FrontDeskPage = lazyPage(() => import("./pages/doctor/FrontDeskPage"), "FrontDeskPage");
+const ClinicProfilePage = lazyPage(() => import("./pages/clinic/ClinicProfilePage"), "ClinicProfilePage");
+const ClinicStaffPage = lazyPage(() => import("./pages/clinic/ClinicStaffPage"), "ClinicStaffPage");
+const ClinicReportPage = lazyPage(() => import("./pages/clinic/ClinicReportPage"), "ClinicReportPage");
+const DeskTodayPage = lazyPage(() => import("./pages/desk/DeskTodayPage"), "DeskTodayPage");
+const DeskWalkInPage = lazyPage(() => import("./pages/desk/DeskWalkInPage"), "DeskWalkInPage");
+const DeskBookPage = lazyPage(() => import("./pages/desk/DeskBookPage"), "DeskBookPage");
 // The public legal pages, readable without an account.
 const PrivacyPage = lazyPage(() => import("./pages/legal/LegalPages"), "PrivacyPage");
 const TermsPage = lazyPage(() => import("./pages/legal/LegalPages"), "TermsPage");
@@ -65,6 +74,8 @@ const HOME_LABEL: Record<Role, string> = {
   CHEMIST: "My store",
   ADMIN: "Verification",
   PHARMACIST: "Pharmacy",
+  CLINIC_ADMIN: "My clinic",
+  RECEPTIONIST: "Front desk",
 };
 
 export function App() {
@@ -75,7 +86,7 @@ export function App() {
   const ownChrome = pathname === "/" || pathname.startsWith("/login");
   // The three workspaces bring their own rail; the top bar is for the pages
   // in between (the directory, booking, notifications, sign-up).
-  const inWorkspace = /^\/(portal|doctor|store)(\/|$)/.test(pathname);
+  const inWorkspace = /^\/(portal|doctor|store|clinic|desk)(\/|$)/.test(pathname);
   // One line colour per role: the role repaints every accent below the root.
   const role = session?.role === "DOCTOR" ? "doctor" : session?.role === "CHEMIST" ? "chemist" : "patient";
   // Those pages hold their own <main>; landmarks must not nest.
@@ -126,6 +137,7 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/login/doctor" element={<LoginPage role="doctor" />} />
           <Route path="/login/chemist" element={<LoginPage role="chemist" />} />
+          <Route path="/login/clinic" element={<LoginPage role="clinic" />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path="/portal" element={<PortalLayout />}>
@@ -155,6 +167,16 @@ export function App() {
               <Route path="reservations" element={<ReservationsPage />} />
               <Route path="insights" element={<InsightsPage />} />
               <Route path="stock" element={<StockPage />} />
+            </Route>
+            <Route path="/clinic" element={<ClinicLayout />}>
+              <Route index element={<ClinicProfilePage />} />
+              <Route path="staff" element={<ClinicStaffPage />} />
+              <Route path="report" element={<ClinicReportPage />} />
+            </Route>
+            <Route path="/desk" element={<DeskLayout />}>
+              <Route index element={<DeskTodayPage />} />
+              <Route path="walk-in" element={<DeskWalkInPage />} />
+              <Route path="book" element={<DeskBookPage />} />
             </Route>
           </Route>
 
@@ -194,6 +216,7 @@ export function App() {
           </div>
         </footer>
       )}
+      <ChangePasswordGate />
       <ConsentGate />
     </div>
   );

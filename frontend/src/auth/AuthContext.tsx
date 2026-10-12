@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { actingFor } from "../api/acting";
 import { revokeSession, tokenStore } from "../api/client";
-import { auth as authApi } from "../api/endpoints";
+import { account, auth as authApi } from "../api/endpoints";
 import type { TokenPair } from "../api/types";
 import { AuthContext, SESSION_KEY, type Session } from "./context";
 
@@ -34,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       userId: pair.userId,
       fullName: pair.fullName,
       role: pair.role,
+      ...(pair.mustChangePassword ? { mustChangePassword: true } : {}),
     };
     // Display state only. It is never trusted for authorization — the server
     // re-derives the role from the token on every request, so editing this
@@ -52,6 +53,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithEmailCode = useCallback(
     async (email: string, code: string) => adopt(await authApi.verifyEmailCode(email, code)),
+    [adopt],
+  );
+
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) =>
+      adopt(await account.changePassword(currentPassword, newPassword)),
     [adopt],
   );
 
@@ -89,8 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const value = useMemo(
-    () => ({ session, login, loginWithEmailCode, register, registerChemist, registerDoctor, logout }),
-    [session, login, loginWithEmailCode, register, registerChemist, registerDoctor, logout],
+    () => ({ session, login, loginWithEmailCode, changePassword, register, registerChemist, registerDoctor, logout }),
+    [session, login, loginWithEmailCode, changePassword, register, registerChemist, registerDoctor, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
