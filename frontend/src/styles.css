@@ -874,3 +874,13 @@ a.tab.is-active { background: var(--accent-soft); color: var(--text); }
   max-width: 560px; width: 100%; max-height: 90vh; overflow: auto; padding: 24px; display: grid; gap: 10px;
 }
 .consent-gate__panel h2 { margin: 0; }
+
+/* ---------- Importing an old patient list (doctor workspace) and the patient's offer to link ---------- */
+.import-file { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.import-counts { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.import-counts li { display: grid; gap: 2px; padding: 12px 16px; background: var(--raised); border-radius: 12px; }
+.import-counts strong { font-size: 1.5rem; line-height: 32px; letter-spacing: -0.02em; }
+.import-counts span { font-size: 0.8125rem; color: var(--text-muted); }
+.import-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.clinic-offer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.clinic-offer__actions { display: flex; gap: 8px; }

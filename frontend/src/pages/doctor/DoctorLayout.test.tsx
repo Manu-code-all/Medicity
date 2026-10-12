@@ -13,13 +13,13 @@ const PROFILE = {
 const rao = { userId: "u1", fullName: "Anjali Rao", role: "DOCTOR" as const };
 
 describe("DoctorLayout", () => {
-  it("shows the doctor's name and the four workspace sections", async () => {
+  it("shows the doctor's name and the five workspace sections", async () => {
     mockFetch(({ url }) => (url.includes("notifications") ? json(200, { items: [], unread: 0 }) : json(200, PROFILE)));
     renderLayout(<DoctorLayout />, "/doctor", rao);
 
     expect(screen.getByRole("navigation", { name: "Doctor workspace" })).toBeInTheDocument();
     expect(screen.getByText("Anjali Rao")).toBeInTheDocument();
-    for (const name of ["Schedule", "Front desk", "Your hours", "Fees and insurance"]) {
+    for (const name of ["Schedule", "Front desk", "Your hours", "Fees and insurance", "Import patients"]) {
       expect(screen.getByRole("link", { name })).toBeInTheDocument();
     }
     expect(screen.getByRole("link", { name: "Schedule" })).toHaveClass("is-active");

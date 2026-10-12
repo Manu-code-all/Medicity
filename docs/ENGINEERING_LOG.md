@@ -3021,6 +3021,315 @@ not been applied to a database, and nothing has talked to the real Resend.
 
 ---
 
+## 74. Clinics, a clinic administrator and a front desk
+
+**Why.** Medicity served one doctor at a time. A clinic or hospital has several
+doctors, a reception desk that books for people on the phone, and an owner who
+wants to know how the days went. The only "front desk" was a doctor's own
+account (entry 42), so a clinic could not be sold to without sharing logins.
+
+**What.**
+
+- **Data (V44-V47).** `clinics`; `clinic_staff` (one row per staff user, role
+  `CLINIC_ADMIN` or `RECEPTIONIST`); `doctors.clinic_id` (nullable, so
+  independent doctors are unchanged); the two roles added to the `users` role
+  check (as V37 did for `PHARMACIST`); `users.must_change_password`;
+  `patients.registered_by_clinic_id`; `appointments.arrived_at` and
+  `booked_by_user_id`; `queue_tokens.added_by_user_id`. The demo seed adds two
+  clinics, four staff accounts and assigns ten of the demo doctors.
+- **Clinic administrator.** Edits the profile, adds a doctor or a receptionist,
+  resets or disables an account, reads a per-day report (booked, completed,
+  no-shows, cancellations, walk-ins, booked by the desk). The platform `ADMIN`
+  creates a clinic with its first administrator.
+- **Front desk.** Today's schedule across the clinic's doctors; arrival;
+  missed; cancel; book on behalf of a caller; a walk-in token for any clinic
+  doctor. Walk-ins reuse `QueueService.join` (same numbering, same limits, same
+  7am to 9pm window), only recording who added the token.
+- **Directory.** Doctors show their clinic's name, address and location, and
+  `GET /doctors?clinicId=` and `GET /clinics` let patients filter. A clinic
+  doctor's own clinic fields are ignored (the clinic owns them).
+- **Frontend.** `/clinic` (profile, people, report) and `/desk` (today, walk-in,
+  book) on `WorkspaceShell`; sign-in tab "Clinic" with both demo accounts; a
+  gate that forces the first password change; a clinic filter on the directory.
+
+**Decisions worth knowing.**
+
+- **The clinic is never taken from the request.** `ClinicAccess.resolve` reads
+  the caller's `clinic_staff` row (and refuses a missing row, an inactive clinic
+  or a role that does not match). Every service method takes that `Staff` value,
+  and every query is written `WHERE clinic_id = :clinic`. A foreign id gets the
+  same `404` as a nonexistent one, so ids cannot be probed, plus an
+  `ACCESS_DENIED` audit row (written independently, so it survives the
+  rollback) naming the caller's clinic and the attempted operation.
+- **Temporary password and forced reset, not an emailed invite.** Simpler and
+  needs no email provider. The administrator sees the password once; it is not
+  kept anywhere (not in the audit detail either). `JwtAuthenticationFilter`
+  answers `403 PASSWORD_CHANGE_REQUIRED` to everything but
+  `/account/change-password` and `/auth/**` until it is changed, which revokes
+  all refresh tokens and returns a fresh session. Changing is throttled like a
+  sign-in (failures count as `LOGIN_FAILED` for the email).
+- **A caller with no account is a "shadow" patient.** A `PATIENT` user
+  `desk-<uuid>@walkin.invalid`, disabled, with an unusable password hash, and a
+  `patients` row carrying `registered_by_clinic_id`. This avoids touching the
+  `patients_one_kind` constraint, every existing patient query keeps working,
+  and the email consumer (which reads enabled users) never tries to write to
+  them. Search finds only the *caller's own clinic's* recorded people (by name
+  or phone; `%` and `_` are literal), and a real account only by its whole
+  email, so the desk cannot browse Medicity's patients. The nightly demo reset
+  deletes unused shadow patients and receptionists made during the demo.
+- **Clinic doctors start unverified.** Adding a doctor does not bypass the
+  existing check: the platform `ADMIN` still verifies the registration number
+  before the doctor is listed or bookable.
+- **Roles and consent.** `CLINIC_ADMIN` and `RECEPTIONIST` need terms and privacy
+  consent like doctors and chemists; the seed's existing statement covers the
+  `@medicity.demo` accounts.
+
+**Verified.** Run against a private PostgreSQL 16 (not Testcontainers; see
+below): the new `ClinicIsolationTest` (11: schedule scope; cross-clinic
+arrived, no-show, cancel, walk-in, book, patients, staff management and report
+all `404` with rows unchanged and an audit row; role separation; inactive
+clinic; staff without a clinic), `ClinicStaffTest` (11: temporary-password
+flow, profile, adding a doctor, directory and filter, clinic-managed practice
+page, receptionist lifecycle, admin accounts protected, roster, report, consent
+for the new roles, the role check) and `FrontDeskTest` (10) all pass. The whole
+backend suite (339 tests) was run: all passed except two, both explained below
+and then fixed or understood. The demo seed was applied twice to that database
+with `ON_ERROR_STOP` (idempotent; every new account has its two consent rows).
+Frontend: typecheck, lint with zero warnings, 236 tests (23 new) and the
+production build pass.
+
+**Not verified.**
+
+- The sandbox has no Docker, so `AbstractIntegrationTest` (Testcontainers,
+  PostgreSQL 18 in CI) was pointed at a local PostgreSQL 16 for the run and the
+  change reverted; the committed code still uses Testcontainers. The
+  migrations have not been applied to PostgreSQL 18.
+- The first full-suite run had two failures. `ClinicStaffTest` used fixed
+  emails, and the append-only audit log (so the sign-in throttle) remembers
+  earlier runs within 15 minutes: fixed with a per-run suffix.
+  `AuditTrailTest.overlongEntityIdIsTruncated` failed because the private
+  cluster was `SQL_ASCII` (it counts bytes, so the "…" overflowed
+  `VARCHAR(255)`); it passes on a `UTF8` database, as CI's is. The full suite
+  was not repeated after those two fixes (only the two classes were).
+- The Playwright e2e specs were not run (they need the whole stack and a
+  browser). They do not touch anything this entry changes: the default sign-in
+  form, the directory card and its booking link are unchanged.
+- No browser walkthrough of `/clinic` and `/desk`.
+
+**Known limits (also in Known gaps).** Desk-recorded callers have no consent
+record. The desk's schedule view is not audited (it is polled every few
+seconds); searches, the report and every change are. Old access tokens survive a
+password change until they expire (15 minutes); refresh tokens do not. A staff
+account belongs to one clinic. Clinic doctors still set their own hours. The
+queue still uses fixed `Asia/Kolkata` days; a clinic's `timezone` affects only
+the desk's and the report's day boundaries.
+
+---
+## 75. Moving a clinic's old records in from Excel or CSV
+
+**Why.** Clinics told us the thing that stops them switching is their old
+records: years of patients in a spreadsheet. This lets a doctor bring them in,
+without creating logins for people who never asked for one and without showing
+those people (or anyone) a clinic's notes before they have agreed.
+
+**What.** Migrations V48 and V49 (V44 to V47 belong to the multi-clinic work and
+are not used or depended on).
+
+1. **Clinic-held records (V48, `clinic_records`).** One row per imported person,
+   never a `users` row. `owner_kind` ('DOCTOR' for now) and `owner_id` say who
+   holds it; `owner_id` is deliberately not a foreign key, so a clinic id can sit
+   in the same column later (a new `owner_kind`, no rewrite). Phone is stored as
+   digits only (a leading +91, 91 or 0 dropped, so one number written three ways
+   is one number), email lowercased, and a unique index per owner on each is
+   what makes a re-import an update.
+2. **Two steps (`ClinicImportService`).** `POST /api/v1/doctors/me/import/patients/dry-run`
+   reads the file and returns counts, what would be added, updated or left
+   alone, and the problems by row; it writes nothing. `/confirm` runs the same
+   plan again on the file (the request must carry the `fileSha256` the dry run
+   returned, so the file imported is the file looked at: 409 `FILE_CHANGED`
+   otherwise), under a per-owner advisory lock, and writes the good rows in
+   batches. Rows with problems are skipped, not half-imported. `/error-report`
+   returns every problem as a CSV (a leading `= + - @` in a cell is prefixed so
+   Excel does not run it as a formula) and `/template` the empty file with a
+   byte-order mark. Only a doctor whose registration is verified may import.
+3. **What the reader copes with (`CsvTable`, `PatientCsv`).** UTF-8 with or
+   without a BOM; UTF-16 text; and, when the bytes are not valid UTF-8,
+   Windows-1252, which is what Excel's plain "CSV (Comma delimited)" writes on
+   Windows (the file is not UTF-8, and guessing wrong turns "José" into
+   "JosÃ©"). Comma, semicolon or tab, found from the first line, or an Excel
+   `sep=;` line. Quotes, `""`, line breaks inside quotes, blank rows dropped
+   (but still counted, so row numbers match the spreadsheet). Headings are
+   found by name, in any order, with common aliases (Mobile, DOB, Sex, ...).
+   A binary file (an `.xlsx` is a zip) is refused with an explanation. Phone
+   numbers Excel has turned into `9.87E+11` get their own message. Dates are day
+   first (DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY) or ISO, a real date in the past;
+   gender and blood group accept the usual spellings ("O positive").
+   5,000 rows / 2 MB are refused before parsing the rest (`TOO_MANY_ROWS`,
+   `FILE_TOO_LARGE`).
+4. **Idempotent.** A row whose email or phone is already one of the owner's
+   records updates it (only cells that have something in them; an empty cell
+   never erases), and a row that changes nothing is counted as unchanged. A row
+   whose email is one record and phone another is refused (`AMBIGUOUS_MATCH`),
+   not merged by guesswork. Two doctors importing the same phone keep separate
+   records.
+5. **Nothing about the rows in logs or audit.** The log line and the audit rows
+   (`CLINIC_IMPORT_PREVIEWED`, `CLINIC_IMPORT`, `CLINIC_IMPORT_ERROR_REPORT`)
+   hold counts only. Error messages in the API name the row and column, never
+   the value; a test captures every log event of an import and checks none holds
+   a name, phone or note. The downloaded error report does echo the offending
+   cell, built from the file the doctor already holds.
+6. **Linking to a real account needs the patient's yes (`ClinicRecordLinks`).**
+   A record is offered to an account only when the account's email address has
+   been *proved* (V49 `users.email_verified_at`, set when a code emailed to the
+   address is typed, either to sign in or from Profile), the record's email is
+   that address, and the record is still undecided. The offer shows the doctor's
+   name and nothing else; the notes, phone and the rest become visible only after
+   `accept`, which links the record to the account's own patient profile.
+   `decline` keeps it hidden and it is not offered again (also not after a
+   re-import; a changed email address on a declined record resets the question,
+   because the earlier no was about a different address). Without a verified
+   address the answer is the same for everyone, so it does not reveal which
+   addresses a clinic holds. The frontend has the consent step on the patient's
+   Profile page ("Records from your clinic").
+7. **Privacy code (entry 72's rules).** `DataExportService` adds `clinicRecords`:
+   the records the person accepted, in full, with the clinic's name; records
+   offered or declined are the clinic's and are not in the person's export.
+   `AccountDeletionService` ends the link of any accepted record (marked
+   declined, owner and patient ids cleared, so it is never offered to the next
+   holder of that address) and reports `clinicRecordsUnlinked`; the clinic keeps
+   its own row, as it keeps its notes about a patient who leaves. The
+   retention table of the public privacy notice has a row for it.
+8. **Frontend.** `/doctor/import` ("Import patients" in the doctor workspace
+   menu): download the template, choose a file (checked at once, nothing saved),
+   see counts and the first ten problems, download every problem as a CSV,
+   confirm, read the result. A file over 2 MB is stopped in the browser.
+
+**Decisions to know about.**
+
+- **The link is made when the patient says yes, not at sign-up.** Sign-up
+  accepts any address and checks nothing, so linking (or even telling someone
+  "your clinic has records") at that moment would let anyone who registers with a
+  victim's email read the victim's clinic notes. Verifying the address is the
+  step that makes it safe; an account that signs in with an emailed code is
+  already verified. If the brief meant a link at the moment of registration, it
+  needs email verification added to sign-up first.
+- **Phone numbers never link.** There is no way to prove a number (sign-in by
+  mobile was removed, entry 70). They are used to recognise a repeat import, not
+  to match an account. A record with only a phone stays unlinked.
+- **Both a phone and an email are not required, but one of them is** (a CHECK in
+  V48): without either the next import could not tell whether the row was new.
+- **Unverified doctors cannot import.** Otherwise an account anyone can create
+  could plant "records" for any email address, which the owner of that address
+  would then be asked about.
+- **Declined is permanent, accepted is the patient's.** There is no "undo" in
+  the app yet (a patient can delete their account, which ends the link).
+
+**Verified.** Backend: a new `ClinicImportTest` of 20 integration tests passes
+(template; dry run counting and naming each problem and writing nothing; semicolon
+Windows-1252, BOM, UTF-16 tab files; the Excel traps; 5,000 rows accepted and
+5,001 and 2 MB refused; confirm saving owned records and no accounts; idempotent
+re-import by phone written another way; ambiguous match; two owners; the hash
+check; who may import; the error report and formula guard; no row contents in
+logs or the audit trail; unverified address sees nothing and cannot accept; offer
+then accept, with another person's record a 404; decline; phone never links; the
+code endpoints; export; deletion). The whole backend suite ran against a local
+PostgreSQL 16 (327 tests, 326 pass). The one failure,
+`AuditTrailTest.overlongEntityIdIsTruncated`, fails identically on the untouched
+base commit in this sandbox, so it is not from this change. Frontend: type check,
+lint and build clean; 226 tests pass (13 new: the Import page's template, check,
+confirm with hash, problems download, empty and refused files, the 2 MB stop, a
+failed confirm; the patient panel's verify, unavailable, accept, decline and
+hidden-on-error states).
+
+**Not verified.**
+
+- The Testcontainers path: no Docker here. The suite ran on PostgreSQL 16 started
+  by hand, with the base test class temporarily pointed at it (not committed);
+  CI is the first run on 18.
+- Nothing was run in a browser, and nothing against a real email provider: the
+  emailed-code step is tested with a fake sender, as the sign-in code tests do.
+- Real Excel files were not used; the encodings were built by hand (Windows-1252,
+  UTF-16, BOM, `sep=`).
+- The new endpoints are not load tested; the 5,000-row test only checks the
+  limit and the counts, not how long it takes.
+
+**Known limits (also under Known gaps).** Two people who share one phone number
+(a parent and a child) cannot both be imported with just that number: the second
+is reported as a duplicate in the file. There is no screen to list, edit or delete
+imported records, so a doctor can only correct them by importing again, and
+nothing purges them. An imported record never feeds the booking, history or
+prescription code: it is a held record, not a patient with visits. The upload
+is not rate limited beyond the sign-in itself.
+## 76. The pharmacist gets a workspace, and an administrator can create one
+
+Entry 71 added the `PHARMACIST` role with no screens and left `ADMIN` able to
+dispense because nothing else could create a pharmacist. Both are closed.
+
+**Creating pharmacists.** `POST /api/v1/admin/pharmacists` (ADMIN only) takes an
+email, a name and a temporary password (10 characters or more, longer than the
+patient floor because this account moves stock) and creates a `PHARMACIST`
+through the same `AuthService.createAccount` as every other sign-in, in one
+transaction with `ConsentService.recordSignUp`. `requiredFor(PHARMACIST)` is
+already empty, so no consent rows are written and nothing is ever pending; the
+call is there so staff accounts go through one path and so a future change to
+what staff must agree to reaches this one too. The creation is audited
+(`PHARMACIST_CREATED`). `GET` on the same path lists them. A third tab on the
+admin pages ("Pharmacists") holds the form and the list. No migration.
+
+**Forced password change: not done.** There is no must-change flag on a user, no
+change-password endpoint, and the authentication filter would need to learn
+about both. That is a migration plus a new flow, not a small change, so the
+temporary password simply stays valid until someone changes it by SQL. The admin
+page says so and tells the administrator to hand the password over in person.
+It is listed under Known gaps.
+
+**ADMIN removed from the counter.** Dispensing, restocking and low stock are now
+`hasRole('PHARMACIST')`. I judged this safe because an administrator can now
+create the pharmacist (the reason I kept ADMIN in entry 71). Two things to know
+before deploying: production must already have a pharmacist, or the first thing
+an administrator does after deploy is create one; and an administrator who is
+locked out of the counter can still create themselves a pharmacist sign-in, so
+this is separation of duties by convention and audit (`PHARMACIST_CREATED`), not
+a wall. `DispensingTest` now dispenses as a pharmacist and has a test that ADMIN
+is refused on all four pharmacy endpoints.
+
+**Finding a prescription.** The brief asked for lookup by pickup or reservation
+code. Those six-digit codes belong to a neighbourhood chemist's reservation
+(`V16`); a hospital prescription has no code and nothing on the
+server could resolve one to the other. Instead, without a migration:
+`GET /api/v1/pharmacy/prescriptions?q=` (PHARMACIST) matches the **reference**,
+the first eight characters of the prescription id, or part of the patient's
+name (family members' own names included), at least 3 characters, newest
+first, at most 10, never a prescription that has been corrected. The patient
+sees the reference on each prescription in the portal. The result carries the
+items, what is on hand for each, whether it has been dispensed and whether it
+can be. A name search shows a pharmacist every matching patient's current
+prescriptions; that is what the counter needs, but it is a wider read than the
+reference and is not separately audited (dispensing is).
+
+**The workspace.** `/pharmacy` (guarded, like the other three, by an explanation
+rather than a redirect for the wrong role), with a Counter (search, see the
+lines and stock, "Dispense all", disabled when any line is short because the
+server would refuse the whole prescription anyway) and a Stock page (the
+low-stock list, each with a quantity box, plus a medicine search for restocking
+anything). `/login/pharmacist` is a sign-in page with the demo pharmacist; it is
+not one of the three public role tabs, it is linked from them. A pharmacist now
+lands on `/pharmacy`, and a signed-out visitor to `/pharmacy` is sent to that
+sign-in.
+
+**Verified.** Backend suite subset run against a local PostgreSQL 16 started by
+hand (no Docker here), with the Testcontainers base class temporarily pointed at
+it and then restored: `DispensingTest` (11, four new), the new
+`PharmacistAdminTest` (3) and `AuditTrailTest` (9) pass. `mvn test-compile`
+clean. Frontend: type check, lint, build, and the whole suite (227 tests, 14
+new) pass.
+
+**Not verified.** The rest of the backend suite was not re-run (only the three
+classes above); CI is the first run on PostgreSQL 18. The screens were tested
+with component tests only, not in a browser.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -3037,11 +3346,16 @@ not been applied to a database, and nothing has talked to the real Resend.
   run. The signalling rooms and tickets live in the API's memory, so a
   second API instance would need them shared (Redis pub/sub). The call is
   not recorded, and there is no in-call chat or screen sharing.
-- **The walk-in queue refreshes by polling, and has no receptionist role.**
-  Places update every 10 seconds rather than being pushed; the doctor's
-  account is the front desk, and there is no separate kiosk or receptionist
-  login. Arrivals for booked visits are listed beside the walk-ins, not
-  merged into one numbered line.
+- **The walk-in queue refreshes by polling, and the receptionist role is
+  only partly there.** Places update every 10 seconds rather than being
+  pushed. A clinic's receptionist now exists (entry 74): they add walk-ins for
+  any doctor of their clinic and mark arrivals. Still missing: a patient-facing
+  kiosk, an arrival that moves a booked visit into the numbered line (the
+  arrival is recorded and shown, not merged), and a receptionist who works for
+  more than one clinic. An independent doctor still uses their own account as
+  the front desk. Callers the desk records have no consent record, and the
+  desk's schedule view (polled) is not audited, though searches and every
+  change are.
 - **"Running late" is an estimate.** It relies on doctors closing each visit
   as they finish; a doctor who closes them all at the end of the day looks
   late until then. There is no check-in or "consultation started" event.
@@ -3111,11 +3425,12 @@ not been applied to a database, and nothing has talked to the real Resend.
 - **Notifications are in-app only.** No email or SMS provider is configured,
   so a patient who does not open the app does not hear about a cancellation or
   a corrected prescription. Both would be further outbox consumers.
-- **The pharmacist has no screens.** `PHARMACIST` can dispense and restock
-  through the API (entry 71) but the web app has no pharmacy page, and
-  `ADMIN` can still dispense, so an administrator account is more powerful
-  than it needs to be there. Accounts are created by SQL; there is no
-  admin screen to add one.
+- **A new pharmacist's temporary password is not forced to change.** The
+  administrator creates the account with a password and hands it over in
+  person (entry 76); the app has no must-change flag or change-password
+  endpoint, so it stays valid until changed by SQL. Pharmacists cannot be
+  disabled or removed from the app either, and the pharmacy lookup by patient
+  name is not audited as a read.
 - **The demo resets only nightly.** Between resets, one visitor's changes
   (closing the waiting visit, booking slots) are what the next visitor sees.
 - **Nothing collects the metrics in production.** `/actuator/prometheus`
@@ -3128,4 +3443,11 @@ not been applied to a database, and nothing has talked to the real Resend.
 - **Frontend tests cover the API client and the booking page only.** The
   doctor workspace, the portal pages and sign-in have no tests, and there is
   no browser end-to-end test.
-
+- **Imported clinic records have no screen and no purge.** A doctor can import
+  and re-import (entry 75) but cannot list, edit or delete the records in the
+  app, and nothing deletes them after a period; only a person with database
+  access can. Two people sharing one phone number cannot both be imported on
+  that number alone. Only an email address, proved by a code, links a record to
+  an account; there is no email check at sign-up itself, and a phone number is
+  never used. An imported record is not yet a patient the doctor can book or
+  prescribe to.

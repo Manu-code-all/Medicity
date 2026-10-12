@@ -6,6 +6,8 @@ export interface Session {
   userId: string;
   fullName: string;
   role: Role;
+  /** The account was made by a clinic and still has its temporary password. */
+  mustChangePassword?: boolean;
 }
 
 export interface AuthContextValue {
@@ -14,6 +16,8 @@ export interface AuthContextValue {
   login: (email: string, password: string) => Promise<Session>;
   /** Signs in with an email address and the code sent to it. */
   loginWithEmailCode: (email: string, code: string) => Promise<Session>;
+  /** Replaces a temporary password with one the person chose; resolves with the refreshed session. */
+  changePassword: (currentPassword: string, newPassword: string) => Promise<Session>;
   register: (input: Parameters<typeof authApi.register>[0]) => Promise<void>;
   registerChemist: (input: Parameters<typeof authApi.registerChemist>[0]) => Promise<void>;
   registerDoctor: (input: Parameters<typeof authApi.registerDoctor>[0]) => Promise<void>;
@@ -35,9 +39,12 @@ export function homeFor(role: Role): string {
       return "/store";
     case "ADMIN":
       return "/admin/stores";
+    case "CLINIC_ADMIN":
+      return "/clinic";
+    case "RECEPTIONIST":
+      return "/desk";
     case "PHARMACIST":
-      // The pharmacy counter has no screens in the web app yet; it works through the API.
-      return "/";
+      return "/pharmacy";
     default:
       return "/";
   }

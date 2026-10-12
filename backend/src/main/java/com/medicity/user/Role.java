@@ -11,13 +11,20 @@ package com.medicity.user;
  *
  * <p>{@code PHARMACIST} works the hospital pharmacy counter: dispenses and
  * restocks, but cannot read the audit log (that stays with {@code ADMIN}).
+ *
+ * <p>{@code CLINIC_ADMIN} and {@code RECEPTIONIST} belong to one clinic (the
+ * {@code clinic_staff} row, V44) and see nothing outside it. The admin manages
+ * the clinic's profile, doctors, receptionists and report; the receptionist
+ * works the front desk.
  */
 public enum Role {
     PATIENT,
     DOCTOR,
     ADMIN,
     CHEMIST,
-    PHARMACIST;
+    PHARMACIST,
+    CLINIC_ADMIN,
+    RECEPTIONIST;
 
     /** Spring Security expects the {@code ROLE_} prefix on authorities. */
     public String authority() {

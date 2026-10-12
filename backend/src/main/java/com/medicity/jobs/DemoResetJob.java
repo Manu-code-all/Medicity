@@ -127,6 +127,19 @@ public class DemoResetJob {
         // Family members visitors added to the demo accounts; the seed's own come back.
         jdbc.update("DELETE FROM patients WHERE guardian_user_id IN " + DEMO_PATIENT_ACCOUNTS);
 
+        // People the demo clinics' front desks recorded (V46), now that their visits are gone,
+        // and receptionists a visitor added to a demo clinic (the seeded staff are *@medicity.demo).
+        jdbc.update("""
+                DELETE FROM users u WHERE u.email LIKE 'desk-%@walkin.invalid'
+                  AND NOT EXISTS (SELECT 1 FROM patients p JOIN appointments a ON a.patient_id = p.id
+                                  WHERE p.user_id = u.id)
+                """);
+        jdbc.update("""
+                DELETE FROM users WHERE email NOT LIKE '%@medicity.demo'
+                  AND role = 'RECEPTIONIST'
+                  AND id IN (SELECT user_id FROM clinic_staff WHERE clinic_id::text LIKE '66666666-6666-4666-8666-%')
+                """);
+
         // The demo chemists' stores go back to their seeded profiles. Stores
         // visitors registered are kept, like their accounts.
         jdbc.update("DELETE FROM stores WHERE id::text LIKE '55555555-5555-4555-8555-%'");

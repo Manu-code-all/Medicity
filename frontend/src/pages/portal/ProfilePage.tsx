@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "../../api/client";
 import { notifications, portal } from "../../api/endpoints";
 import { HealthForm } from "../../components/HealthForm";
+import { ClinicRecordsPanel } from "../../components/ClinicRecordsPanel";
 import { PrivacyPanel } from "../../components/PrivacyPanel";
 import { ageFrom, formatDate, initials } from "../../lib/format";
 
@@ -150,6 +151,8 @@ export function ProfilePage() {
       <EmailNotifications />
         </>
       )}
+
+      <ClinicRecordsPanel />
 
       <PrivacyPanel />
     </div>

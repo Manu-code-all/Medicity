@@ -4,15 +4,19 @@ import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigat
 import { notifications } from "./api/endpoints";
 import type { Role } from "./api/types";
 import { homeFor, useAuth } from "./auth/context";
+import { ChangePasswordGate } from "./components/ChangePasswordGate";
 import { ConsentGate } from "./components/ConsentGate";
 import { LegalLinks } from "./components/LegalLinks";
 import { PageLoading } from "./components/PageLoading";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ClinicLayout } from "./pages/clinic/ClinicLayout";
+import { DeskLayout } from "./pages/desk/DeskLayout";
 import { DoctorLayout } from "./pages/doctor/DoctorLayout";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NOTIFICATIONS_KEY } from "./lib/notifications";
 import { StoreLayout } from "./pages/store/StoreLayout";
+import { PharmacyLayout } from "./pages/pharmacy/PharmacyLayout";
 import { PortalLayout } from "./pages/portal/PortalLayout";
 import { lazyPage } from "./lib/lazyPage";
 
@@ -22,6 +26,7 @@ import { lazyPage } from "./lib/lazyPage";
 // <Suspense> each page loads inside, so the navigation never blinks.
 const BookingPage = lazyPage(() => import("./pages/BookingPage"), "BookingPage");
 const HoursPage = lazyPage(() => import("./pages/doctor/HoursPage"), "HoursPage");
+const ImportPage = lazyPage(() => import("./pages/doctor/ImportPage"), "ImportPage");
 const PracticePage = lazyPage(() => import("./pages/doctor/PracticePage"), "PracticePage");
 const PatientHistoryPage = lazyPage(() => import("./pages/doctor/PatientHistoryPage"), "PatientHistoryPage");
 const SchedulePage = lazyPage(() => import("./pages/doctor/SchedulePage"), "SchedulePage");
@@ -29,6 +34,9 @@ const VisitPage = lazyPage(() => import("./pages/doctor/VisitPage"), "VisitPage"
 const DoctorsPage = lazyPage(() => import("./pages/DoctorsPage"), "DoctorsPage");
 const NotificationsPage = lazyPage(() => import("./pages/NotificationsPage"), "NotificationsPage");
 const PendingDoctorsPage = lazyPage(() => import("./pages/admin/PendingDoctorsPage"), "PendingDoctorsPage");
+const PharmacistsPage = lazyPage(() => import("./pages/admin/PharmacistsPage"), "PharmacistsPage");
+const CounterPage = lazyPage(() => import("./pages/pharmacy/CounterPage"), "CounterPage");
+const PharmacyStockPage = lazyPage(() => import("./pages/pharmacy/PharmacyStockPage"), "PharmacyStockPage");
 const PendingStoresPage = lazyPage(() => import("./pages/admin/PendingStoresPage"), "PendingStoresPage");
 const ChemistsPage = lazyPage(() => import("./pages/portal/ChemistsPage"), "ChemistsPage");
 const FamilyPage = lazyPage(() => import("./pages/portal/FamilyPage"), "FamilyPage");
@@ -52,6 +60,12 @@ const VisitsPage = lazyPage(() => import("./pages/portal/VisitsPage"), "VisitsPa
 const TokensPage = lazyPage(() => import("./pages/portal/TokensPage"), "TokensPage");
 const WalkInPage = lazyPage(() => import("./pages/queue/WalkInPage"), "WalkInPage");
 const FrontDeskPage = lazyPage(() => import("./pages/doctor/FrontDeskPage"), "FrontDeskPage");
+const ClinicProfilePage = lazyPage(() => import("./pages/clinic/ClinicProfilePage"), "ClinicProfilePage");
+const ClinicStaffPage = lazyPage(() => import("./pages/clinic/ClinicStaffPage"), "ClinicStaffPage");
+const ClinicReportPage = lazyPage(() => import("./pages/clinic/ClinicReportPage"), "ClinicReportPage");
+const DeskTodayPage = lazyPage(() => import("./pages/desk/DeskTodayPage"), "DeskTodayPage");
+const DeskWalkInPage = lazyPage(() => import("./pages/desk/DeskWalkInPage"), "DeskWalkInPage");
+const DeskBookPage = lazyPage(() => import("./pages/desk/DeskBookPage"), "DeskBookPage");
 // The public legal pages, readable without an account.
 const PrivacyPage = lazyPage(() => import("./pages/legal/LegalPages"), "PrivacyPage");
 const TermsPage = lazyPage(() => import("./pages/legal/LegalPages"), "TermsPage");
@@ -65,6 +79,8 @@ const HOME_LABEL: Record<Role, string> = {
   CHEMIST: "My store",
   ADMIN: "Verification",
   PHARMACIST: "Pharmacy",
+  CLINIC_ADMIN: "My clinic",
+  RECEPTIONIST: "Front desk",
 };
 
 export function App() {
@@ -75,7 +91,7 @@ export function App() {
   const ownChrome = pathname === "/" || pathname.startsWith("/login");
   // The three workspaces bring their own rail; the top bar is for the pages
   // in between (the directory, booking, notifications, sign-up).
-  const inWorkspace = /^\/(portal|doctor|store)(\/|$)/.test(pathname);
+  const inWorkspace = /^\/(portal|doctor|store|clinic|desk|pharmacy)(\/|$)/.test(pathname);
   // One line colour per role: the role repaints every accent below the root.
   const role = session?.role === "DOCTOR" ? "doctor" : session?.role === "CHEMIST" ? "chemist" : "patient";
   // Those pages hold their own <main>; landmarks must not nest.
@@ -126,6 +142,8 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/login/doctor" element={<LoginPage role="doctor" />} />
           <Route path="/login/chemist" element={<LoginPage role="chemist" />} />
+          <Route path="/login/clinic" element={<LoginPage role="clinic" />} />
+          <Route path="/login/pharmacist" element={<LoginPage role="pharmacist" />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path="/portal" element={<PortalLayout />}>
@@ -146,6 +164,7 @@ export function App() {
               <Route path="patients/:patientId" element={<PatientHistoryPage />} />
               <Route path="hours" element={<HoursPage />} />
               <Route path="practice" element={<PracticePage />} />
+              <Route path="import" element={<ImportPage />} />
               <Route path="queue" element={<FrontDeskPage />} />
             </Route>
             <Route path="/store" element={<StoreLayout />}>
@@ -155,6 +174,20 @@ export function App() {
               <Route path="reservations" element={<ReservationsPage />} />
               <Route path="insights" element={<InsightsPage />} />
               <Route path="stock" element={<StockPage />} />
+            </Route>
+            <Route path="/clinic" element={<ClinicLayout />}>
+              <Route index element={<ClinicProfilePage />} />
+              <Route path="staff" element={<ClinicStaffPage />} />
+              <Route path="report" element={<ClinicReportPage />} />
+            </Route>
+            <Route path="/desk" element={<DeskLayout />}>
+              <Route index element={<DeskTodayPage />} />
+              <Route path="walk-in" element={<DeskWalkInPage />} />
+              <Route path="book" element={<DeskBookPage />} />
+            </Route>
+            <Route path="/pharmacy" element={<PharmacyLayout />}>
+              <Route index element={<CounterPage />} />
+              <Route path="stock" element={<PharmacyStockPage />} />
             </Route>
           </Route>
 
@@ -172,6 +205,7 @@ export function App() {
               <Route path="/doctors" element={<DoctorsPage />} />
               <Route path="/admin/stores" element={<PendingStoresPage />} />
               <Route path="/admin/doctors" element={<PendingDoctorsPage />} />
+              <Route path="/admin/pharmacists" element={<PharmacistsPage />} />
               <Route path="/doctors/:doctorId/book" element={<BookingPage />} />
               <Route path="/doctors/:doctorId/walk-in" element={<WalkInPage />} />
               <Route path="/visits/:appointmentId/video" element={<VideoRoomPage />} />
@@ -194,6 +228,7 @@ export function App() {
           </div>
         </footer>
       )}
+      <ChangePasswordGate />
       <ConsentGate />
     </div>
   );

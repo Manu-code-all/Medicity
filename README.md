@@ -31,6 +31,8 @@ Every demo account uses the password `demo-password-2026`. The demo resets each 
 | `dr.menon@medicity.demo` | The front desk: call the next walk-in token |
 | `chemist@medicity.demo` | A patient's question waiting to be answered, reservations, a pickup code |
 | `admin@medicity.demo` | Verifying new doctors and stores, the audit trail |
+| `admin.indiranagar@medicity.demo` | A clinic's administrator: its profile, people (add a doctor or a receptionist), and a visits report |
+| `desk.indiranagar@medicity.demo` | The front desk of that clinic: today's schedule, arrivals, walk-ins, booking for someone on the phone |
 
 ### By the numbers
 
@@ -243,7 +245,13 @@ The `EXCLUDE` constraint uses a half-open range `'[)'`, so 10:00–10:30 and
   These are only meaningful once the real client address reaches the app; see
   *Trusted proxies* under Deployment.
 - **Roles.** `PHARMACIST` dispenses and restocks (`ADMIN` still may); only
-  `ADMIN` reads the audit log and verifies doctors and stores.
+  `ADMIN` reads the audit log and verifies doctors and stores. `CLINIC_ADMIN`
+  and `RECEPTIONIST` belong to exactly one clinic: the clinic is read from the
+  caller's own staff row, never from the request, so every query is limited to
+  it, and another clinic's visit is answered `404` (as if it did not exist)
+  with an `ACCESS_DENIED` audit row. Only a `CLINIC_ADMIN` sees the report and
+  manages people. Accounts a clinic creates have a temporary password and can
+  do nothing but change it (`403 PASSWORD_CHANGE_REQUIRED`) until they do.
 - **Safe retries.** Booking accepts an `Idempotency-Key`, so a retry after a
   dropped response returns the original booking instead of an error.
 - **Row-level authorization.** Role checks alone are insufficient: every patient
@@ -294,8 +302,10 @@ SPRING_PROFILES_ACTIVE=demo docker compose up --build
 | `dr.rao@medicity.demo` | DOCTOR — one visit waiting to be closed, one later today |
 | `dr.iyer@medicity.demo` | DOCTOR — useful for checking that doctors cannot reach each other's patients |
 | `admin@medicity.demo` | ADMIN — audit trail, and the store and doctor verification queues |
-| `pharmacist@medicity.demo` | PHARMACIST — dispensing and stock through the API (no web screens yet); cannot read the audit log |
+| `pharmacist@medicity.demo` | PHARMACIST — the pharmacy workspace at `/pharmacy` (dispense, low stock, restock); cannot read the audit log. Administrators create pharmacists at `/admin/pharmacists` |
 | `chemist@medicity.demo` | CHEMIST — Sri Sai Medicals, with a patient's question waiting |
+| `admin.indiranagar@`, `admin.koramangala@medicity.demo` | CLINIC_ADMIN — of Indiranagar Family Health Centre / Koramangala Specialty Hospital |
+| `desk.indiranagar@`, `desk.koramangala@medicity.demo` | RECEPTIONIST — the front desk of the same two clinics (5 of the demo doctors each) |
 | `dr.menon@`, `dr.kulkarni@`, `dr.shetty@`, … `@medicity.demo` | DOCTOR — one per speciality (14 in all), so every body-guide answer is bookable |
 
 Password for all of them: `demo-password-2026`
@@ -398,6 +408,13 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `GET`/`POST` | `/api/v1/doctors/me/leave` | DOCTOR | Days off: no slots, no walk-in tokens; booked visits kept and counted |
 | `GET`/`PUT` | `/api/v1/doctors/me/practice` | DOCTOR | Fee, bio, years, insurers and other charges, as the directory shows them |
 | `GET` | `/api/v1/doctors/me/profile` | DOCTOR | The doctor's profile and whether it is verified |
+| `GET` | `/api/v1/doctors/me/import/patients/template` | DOCTOR | The empty CSV for moving an old patient list in (UTF-8 with a byte-order mark, opens correctly in Excel) |
+| `POST` | `/api/v1/doctors/me/import/patients/dry-run` | verified DOCTOR | Check a CSV (up to 5,000 rows, 2 MB) without saving: counts, what would be added or updated, problems by row |
+| `POST` | `/api/v1/doctors/me/import/patients/confirm` | verified DOCTOR | Import the file that was checked (its `fileSha256` must match); bad rows are skipped, the same phone or email updates instead of duplicating |
+| `POST` | `/api/v1/doctors/me/import/patients/error-report` | verified DOCTOR | Every problem in a CSV, as a CSV |
+| `GET` | `/api/v1/patients/me/clinic-records` | PATIENT | Clinics holding a record for my *verified* email (name only until I accept), and the ones I accepted |
+| `POST` | `/api/v1/patients/me/clinic-records/email-code` · `/email-code/verify` | PATIENT | Prove the email address with an emailed code |
+| `POST` | `/api/v1/patients/me/clinic-records/{id}/accept` · `/decline` | PATIENT | Say yes (link it, show it to me) or no (stays hidden, never offered again) |
 | `GET` | `/api/v1/admin/doctors/pending` | ADMIN | Doctors waiting for their registration check |
 | `POST` | `/api/v1/admin/doctors/{id}/verify` | ADMIN | Registration checked: the doctor becomes bookable |
 | `POST` | `/api/v1/auth/otp/verify` | — | Mobile number and code for a token pair |
@@ -449,6 +466,18 @@ Full interactive reference at `/swagger-ui.html`. Core endpoints:
 | `POST` | `/api/v1/pharmacy/medicines/{id}/restock` | PHARMACIST, ADMIN | Add stock |
 | `POST` | `/api/v1/pharmacy/prescriptions/{id}/dispense` | PHARMACIST, ADMIN | Dispense, decrementing stock atomically |
 | `GET` | `/api/v1/admin/audit` | ADMIN | Search the audit trail |
+| `GET` | `/api/v1/clinics`, `/api/v1/clinics/{id}` | — | Clinics and hospitals with doctors to book; `GET /api/v1/doctors?clinicId=` filters the directory by one |
+| `GET`/`POST` | `/api/v1/admin/clinics` | ADMIN | List clinics; create one with its first administrator (temporary password returned once); `PUT .../{id}/active` switches it on or off |
+| `POST` | `/api/v1/account/change-password` | signed in | Replace a password (required first for clinic-made accounts); ends every other session |
+| `GET`/`PUT` | `/api/v1/clinics/me` | CLINIC_ADMIN (`GET`: also RECEPTIONIST) | The caller's own clinic profile |
+| `GET` | `/api/v1/clinics/me/staff` | CLINIC_ADMIN | The roster: doctors, receptionists, administrators |
+| `POST` | `/api/v1/clinics/me/doctors`, `/receptionists` | CLINIC_ADMIN | Add a person with a temporary password (shown once); a doctor is unverified until `ADMIN` checks the registration number |
+| `POST` | `/api/v1/clinics/me/staff/{userId}/reset-password`, `/disable`, `/enable` | CLINIC_ADMIN | Manage a person of this clinic (not an administrator) |
+| `GET` | `/api/v1/clinics/me/report?from=&to=` | CLINIC_ADMIN | Per day: booked, completed, no-shows, cancellations, walk-ins, booked by the desk (up to 92 days) |
+| `GET` | `/api/v1/clinics/me/desk/today?date=` | CLINIC_ADMIN, RECEPTIONIST | The clinic's doctors, the day's visits and walk-in lines |
+| `POST` | `/api/v1/clinics/me/desk/visits/{id}/arrived`, `/no-show`, `/cancel` | CLINIC_ADMIN, RECEPTIONIST | Mark arrival (repeatable), mark missed (not once arrived), cancel for a caller |
+| `POST` | `/api/v1/clinics/me/desk/visits`, `/walk-ins` | CLINIC_ADMIN, RECEPTIONIST | Book a slot, or give a walk-in token, for any of the clinic's doctors; the patient is an `email`, a `patientId` or a `newPatient` |
+| `GET`/`POST` | `/api/v1/clinics/me/desk/patients` | CLINIC_ADMIN, RECEPTIONIST | Find callers this clinic has recorded (or an account by whole email); record a new one |
 | `POST` | `/api/v1/auth/register/chemist` | — | Register a chemist and their store (unverified) |
 | `GET` | `/api/v1/stores/nearby?lat&lng&radiusM` | signed in | Verified stores in a radius, nearest first |
 | `GET` `PUT` | `/api/v1/stores/me` | CHEMIST | Own store profile |
@@ -728,6 +757,16 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
   to bookings and walk-ins; visits already booked are kept and counted.
 - **Fees and insurance** (`/doctor/practice`) — the fee, bio, insurers
   accepted and other charges the directory shows; changes show at once.
+- **Import patients** (`/doctor/import`) — move an old patient list in from
+  Excel or CSV. Download the template, choose the file, and the page checks
+  every row (bad dates, bad phones, the same person twice) and shows counts and
+  the first problems; nothing is saved until you confirm, and the file confirmed
+  is the file checked. Importing the same list again updates, it does not
+  duplicate. The people imported are **your records, not accounts**: a patient
+  sees yours only after they sign up with the same email, prove that address
+  with an emailed code, and say yes (Profile, "Records from your clinic").
+  Accepts UTF-8 (with or without a byte-order mark), Excel's Windows-1252 CSV
+  and UTF-16 text; comma, semicolon or tab; up to 5,000 rows and 2 MB. Entry 75.
 
 - **Handwritten prescriptions** — photograph the slip; a vision model reads it
   into a draft the doctor checks line by line and confirms. The model's output
@@ -737,6 +776,33 @@ Try it as `dr.rao@medicity.demo` / `demo-password-2026`.
   With neither, the doctor types, and the photo is still attached for the
   patient and the stores. Gemini's free tier may use requests to improve
   Google's products, so real patients' slips need a paid key.
+
+## Clinics and the front desk
+
+For a clinic or hospital with several doctors and a reception desk, rather than
+one doctor on their own.
+
+- **Clinics** — a clinic has a name, address, city, location, phone, email and
+  time zone. Doctors may belong to one; patients then see the clinic's name,
+  address and distance beside each of its doctors and can filter the directory
+  by clinic. Independent doctors work exactly as before. The platform
+  `ADMIN` creates a clinic with its first administrator; a clinic can be
+  switched off.
+- **Administrator** (`/clinic`, `admin.indiranagar@medicity.demo`) — edits the
+  profile, adds doctors and receptionists, resets or disables an account, and
+  reads a report for a date range. A new account gets a **temporary password
+  shown once**; the person must choose their own at first sign-in. (Chosen over
+  an emailed invite because it needs no email provider.)
+- **Front desk** (`/desk`, `desk.indiranagar@medicity.demo`) — today's visits
+  for the clinic's doctors, **Arrived** and **Did not come** buttons, a walk-in
+  token for any clinic doctor (the same line patients join on their phones), and
+  booking or cancelling for someone who phones. A caller with no account is
+  recorded for that clinic only and is never visible to another clinic.
+- **Who sees what** — every query starts from the caller's own clinic. Staff of
+  one clinic cannot read or change another's schedule, patients, people or
+  report; the integration tests in `backend/src/test/java/com/medicity/clinic`
+  prove it route by route. Every staff action is written to the audit log with
+  the clinic.
 
 ## The chemist network
 
@@ -786,6 +852,7 @@ The design notes for each piece are in `docs/ENGINEERING_LOG.md`, entries 21–2
 - [x] Store insights and optional live stock
 - [x] Refill and course reminders
 - [x] Family members on one account
+- [x] Import an old patient list from Excel/CSV (clinic-held records, linked only with the patient's consent)
 - [x] Medicine instructions in six languages, shareable on WhatsApp
 - [x] Handwritten prescription photos read into a draft the doctor confirms
 - [ ] Native-speaker and pharmacist review of the instruction phrasebook

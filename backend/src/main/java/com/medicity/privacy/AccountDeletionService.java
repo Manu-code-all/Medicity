@@ -52,6 +52,9 @@ import java.util.UUID;
  *   <tr><td>The audit log</td><td>Kept: append-only by design (V5, V6) and the evidence
  *       of who saw and changed records. It names the account by id, not by name; failed
  *       sign-in rows hold the email that was typed.</td></tr>
+ *   <tr><td>Records a clinic imported (<code>clinic_records</code>)</td><td>The clinic's own data, so the rows
+ *       stay with the clinic; only this person's link to them ends (marked declined, never offered again).
+ *       Records never accepted were never linked to this account and are untouched.</td></tr>
  *   <tr><td>Consent records</td><td>Kept: the proof of what was agreed and when.</td></tr>
  * </table>
  *
@@ -150,6 +153,12 @@ public class AccountDeletionService {
         jdbc.update("DELETE FROM queue_tokens WHERE patient_id IN " + MY_PATIENTS, userId, userId);
         jdbc.update("DELETE FROM slot_waitlist WHERE patient_id IN " + MY_PATIENTS, userId, userId);
         jdbc.update("DELETE FROM notifications WHERE user_id = ?", userId);
+        // The clinic keeps its own record; the link to this account ends and is not offered to the next
+        // holder of the address.
+        counts.put("clinicRecordsUnlinked", jdbc.update("""
+                UPDATE clinic_records SET link_state = 'DECLINED', linked_user_id = NULL, linked_patient_id = NULL,
+                       decided_at = ?, updated_at = ?
+                WHERE linked_user_id = ?""", ts, ts, userId));
         jdbc.update("DELETE FROM otp_challenges WHERE user_id = ?", userId);
         jdbc.update("DELETE FROM idempotency_keys WHERE user_id = ?", userId);
         // Reports and photos the patient attached for the doctor.

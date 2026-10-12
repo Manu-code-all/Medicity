@@ -1,5 +1,6 @@
 package com.medicity.doctor;
 
+import com.medicity.clinic.Clinic;
 import com.medicity.common.BaseEntity;
 import com.medicity.user.User;
 import jakarta.persistence.*;
@@ -68,6 +69,15 @@ public class Doctor extends BaseEntity {
     private Double clinicLongitude;
 
     /**
+     * The clinic this doctor belongs to (V44); null for an independent doctor,
+     * who is listed with the {@code clinic_*} columns above. LAZY: read through
+     * the directory queries' join fetch, or inside a transaction.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "clinic_id")
+    private Clinic clinic;
+
+    /**
      * When the registration number was checked. Null only for a doctor who
      * signed up and is waiting: not listed, not bookable. A doctor created
      * any other way is one the clinic vouches for, so the default is now.
@@ -75,6 +85,28 @@ public class Doctor extends BaseEntity {
     @Builder.Default
     @Column(name = "verified_at")
     private Instant verifiedAt = Instant.now();
+
+    /** The clinic's id without loading the clinic (a lazy proxy knows its id). */
+    public UUID getClinicId() {
+        return clinic == null ? null : clinic.getId();
+    }
+
+    /** Where patients are seen: the clinic's details when the doctor belongs to one, otherwise their own. */
+    public String effectiveClinicName() {
+        return clinic != null ? clinic.getName() : clinicName;
+    }
+
+    public String effectiveClinicAddress() {
+        return clinic != null ? clinic.getAddress() : clinicAddress;
+    }
+
+    public Double effectiveClinicLatitude() {
+        return clinic != null ? clinic.getLatitude() : clinicLatitude;
+    }
+
+    public Double effectiveClinicLongitude() {
+        return clinic != null ? clinic.getLongitude() : clinicLongitude;
+    }
 
     public boolean isVerified() {
         return verifiedAt != null;

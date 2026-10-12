@@ -1,9 +1,28 @@
 import { request } from "./client";
 import type {
   Attachment,
+  ClinicCredentials,
+  ClinicListing,
+  ClinicProfile,
+  ClinicProfileInput,
+  ClinicReport,
+  ClinicStaffMember,
+  DeskPatientHit,
+  DeskPatientRef,
+  DeskToday,
+  DeskVisit,
+  NewClinicDoctor,
+  NewClinicReceptionist,
+  ClinicRecordsView,
   ConsentStatus,
   ConsentType,
+  EmailCodeSent,
+  ImportReport,
   DeletionSummary,
+  DispenseResult,
+  LowStockItem,
+  PharmacistAccount,
+  PharmacyPrescription,
   DoctorLeave,
   Practice,
   PracticeUpdate,
@@ -108,8 +127,9 @@ export const auth = {
 };
 
 export const doctors = {
-  search: (specialization?: string, nameQuery?: string, insurance?: string) => {
+  search: (specialization?: string, nameQuery?: string, insurance?: string, clinicId?: string) => {
     const params = new URLSearchParams();
+    if (clinicId) params.set("clinicId", clinicId);
     if (specialization) params.set("specialization", specialization);
     if (nameQuery) params.set("q", nameQuery);
     if (insurance) params.set("insurance", insurance);
@@ -230,6 +250,16 @@ export const workspace = {
 
 export const pharmacy = {
   medicines: () => request<Page<Medicine>>("/api/v1/pharmacy/medicines?size=100"),
+
+  /** The hospital pharmacy counter (pharmacists only). */
+  search: (q: string) => request<Page<Medicine>>(`/api/v1/pharmacy/medicines?size=10&q=${encodeURIComponent(q)}`),
+  findPrescriptions: (q: string) =>
+    request<PharmacyPrescription[]>(`/api/v1/pharmacy/prescriptions?q=${encodeURIComponent(q)}`),
+  dispense: (prescriptionId: string) =>
+    request<DispenseResult>(`/api/v1/pharmacy/prescriptions/${prescriptionId}/dispense`, { method: "POST" }),
+  lowStock: () => request<LowStockItem[]>("/api/v1/pharmacy/stock/low"),
+  restock: (medicineId: string, quantity: number) =>
+    request<Medicine>(`/api/v1/pharmacy/medicines/${medicineId}/restock`, { method: "POST", body: { quantity } }),
 };
 
 /** The signed-in user's notifications. Scoped by the token, like the portal. */
@@ -257,6 +287,9 @@ export const admin = {
   verifyStore: (id: string) => request<StoreProfile>(`/api/v1/admin/stores/${id}/verify`, { method: "POST" }),
   pendingDoctors: () => request<DoctorProfile[]>("/api/v1/admin/doctors/pending"),
   verifyDoctor: (id: string) => request<DoctorProfile>(`/api/v1/admin/doctors/${id}/verify`, { method: "POST" }),
+  pharmacists: () => request<PharmacistAccount[]>("/api/v1/admin/pharmacists"),
+  createPharmacist: (input: { email: string; fullName: string; temporaryPassword: string }) =>
+    request<PharmacistAccount>("/api/v1/admin/pharmacists", { method: "POST", body: input }),
 };
 
 /** The patient's questions to nearby chemists. */
@@ -432,4 +465,95 @@ export const attachments = {
   },
   remove: (appointmentId: string, attachmentId: string) =>
     request<void>(`/api/v1/appointments/${appointmentId}/attachments/${attachmentId}`, { method: "DELETE" }),
+};
+
+/** Choosing a password of one's own, required once for accounts a clinic made. */
+export const account = {
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<TokenPair>("/api/v1/account/change-password", { method: "POST", body: { currentPassword, newPassword } }),
+};
+
+/** The public list of clinics, for the directory filter. */
+export const clinics = {
+  list: () => request<ClinicListing[]>("/api/v1/clinics"),
+};
+
+/** A clinic's administrator: its profile, people and numbers. The clinic is always the caller's own. */
+export const clinicAdmin = {
+  profile: () => request<ClinicProfile>("/api/v1/clinics/me"),
+  saveProfile: (input: ClinicProfileInput) => request<ClinicProfile>("/api/v1/clinics/me", { method: "PUT", body: input }),
+  staff: () => request<ClinicStaffMember[]>("/api/v1/clinics/me/staff"),
+  addDoctor: (input: NewClinicDoctor) =>
+    request<ClinicCredentials>("/api/v1/clinics/me/doctors", { method: "POST", body: input }),
+  addReceptionist: (input: NewClinicReceptionist) =>
+    request<ClinicCredentials>("/api/v1/clinics/me/receptionists", { method: "POST", body: input }),
+  resetPassword: (userId: string) =>
+    request<ClinicCredentials>(`/api/v1/clinics/me/staff/${userId}/reset-password`, { method: "POST" }),
+  setEnabled: (userId: string, enabled: boolean) =>
+    request<ClinicStaffMember>(`/api/v1/clinics/me/staff/${userId}/${enabled ? "enable" : "disable"}`, { method: "POST" }),
+  report: (from: string, to: string) => request<ClinicReport>(`/api/v1/clinics/me/report?from=${from}&to=${to}`),
+};
+
+/** The front desk: the clinic's day, and acting for people on the phone or at the counter. */
+export const desk = {
+  today: (date?: string) => request<DeskToday>(`/api/v1/clinics/me/desk/today${date ? `?date=${date}` : ""}`),
+  arrived: (id: string) => request<DeskVisit>(`/api/v1/clinics/me/desk/visits/${id}/arrived`, { method: "POST" }),
+  noShow: (id: string) => request<DeskVisit>(`/api/v1/clinics/me/desk/visits/${id}/no-show`, { method: "POST" }),
+  cancel: (id: string, reason?: string) =>
+    request<DeskVisit>(`/api/v1/clinics/me/desk/visits/${id}/cancel`, { method: "POST", body: { reason: reason || null } }),
+  book: (slotId: string, patient: DeskPatientRef, reason?: string) =>
+    request<DeskVisit>("/api/v1/clinics/me/desk/visits", {
+      method: "POST",
+      body: { slotId, patient, reason: reason || null },
+    }),
+  walkIn: (doctorId: string, patient: DeskPatientRef, reason?: string) =>
+    request<QueueToken>("/api/v1/clinics/me/desk/walk-ins", {
+      method: "POST",
+      body: { doctorId, patient, reason: reason || null },
+    }),
+  findPatients: (q: string) => request<DeskPatientHit[]>(`/api/v1/clinics/me/desk/patients?q=${encodeURIComponent(q)}`),
+};
+
+const IMPORT = "/api/v1/doctors/me/import/patients";
+
+/** A doctor moving an old patient list in from Excel or CSV: check first, then import. */
+export const clinicImport = {
+  /** The empty CSV to fill in. */
+  template: () => request<Blob>(`${IMPORT}/template`, { as: "blob" }),
+
+  /** Checks every row and says what an import would do. Saves nothing. */
+  dryRun: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<ImportReport>(`${IMPORT}/dry-run`, { method: "POST", body: form });
+  },
+
+  /** Imports the file that was checked; `fileSha256` is the hash the check returned. */
+  confirm: (file: File, fileSha256: string) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("fileSha256", fileSha256);
+    return request<ImportReport>(`${IMPORT}/confirm`, { method: "POST", body: form });
+  },
+
+  /** Every problem in the file, as a CSV. */
+  errorReport: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<Blob>(`${IMPORT}/error-report`, { method: "POST", body: form, as: "blob" });
+  },
+};
+
+/** The patient's side: prove the email, see which clinics hold a record for it, say yes or no. */
+export const clinicRecords = {
+  view: () => request<ClinicRecordsView>("/api/v1/patients/me/clinic-records"),
+
+  sendCode: () => request<EmailCodeSent>("/api/v1/patients/me/clinic-records/email-code", { method: "POST" }),
+
+  verifyCode: (code: string) =>
+    request<void>("/api/v1/patients/me/clinic-records/email-code/verify", { method: "POST", body: { code } }),
+
+  accept: (id: string) => request<void>(`/api/v1/patients/me/clinic-records/${id}/accept`, { method: "POST" }),
+
+  decline: (id: string) => request<void>(`/api/v1/patients/me/clinic-records/${id}/decline`, { method: "POST" }),
 };

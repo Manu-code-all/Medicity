@@ -97,6 +97,17 @@ public class QueueService {
      */
     @Transactional
     public Token join(UUID doctorId, Patient patient, String reason) {
+        return join(doctorId, patient, reason, null);
+    }
+
+    /**
+     * As {@link #join(UUID, Patient, String)}, for a token a member of a clinic's
+     * front desk adds for someone standing there or on the phone. {@code addedBy}
+     * is that staff member; the token remembers them (V47) and the audit row
+     * says so.
+     */
+    @Transactional
+    public Token join(UUID doctorId, Patient patient, String reason, UUID addedBy) {
         requireBookable(doctorId);
         if (outsideHours()) {
             throw new ValidationException("QUEUE_CLOSED", "Walk-in tokens are given between 7 am and 9 pm.");
@@ -121,16 +132,23 @@ public class QueueService {
         UUID id;
         try {
             id = jdbc.queryForObject("""
-                    INSERT INTO queue_tokens (doctor_id, queue_date, token_no, patient_id, reason, joined_at)
-                    VALUES (:doctor, :today, :no, :patient, :reason, :now)
+                    INSERT INTO queue_tokens (doctor_id, queue_date, token_no, patient_id, reason, joined_at, added_by_user_id)
+                    VALUES (:doctor, :today, :no, :patient, :reason, :now, :addedBy)
                     RETURNING id
                     """, day.addValue("no", numbered.get(0)).addValue("patient", patient.getId())
+                    .addValue("addedBy", addedBy)
                     .addValue("reason", reason == null || reason.isBlank() ? null : reason.trim())
                     .addValue("now", OffsetDateTime.ofInstant(clock.instant(), CLINIC_ZONE)), UUID.class);
         } catch (DuplicateKeyException e) {
             throw new ConflictException("ALREADY_IN_QUEUE", "You already have a place in this doctor's queue today.");
         }
-        auditLog.recordChange("QUEUE_JOINED", "QUEUE_TOKEN", id, Map.of("doctorId", doctorId, "tokenNo", numbered.get(0)));
+        Map<String, Object> detail = new java.util.LinkedHashMap<>();
+        detail.put("doctorId", doctorId);
+        detail.put("tokenNo", numbered.get(0));
+        if (addedBy != null) {
+            detail.put("addedByUserId", addedBy);
+        }
+        auditLog.recordChange("QUEUE_JOINED", "QUEUE_TOKEN", id, detail);
         return token(id);
     }
 
@@ -170,6 +188,27 @@ public class QueueService {
                 WHERE t.doctor_id = :doctor AND t.queue_date = :today
                 ORDER BY t.token_no
                 """, Map.of("doctor", doctorId, "today", today()), this::mapToken);
+    }
+
+    /** Today's tokens for several doctors at once (a clinic's front desk), in doctor then token order. */
+    public List<Token> deskFor(java.util.Collection<UUID> doctorIds) {
+        if (doctorIds.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.query(SELECT_TOKENS + """
+                WHERE t.doctor_id IN (:doctors) AND t.queue_date = :today
+                ORDER BY du.full_name, t.token_no
+                """, Map.of("doctors", doctorIds, "today", today()), this::mapToken);
+    }
+
+    /** Doctors whose queue was closed to new walk-ins today. */
+    public java.util.Set<UUID> closedToday(java.util.Collection<UUID> doctorIds) {
+        if (doctorIds.isEmpty()) {
+            return java.util.Set.of();
+        }
+        return new java.util.HashSet<>(jdbc.queryForList(
+                "SELECT doctor_id FROM queue_days WHERE doctor_id IN (:doctors) AND queue_date = :today AND closed_at IS NOT NULL",
+                Map.of("doctors", doctorIds, "today", today()), UUID.class));
     }
 
     /**

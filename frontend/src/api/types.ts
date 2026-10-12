@@ -15,9 +15,11 @@ export interface TokenPair {
   userId: string;
   role: Role;
   fullName: string;
+  /** True for an account made by a clinic: it must choose its own password before anything else. */
+  mustChangePassword?: boolean;
 }
 
-export type Role = "PATIENT" | "DOCTOR" | "ADMIN" | "CHEMIST" | "PHARMACIST";
+export type Role = "PATIENT" | "DOCTOR" | "ADMIN" | "CHEMIST" | "PHARMACIST" | "CLINIC_ADMIN" | "RECEPTIONIST";
 
 export type AppointmentStatus = "BOOKED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 
@@ -42,6 +44,8 @@ export interface Doctor {
   clinicAddress?: string | null;
   clinicLatitude?: number | null;
   clinicLongitude?: number | null;
+  /** Set when the doctor works at a registered clinic or hospital. */
+  clinicId?: string | null;
 }
 
 export interface Specialty {
@@ -251,6 +255,51 @@ export interface Medicine {
   strength: string | null;
   quantityOnHand: number;
   lowStock: boolean;
+}
+
+/** One prescription as the pharmacy counter sees it. */
+export interface PharmacyPrescription {
+  id: string;
+  /** The first eight characters of the id: what the patient reads out. */
+  reference: string;
+  patientName: string;
+  doctorName: string;
+  diagnosis: string;
+  issuedAt: string;
+  dispensedAt: string | null;
+  canDispense: boolean;
+  items: Array<{
+    medicineId: string;
+    medicine: string;
+    strength: string | null;
+    quantity: number;
+    dosage: string;
+    frequency: string;
+    durationDays: number;
+    quantityOnHand: number;
+  }>;
+}
+
+export interface DispenseResult {
+  prescriptionId: string;
+  dispensedAt: string;
+  items: Array<{ medicine: string; strength: string | null; quantity: number; remainingStock: number }>;
+}
+
+export interface LowStockItem {
+  medicineId: string;
+  name: string;
+  strength: string | null;
+  quantityOnHand: number;
+  reorderLevel: number;
+}
+
+export interface PharmacistAccount {
+  id: string;
+  email: string;
+  fullName: string;
+  enabled: boolean;
+  createdAt: string;
 }
 
 export interface AppNotification {
@@ -816,6 +865,8 @@ export interface PracticeUpdate {
 
 export interface Practice extends PracticeUpdate {
   availableInsurers: Insurer[];
+  /** The doctor works at a clinic, which owns the name, address and location shown to patients. */
+  clinicManaged?: boolean;
 }
 
 export interface FollowUpMessage {
@@ -850,4 +901,196 @@ export interface LiveStatus {
   delayMinutes: number;
   visitInProgress: boolean;
   asOf: string;
+}
+
+/** A clinic or hospital, as the public directory lists it. */
+export interface ClinicListing {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  phone: string | null;
+  email: string | null;
+  doctors: number;
+}
+
+export interface ClinicProfile {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  phone: string | null;
+  email: string | null;
+  timezone: string;
+  active: boolean;
+}
+
+export type ClinicProfileInput = Omit<ClinicProfile, "id" | "active">;
+
+export interface ClinicStaffMember {
+  userId: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  role: "CLINIC_ADMIN" | "RECEPTIONIST" | "DOCTOR";
+  doctorId: string | null;
+  specialization: string | null;
+  verified: boolean;
+  enabled: boolean;
+  mustChangePassword: boolean;
+}
+
+/** Shown once, when an account is made or its password reset. */
+export interface ClinicCredentials {
+  userId: string;
+  email: string;
+  fullName: string;
+  role: string;
+  temporaryPassword: string;
+}
+
+export interface NewClinicDoctor {
+  fullName: string;
+  email: string;
+  phone?: string | undefined;
+  specialization: string;
+  medicalCouncil: string;
+  registrationNumber: string;
+  qualification: string;
+  yearsExperience: number;
+  consultationFee: number;
+}
+
+export interface NewClinicReceptionist {
+  fullName: string;
+  email: string;
+  phone?: string | undefined;
+}
+
+export interface ClinicDayRow {
+  date: string;
+  scheduled: number;
+  completed: number;
+  noShows: number;
+  cancellations: number;
+  walkIns: number;
+  walkInsSeen: number;
+  bookedByDesk: number;
+}
+
+export interface ClinicReport {
+  from: string;
+  to: string;
+  timezone: string;
+  days: ClinicDayRow[];
+  totals: ClinicDayRow;
+}
+
+export interface DeskDoctor {
+  id: string;
+  fullName: string;
+  specialization: string;
+  verified: boolean;
+  walkInsOpen: boolean;
+  waiting: number;
+}
+
+export interface DeskVisit {
+  id: string;
+  doctorId: string;
+  doctorName: string;
+  scheduledAt: string;
+  endsAt: string;
+  status: AppointmentStatus;
+  patientName: string;
+  patientPhone: string | null;
+  reason: string | null;
+  visitType: string | null;
+  arrivedAt: string | null;
+  bookedByDesk: boolean;
+}
+
+export interface DeskToday {
+  date: string;
+  timezone: string;
+  doctors: DeskDoctor[];
+  visits: DeskVisit[];
+  walkIns: QueueToken[];
+}
+
+/** Who a desk action is for: exactly one of the three. */
+export type DeskPatientRef =
+  | { patientId: string }
+  | { email: string }
+  | { newPatient: { fullName: string; phone?: string | undefined; ageYears: number; gender?: string | undefined } };
+
+export interface DeskPatientHit {
+  patientId: string | null;
+  email: string | null;
+  fullName: string;
+  phone: string | null;
+  /** CLINIC: recorded by this clinic. ACCOUNT: a Medicity account found by its exact email. */
+  source: "CLINIC" | "ACCOUNT";
+}
+
+/** One problem in an imported patient list: the spreadsheet row, the column (null for the whole row) and what is wrong. */
+export interface ImportIssue {
+  row: number;
+  column: string | null;
+  code: string;
+  message: string;
+}
+
+/** What a patient-list import would do (applied false) or did (applied true). */
+export interface ImportReport {
+  applied: boolean;
+  fileSha256: string;
+  totalRows: number;
+  validRows: number;
+  rejectedRows: number;
+  created: number;
+  updated: number;
+  unchanged: number;
+  errorCount: number;
+  errors: ImportIssue[];
+  errorsTruncated: boolean;
+  ignoredColumns: string[];
+}
+
+/** A clinic's record offered to the patient: only who holds it. */
+export interface ClinicRecordOffer {
+  id: string;
+  clinicName: string;
+}
+
+/** A clinic's record the patient accepted: everything the clinic holds. */
+export interface LinkedClinicRecord {
+  id: string;
+  clinicName: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+  dateOfBirth: string | null;
+  gender: string | null;
+  bloodGroup: string | null;
+  allergies: string | null;
+  notes: string | null;
+  acceptedAt: string;
+}
+
+export interface ClinicRecordsView {
+  emailVerified: boolean;
+  offers: ClinicRecordOffer[];
+  linked: LinkedClinicRecord[];
+}
+
+export interface EmailCodeSent {
+  delivery: "EMAIL" | "DEMO" | "UNAVAILABLE";
+  sentTo: string | null;
+  demoCode: string | null;
+  expiresInSeconds: number;
 }

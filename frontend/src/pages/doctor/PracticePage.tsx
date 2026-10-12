@@ -136,6 +136,14 @@ function PracticeEditor({ saved }: { saved: Practice }) {
         <h2 id="practice-clinic" className="portal__subtitle">
           Your clinic
         </h2>
+        {saved.clinicManaged ? (
+          <p className="muted small">
+            You work at <strong>{saved.clinic?.name ?? "a registered clinic"}</strong>
+            {saved.clinic?.address ? `, ${saved.clinic.address}` : ""}. The clinic's administrator keeps its name, address
+            and location, and patients see them beside your name.
+          </p>
+        ) : (
+          <>
         <p className="muted small">
           Patients see this beside your name and how far it is from them. Stand at the clinic and press the button for
           the most exact pin.
@@ -164,6 +172,8 @@ function PracticeEditor({ saved }: { saved: Practice }) {
           )}
         </div>
         {locating === "refused" && <small className="error">Your browser did not share the location.</small>}
+          </>
+        )}
       </section>
 
       <section className="card stack" aria-labelledby="practice-insurers">

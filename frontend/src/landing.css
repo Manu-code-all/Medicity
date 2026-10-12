@@ -614,7 +614,7 @@
 .lm-roles {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(var(--n, 3), 1fr);
   padding: 4px;
   border-radius: 9999px;
   background: var(--lm-raised);
@@ -624,7 +624,7 @@
   top: 4px;
   bottom: 4px;
   left: 4px;
-  width: calc((100% - 8px) / 3);
+  width: calc((100% - 8px) / var(--n, 3));
   border-radius: 9999px;
   background: var(--lm-band);
   transform: translateX(calc(var(--i, 0) * 100%));

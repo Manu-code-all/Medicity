@@ -101,11 +101,13 @@ public class DoctorController {
 
     @GetMapping
     @Operation(summary = "Search the doctor directory",
-            description = "`q` matches a doctor's name or specialisation; `specialization` and `insurance` are exact filters.")
+            description = "`q` matches a doctor's name, specialisation or clinic; `specialization`, `insurance` and "
+                    + "`clinicId` are exact filters. Doctors of a deactivated clinic are not listed.")
     public Page<DoctorResponse> search(
             @RequestParam(required = false) String specialization,
             @RequestParam(required = false, name = "q") String nameQuery,
             @RequestParam(required = false) String insurance,
+            @RequestParam(required = false) UUID clinicId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
@@ -116,8 +118,9 @@ public class DoctorController {
                 Math.min(Math.max(size, 1), 50),
                 Sort.by("specialization"));
 
-        Page<Doctor> doctors = doctorRepository.search(blankToNull(specialization), blankToNull(nameQuery),
-                blankToNull(insurance), pageable);
+        Page<Doctor> doctors = doctorRepository.searchAt(blankToNull(specialization), blankToNull(nameQuery),
+                blankToNull(insurance), clinicId != null, clinicId == null ? DoctorRepository.NO_CLINIC : clinicId,
+                pageable);
         List<UUID> ids = doctors.map(Doctor::getId).getContent();
         Map<UUID, List<SlotResponse>> next = nextSlots(ids);
         Map<UUID, ReviewService.Rating> ratings = reviewService.ratings(ids);
@@ -207,11 +210,14 @@ public class DoctorController {
             String clinicName,
             String clinicAddress,
             Double clinicLatitude,
-            Double clinicLongitude
+            Double clinicLongitude,
+            /** The clinic or hospital the doctor belongs to; null for an independent doctor. */
+            UUID clinicId
     ) {
         DoctorResponse withOffers(List<String> insurers, List<DoctorOffers.Price> prices) {
             return new DoctorResponse(id, fullName, specialization, consultationFee, yearsExperience, bio, nextSlots,
-                    rating, reviewCount, insurers, prices, clinicName, clinicAddress, clinicLatitude, clinicLongitude);
+                    rating, reviewCount, insurers, prices, clinicName, clinicAddress, clinicLatitude, clinicLongitude,
+                    clinicId);
         }
 
         static DoctorResponse from(Doctor d, List<SlotResponse> nextSlots, ReviewService.Rating rating) {
@@ -227,10 +233,11 @@ public class DoctorController {
                     rating == null ? 0 : rating.count(),
                     List.of(),
                     List.of(),
-                    d.getClinicName(),
-                    d.getClinicAddress(),
-                    d.getClinicLatitude(),
-                    d.getClinicLongitude());
+                    d.effectiveClinicName(),
+                    d.effectiveClinicAddress(),
+                    d.effectiveClinicLatitude(),
+                    d.effectiveClinicLongitude(),
+                    d.getClinicId());
         }
     }
 

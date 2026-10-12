@@ -163,4 +163,27 @@ describe("DoctorsPage", () => {
     expect(await screen.findByRole("option", { name: "Cardiology (2)" })).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search by name or speciality")).toHaveValue("rao");
   });
+
+  it("filters by clinic or hospital when some are listed, and says nothing when none are", async () => {
+    const calls = directory(({ url }) => {
+      if (url === "/api/v1/clinics") {
+        return json(200, [{ id: "c1", name: "Indiranagar Family Health Centre", address: null, city: "Bengaluru",
+          latitude: null, longitude: null, phone: null, email: null, doctors: 5 }]);
+      }
+      return json(200, url.endsWith("/specialties") ? [] : MENON);
+    });
+    renderAt("/doctors");
+
+    await screen.findByRole("option", { name: "Indiranagar Family Health Centre (5)" });
+    await userEvent.selectOptions(screen.getByLabelText("Clinic or hospital"), "c1");
+    expect(calls.some((c) => c.url === "/api/v1/doctors?clinicId=c1")).toBe(true);
+  });
+
+  it("hides the clinic filter when no clinic has doctors to book", async () => {
+    directory(({ url }) => (url === "/api/v1/clinics" ? json(200, []) : json(200, url.endsWith("/specialties") ? [] : EMPTY)));
+    renderAt("/doctors");
+
+    await screen.findByRole("option", { name: "CGHS" });
+    expect(screen.queryByLabelText("Clinic or hospital")).toBeNull();
+  });
 });
