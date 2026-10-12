@@ -3021,6 +3021,111 @@ not been applied to a database, and nothing has talked to the real Resend.
 
 ---
 
+## 74. Clinics, a clinic administrator and a front desk
+
+**Why.** Medicity served one doctor at a time. A clinic or hospital has several
+doctors, a reception desk that books for people on the phone, and an owner who
+wants to know how the days went. The only "front desk" was a doctor's own
+account (entry 42), so a clinic could not be sold to without sharing logins.
+
+**What.**
+
+- **Data (V44-V47).** `clinics`; `clinic_staff` (one row per staff user, role
+  `CLINIC_ADMIN` or `RECEPTIONIST`); `doctors.clinic_id` (nullable, so
+  independent doctors are unchanged); the two roles added to the `users` role
+  check (as V37 did for `PHARMACIST`); `users.must_change_password`;
+  `patients.registered_by_clinic_id`; `appointments.arrived_at` and
+  `booked_by_user_id`; `queue_tokens.added_by_user_id`. The demo seed adds two
+  clinics, four staff accounts and assigns ten of the demo doctors.
+- **Clinic administrator.** Edits the profile, adds a doctor or a receptionist,
+  resets or disables an account, reads a per-day report (booked, completed,
+  no-shows, cancellations, walk-ins, booked by the desk). The platform `ADMIN`
+  creates a clinic with its first administrator.
+- **Front desk.** Today's schedule across the clinic's doctors; arrival;
+  missed; cancel; book on behalf of a caller; a walk-in token for any clinic
+  doctor. Walk-ins reuse `QueueService.join` (same numbering, same limits, same
+  7am to 9pm window), only recording who added the token.
+- **Directory.** Doctors show their clinic's name, address and location, and
+  `GET /doctors?clinicId=` and `GET /clinics` let patients filter. A clinic
+  doctor's own clinic fields are ignored (the clinic owns them).
+- **Frontend.** `/clinic` (profile, people, report) and `/desk` (today, walk-in,
+  book) on `WorkspaceShell`; sign-in tab "Clinic" with both demo accounts; a
+  gate that forces the first password change; a clinic filter on the directory.
+
+**Decisions worth knowing.**
+
+- **The clinic is never taken from the request.** `ClinicAccess.resolve` reads
+  the caller's `clinic_staff` row (and refuses a missing row, an inactive clinic
+  or a role that does not match). Every service method takes that `Staff` value,
+  and every query is written `WHERE clinic_id = :clinic`. A foreign id gets the
+  same `404` as a nonexistent one, so ids cannot be probed, plus an
+  `ACCESS_DENIED` audit row (written independently, so it survives the
+  rollback) naming the caller's clinic and the attempted operation.
+- **Temporary password and forced reset, not an emailed invite.** Simpler and
+  needs no email provider. The administrator sees the password once; it is not
+  kept anywhere (not in the audit detail either). `JwtAuthenticationFilter`
+  answers `403 PASSWORD_CHANGE_REQUIRED` to everything but
+  `/account/change-password` and `/auth/**` until it is changed, which revokes
+  all refresh tokens and returns a fresh session. Changing is throttled like a
+  sign-in (failures count as `LOGIN_FAILED` for the email).
+- **A caller with no account is a "shadow" patient.** A `PATIENT` user
+  `desk-<uuid>@walkin.invalid`, disabled, with an unusable password hash, and a
+  `patients` row carrying `registered_by_clinic_id`. This avoids touching the
+  `patients_one_kind` constraint, every existing patient query keeps working,
+  and the email consumer (which reads enabled users) never tries to write to
+  them. Search finds only the *caller's own clinic's* recorded people (by name
+  or phone; `%` and `_` are literal), and a real account only by its whole
+  email, so the desk cannot browse Medicity's patients. The nightly demo reset
+  deletes unused shadow patients and receptionists made during the demo.
+- **Clinic doctors start unverified.** Adding a doctor does not bypass the
+  existing check: the platform `ADMIN` still verifies the registration number
+  before the doctor is listed or bookable.
+- **Roles and consent.** `CLINIC_ADMIN` and `RECEPTIONIST` need terms and privacy
+  consent like doctors and chemists; the seed's existing statement covers the
+  `@medicity.demo` accounts.
+
+**Verified.** Run against a private PostgreSQL 16 (not Testcontainers; see
+below): the new `ClinicIsolationTest` (11: schedule scope; cross-clinic
+arrived, no-show, cancel, walk-in, book, patients, staff management and report
+all `404` with rows unchanged and an audit row; role separation; inactive
+clinic; staff without a clinic), `ClinicStaffTest` (11: temporary-password
+flow, profile, adding a doctor, directory and filter, clinic-managed practice
+page, receptionist lifecycle, admin accounts protected, roster, report, consent
+for the new roles, the role check) and `FrontDeskTest` (10) all pass. The whole
+backend suite (339 tests) was run: all passed except two, both explained below
+and then fixed or understood. The demo seed was applied twice to that database
+with `ON_ERROR_STOP` (idempotent; every new account has its two consent rows).
+Frontend: typecheck, lint with zero warnings, 236 tests (23 new) and the
+production build pass.
+
+**Not verified.**
+
+- The sandbox has no Docker, so `AbstractIntegrationTest` (Testcontainers,
+  PostgreSQL 18 in CI) was pointed at a local PostgreSQL 16 for the run and the
+  change reverted; the committed code still uses Testcontainers. The
+  migrations have not been applied to PostgreSQL 18.
+- The first full-suite run had two failures. `ClinicStaffTest` used fixed
+  emails, and the append-only audit log (so the sign-in throttle) remembers
+  earlier runs within 15 minutes: fixed with a per-run suffix.
+  `AuditTrailTest.overlongEntityIdIsTruncated` failed because the private
+  cluster was `SQL_ASCII` (it counts bytes, so the "…" overflowed
+  `VARCHAR(255)`); it passes on a `UTF8` database, as CI's is. The full suite
+  was not repeated after those two fixes (only the two classes were).
+- The Playwright e2e specs were not run (they need the whole stack and a
+  browser). They do not touch anything this entry changes: the default sign-in
+  form, the directory card and its booking link are unchanged.
+- No browser walkthrough of `/clinic` and `/desk`.
+
+**Known limits (also in Known gaps).** Desk-recorded callers have no consent
+record. The desk's schedule view is not audited (it is polled every few
+seconds); searches, the report and every change are. Old access tokens survive a
+password change until they expire (15 minutes); refresh tokens do not. A staff
+account belongs to one clinic. Clinic doctors still set their own hours. The
+queue still uses fixed `Asia/Kolkata` days; a clinic's `timezone` affects only
+the desk's and the report's day boundaries.
+
+---
+
 ## Known gaps (tracked, not hidden)
 
 - **Doctor verification is a manual look-up.** The administrator checks the
@@ -3037,11 +3142,16 @@ not been applied to a database, and nothing has talked to the real Resend.
   run. The signalling rooms and tickets live in the API's memory, so a
   second API instance would need them shared (Redis pub/sub). The call is
   not recorded, and there is no in-call chat or screen sharing.
-- **The walk-in queue refreshes by polling, and has no receptionist role.**
-  Places update every 10 seconds rather than being pushed; the doctor's
-  account is the front desk, and there is no separate kiosk or receptionist
-  login. Arrivals for booked visits are listed beside the walk-ins, not
-  merged into one numbered line.
+- **The walk-in queue refreshes by polling, and the receptionist role is
+  only partly there.** Places update every 10 seconds rather than being
+  pushed. A clinic's receptionist now exists (entry 74): they add walk-ins for
+  any doctor of their clinic and mark arrivals. Still missing: a patient-facing
+  kiosk, an arrival that moves a booked visit into the numbered line (the
+  arrival is recorded and shown, not merged), and a receptionist who works for
+  more than one clinic. An independent doctor still uses their own account as
+  the front desk. Callers the desk records have no consent record, and the
+  desk's schedule view (polled) is not audited, though searches and every
+  change are.
 - **"Running late" is an estimate.** It relies on doctors closing each visit
   as they finish; a doctor who closes them all at the end of the day looks
   late until then. There is no check-in or "consultation started" event.
